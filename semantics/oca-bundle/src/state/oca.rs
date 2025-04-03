@@ -54,7 +54,6 @@ pub struct OCABox {
     pub attributes: HashMap<String, Attribute>,
     pub mappings: Option<Vec<overlay::AttributeMapping>>,
     pub meta: Option<HashMap<Language, HashMap<String, String>>>,
-    pub classification: Option<String>,
 }
 
 impl Default for OCABox {
@@ -69,7 +68,6 @@ impl OCABox {
             attributes: HashMap::new(),
             mappings: None,
             meta: None,
-            classification: None,
         }
     }
     /// Remove attribute from the OCA Bundle
@@ -97,13 +95,6 @@ impl OCABox {
             Some(ref mut mappings) => mappings.push(mapping),
             None => self.mappings = Some(vec![mapping]),
         }
-    }
-    pub fn add_classification(&mut self, classification: String) {
-        self.classification = Some(classification);
-    }
-
-    pub fn remove_classification(&mut self) {
-        self.classification = None;
     }
 
     pub fn generate_bundle(&mut self) -> OCABundle {
@@ -321,9 +312,6 @@ impl OCABox {
     }
     fn generate_capture_base(&mut self) -> CaptureBase {
         let mut capture_base = CaptureBase::new();
-        if let Some(classification) = &self.classification {
-            capture_base.set_classification(classification);
-        }
         for attribute in self.attributes.values() {
             capture_base.add(attribute);
         }
@@ -684,7 +672,6 @@ pub struct OCABundle {
 impl From<OCABundle> for OCABox {
     fn from(oca_bundle: OCABundle) -> Self {
         let mut oca_box = OCABox::new();
-        oca_box.add_classification(oca_bundle.capture_base.classification);
 
         let mut attributes: HashMap<String, Attribute> = HashMap::new();
         for (attr_name, attr_type) in oca_bundle.capture_base.attributes {
@@ -929,13 +916,6 @@ impl OCABundle {
         let mut ast = OCAAst::new();
 
         let mut properties = None;
-        if !self.capture_base.classification.is_empty() {
-            properties = Some(IndexMap::new());
-            properties.as_mut().unwrap().insert(
-                "classification".to_string(),
-                NestedValue::Value(self.capture_base.classification.clone()),
-            );
-        }
 
         let mut attributes = IndexMap::new();
         self.capture_base
@@ -1336,7 +1316,6 @@ mod tests {
     #[test]
     fn build_oca_bundle() {
         let mut oca = OCABox::new();
-        oca.add_classification("test".to_string());
         oca.add_meta(Language::Eng, "name".to_string(), "test name".to_string());
         oca.add_meta(
             Language::Eng,
@@ -1499,8 +1478,7 @@ mod tests {
     #[test]
     fn build_oca_without_attributes() {
         let oca = OCABuilder::new(Encoding::Utf8)
-            .add_classification("GICS:35102020".to_string())
-            /*             .add_name(hashmap! {
+            /*  .add_name(hashmap! {
                 "En".to_string() => "Driving Licence".to_string(),
                 "Pl".to_string() => "Prawo Jazdy".to_string(),
             })
@@ -1513,7 +1491,6 @@ mod tests {
         // println!("{:#?}", serde_json::to_string(&oca).unwrap());
 
         assert_eq!(oca.capture_base.attributes.len(), 0);
-        assert_eq!(oca.capture_base.classification, "GICS:35102020");
     }
 }
 */

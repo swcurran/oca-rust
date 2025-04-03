@@ -501,7 +501,6 @@ mod tests {
     "capture_base": {
         "type": "spec/capture_base/1.0",
         "said": "EBQMQm_tXSC8tnNICl7paGUeGg0SyF1tceHhTUutn1PN",
-        "classification": "",
         "attributes": {
             "n1": "Text",
             "n2": "DateTime",

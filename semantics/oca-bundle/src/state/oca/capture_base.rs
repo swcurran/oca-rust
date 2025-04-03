@@ -47,7 +47,6 @@ pub struct CaptureBase {
     pub schema_type: String,
     #[serde(serialize_with = "serialize_attributes")]
     pub attributes: IndexMap<String, NestedAttrType>,
-    pub classification: String,
     #[serde(serialize_with = "serialize_flagged_attributes")]
     pub flagged_attributes: Vec<String>,
 }
@@ -63,14 +62,9 @@ impl CaptureBase {
         CaptureBase {
             schema_type: String::from("spec/capture_base/1.1"),
             said: None,
-            classification: String::from(""),
             attributes: IndexMap::new(),
             flagged_attributes: Vec::new(),
         }
-    }
-
-    pub fn set_classification(&mut self, classification: &str) {
-        self.classification = classification.to_string();
     }
 
     pub fn add(&mut self, attribute: &Attribute) {

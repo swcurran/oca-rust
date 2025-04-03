@@ -142,16 +142,6 @@ pub fn apply_command(base: Option<OCABox>, op: ast::Command) -> Result<OCABox, V
                     oca.add_attribute(attribute);
                 }
             }
-            if let Some(ref properties) = content.properties {
-                // TODO handle other properties
-                for (prop_name, prop_value) in properties {
-                    if prop_name.eq("classification") {
-                        if let ast::NestedValue::Value(value) = prop_value {
-                            oca.add_classification(value.clone());
-                        }
-                    }
-                }
-            }
         }
         (ast::CommandType::Add, ast::ObjectKind::Overlay(overlay_type, content)) => {
             match overlay_type {
@@ -544,13 +534,6 @@ pub fn apply_command(base: Option<OCABox>, op: ast::Command) -> Result<OCABox, V
             if let Some(ref attributes) = content.attributes {
                 for (attr_name, _) in attributes {
                     oca.remove_attribute(attr_name);
-                }
-            }
-            if let Some(ref properties) = content.properties {
-                for (prop_name, _) in properties {
-                    if prop_name.eq("classification") {
-                        oca.remove_classification()
-                    }
                 }
             }
         }

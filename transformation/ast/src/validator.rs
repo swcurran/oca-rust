@@ -117,9 +117,6 @@ mod tests {
                     "documentType".to_string() => NestedAttrType::Value(AttributeType::Text),
                     "photo".to_string() => NestedAttrType::Value(AttributeType::Binary),
                 }),
-                properties: Some(indexmap! {
-                    "classification".to_string() => NestedValue::Value("GICS:1234".to_string()),
-                }),
                 flagged_attributes: None,
             }),
         };

@@ -120,7 +120,6 @@ oca_object = _{
     meta |
     label |
     attribute |
-    classification |
     information |
     unit |
     character_encoding |
@@ -142,7 +141,6 @@ remove_oca_object = _{
     remove_meta |
     remove_label |
     remove_attribute |
-    remove_classification |
     information |
     unit |
     character_encoding |
@@ -191,9 +189,6 @@ json_pair = ${ json_key ~ arg_ws* ~ ":" ~ (arg_ws | NEWLINE)? ~ json_value ~ (ar
 json_object = ${ "{" ~ ((arg_ws | NEWLINE)? ~ arg_ws* ~ json_pair ~ (arg_ws | NEWLINE)?)+ ~ arg_ws* ~ "}" }
 
 flagged_attrs = {^"flagged_attributes" ~ arg_ws ~ list_value}
-classification = { ^"classification" ~ arg_ws ~ classification_value}
-remove_classification = { ^"classification"}
-classification_value = { string | char+}
 
 //overlay_args = { ws* ~ ANY* }
 attribute = { ^"attribute" ~ attr_pairs+ }

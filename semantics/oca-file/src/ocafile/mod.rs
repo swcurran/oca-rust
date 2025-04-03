@@ -176,15 +176,6 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                                 line.push_str(&out);
                             }
                         }
-                        if let Some(properties) = &content.properties {
-                            for (prop_name, prop_value) in properties {
-                                if prop_name.eq("classification") {
-                                    if let ast::NestedValue::Value(value) = prop_value {
-                                        line.push_str(format!("CLASSIFICATION {}", value).as_str());
-                                    }
-                                }
-                            }
-                        }
                     }
                     ast::ObjectKind::Overlay(o_type, _) => match o_type {
                         ast::OverlayType::Meta(_) => {
@@ -495,13 +486,6 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                         line.push_str("ATTRIBUTE");
                         for (key, _) in attributes {
                             line.push_str(&format!(" {}", key));
-                        }
-                    }
-                    if let Some(properties) = &content.properties {
-                        for (prop_name, _) in properties {
-                            if prop_name.eq("classification") {
-                                line.push_str("CLASSIFICATION");
-                            }
                         }
                     }
                 }

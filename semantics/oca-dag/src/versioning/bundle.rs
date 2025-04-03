@@ -45,7 +45,6 @@ mod tests {
   "capture_base": {
     "said": "EIJGJmS_P9jwZDamB6cTG9MoXKRu21myjXsMi7GYddDy",
     "type": "spec/capture_base/1.0",
-    "classification": "",
     "attributes": {
       "passed": "Boolean"
     },

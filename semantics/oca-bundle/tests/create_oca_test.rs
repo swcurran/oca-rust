@@ -103,7 +103,6 @@ fn create_oca() {
       "age": "Numeric",
       "name": "Text"
     },
-    "classification": "",
     "flagged_attributes": [
       "age",
       "name"
@@ -261,7 +260,6 @@ fn create_oca() {
       "age": "Numeric",
       "name": "Text"
     },
-    "classification": "",
     "flagged_attributes": [
       "age",
       "name"

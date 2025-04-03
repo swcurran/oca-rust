@@ -293,9 +293,6 @@ mod tests {
                     "documentType".to_string() => NestedAttrType::Value(AttributeType::Text),
                     "photo".to_string() => NestedAttrType::Value(AttributeType::Binary),
                 }),
-                properties: Some(indexmap! {
-                    "classification".to_string() => NestedValue::Value("GICS:1234".to_string()),
-                }),
                 flagged_attributes: None,
             }),
         };
@@ -306,9 +303,6 @@ mod tests {
                 attributes: Some(indexmap! {
                     "issuer".to_string() => NestedAttrType::Value(AttributeType::Text),
                     "last_name".to_string() => NestedAttrType::Value(AttributeType::Binary),
-                }),
-                properties: Some(indexmap! {
-                    "classification".to_string() => NestedValue::Value("GICS:1234".to_string()),
                 }),
                 flagged_attributes: None,
             }),
@@ -381,9 +375,6 @@ mod tests {
                     "name".to_string() => NestedAttrType::Value(AttributeType::Text),
                     "documentType".to_string() => NestedAttrType::Value(AttributeType::Text),
                     "photo".to_string() => NestedAttrType::Value(AttributeType::Binary),
-                }),
-                properties: Some(indexmap! {
-                    "classification".to_string() => NestedValue::Value("GICS:1234".to_string()),
                 }),
                 flagged_attributes: None,
             }),

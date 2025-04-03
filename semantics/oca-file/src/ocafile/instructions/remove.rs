@@ -26,18 +26,6 @@ impl RemoveInstruction {
                         },
                     ));
                 }
-                Rule::remove_classification => {
-                    let mut properties: IndexMap<String, NestedValue> = IndexMap::new();
-                    properties.insert(
-                        "classification".to_string(),
-                        NestedValue::Value("".to_string()),
-                    );
-                    object_kind = Some(ObjectKind::CaptureBase(CaptureContent {
-                        attributes: None,
-                        properties: Some(properties),
-                        flagged_attributes: None,
-                    }));
-                }
                 Rule::remove_label => {
                     object_kind = Some(ObjectKind::Overlay(
                         OverlayType::Label(overlay_version),

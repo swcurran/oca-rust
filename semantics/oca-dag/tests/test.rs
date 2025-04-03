@@ -25,12 +25,6 @@ fn generate_commands() -> Vec<ast::Command> {
         ast::NestedAttrType::Value(ast::AttributeType::Text),
     );
 
-    let mut properties = IndexMap::new();
-    properties.insert(
-        "classification".to_string(),
-        ast::NestedValue::Value("12345".to_string()),
-    );
-
     commands.push(ast::Command {
         kind: ast::CommandType::Add,
         object_kind: ast::ObjectKind::CaptureBase(ast::CaptureContent {
