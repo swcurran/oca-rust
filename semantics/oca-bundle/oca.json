@@ -6,9 +6,6 @@
       "last_name": "Text"
     },
     "digest": "EMdMn4N-HPgAmy4L8YcIyqxmHU5m68LH956CllwZwbMA",
-    "flagged_attributes": [
-      "last_name"
-    ],
     "type": "spec/capture_base/1.0"
   },
   "overlays": [

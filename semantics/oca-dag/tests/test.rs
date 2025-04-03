@@ -1,4 +1,4 @@
-use indexmap::IndexMap;
+use indexmap::{indexmap, IndexMap};
 use oca_ast_semantics::ast;
 use oca_bundle_semantics::state::oca::OCABundle;
 use oca_dag_semantics::data_storage::{DataStorage, SledDataStorage};
@@ -11,7 +11,6 @@ fn generate_commands() -> Vec<ast::Command> {
         object_kind: ast::ObjectKind::CaptureBase(ast::CaptureContent {
             attributes: None,
             properties: None,
-            flagged_attributes: None,
         }),
     });
 
@@ -29,8 +28,7 @@ fn generate_commands() -> Vec<ast::Command> {
         kind: ast::CommandType::Add,
         object_kind: ast::ObjectKind::CaptureBase(ast::CaptureContent {
             attributes: Some(attributes),
-            properties: Some(properties),
-            flagged_attributes: None,
+            properties: Some(indexmap! {}),
         }),
     });
 

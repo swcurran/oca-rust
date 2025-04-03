@@ -367,8 +367,6 @@ pub struct CaptureContent {
     pub attributes: Option<IndexMap<String, NestedAttrType>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub properties: Option<IndexMap<String, NestedValue>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub flagged_attributes: Option<Vec<String>>,
 }
 
 // TODO remove it when moved all to BaseAttributeContent
@@ -680,7 +678,6 @@ impl From<u8> for ObjectKind {
             0 => ObjectKind::CaptureBase(CaptureContent {
                 attributes: None,
                 properties: None,
-                flagged_attributes: None,
             }),
             1 => ObjectKind::OCABundle(BundleContent {
                 said: ReferenceAttrType::Reference(RefValue::Name(
@@ -880,7 +877,6 @@ impl<'de> Deserialize<'de> for ObjectKind {
             "CaptureBase" => Ok(ObjectKind::CaptureBase(CaptureContent {
                 attributes: None,
                 properties: None,
-                flagged_attributes: None,
             })),
             "OCABundle" => Ok(ObjectKind::OCABundle(BundleContent {
                 said: ReferenceAttrType::Reference(RefValue::Name(
@@ -1050,7 +1046,6 @@ mod tests {
     fn test_ocaast_serialize() {
         let mut attributes = IndexMap::new();
         let mut properties = IndexMap::new();
-        let mut flagged_attributes = Vec::new();
 
         let arr = NestedAttrType::Array(Box::new(NestedAttrType::Value(
             AttributeType::Boolean,
@@ -1061,7 +1056,6 @@ mod tests {
             NestedAttrType::Value(AttributeType::Text),
         );
 
-        flagged_attributes.push("test".to_string());
         properties
             .insert("test".to_string(), NestedValue::Value("test".to_string()));
         let command = Command {
@@ -1069,7 +1063,6 @@ mod tests {
             object_kind: ObjectKind::CaptureBase(CaptureContent {
                 attributes: Some(attributes),
                 properties: Some(properties),
-                flagged_attributes: flagged_attributes.into(),
             }),
         };
 
@@ -1091,7 +1084,7 @@ mod tests {
         let serialized = serde_json::to_string(&ocaast).unwrap();
         assert_eq!(
             serialized,
-            r#"{"version":"1.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"},"properties":{"test":"test"},"flagged_attributes":["test"]}},{"type":"Add","object_kind":"Label","content":{}}],"commands_meta":{},"meta":{}}"#
+            r#"{"version":"1.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"},"properties":{"test":"test"}}},{"type":"Add","object_kind":"Label","content":{}}],"commands_meta":{},"meta":{}}"#
         );
 
         let deser: OCAAst = serde_json::from_str(&serialized).unwrap();

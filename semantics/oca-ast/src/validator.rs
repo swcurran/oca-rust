@@ -280,7 +280,7 @@ mod tests {
 
     use super::*;
     use crate::ast::{
-        AttributeType, CaptureContent, Command, CommandType, NestedValue, OCAAst, ObjectKind,
+        AttributeType, CaptureContent, Command, CommandType, OCAAst, ObjectKind,
     };
 
     #[test]
@@ -293,7 +293,7 @@ mod tests {
                     "documentType".to_string() => NestedAttrType::Value(AttributeType::Text),
                     "photo".to_string() => NestedAttrType::Value(AttributeType::Binary),
                 }),
-                flagged_attributes: None,
+                properties: Some(indexmap! {}),
             }),
         };
 
@@ -304,7 +304,7 @@ mod tests {
                     "issuer".to_string() => NestedAttrType::Value(AttributeType::Text),
                     "last_name".to_string() => NestedAttrType::Value(AttributeType::Binary),
                 }),
-                flagged_attributes: None,
+                properties: Some(indexmap! {}),
             }),
         };
 
@@ -316,7 +316,6 @@ mod tests {
                     "documentType".to_string() => NestedAttrType::Null,
                 }),
                 properties: Some(indexmap! {}),
-                flagged_attributes: None,
             }),
         };
 
@@ -327,7 +326,6 @@ mod tests {
                     "name".to_string() => NestedAttrType::Value(AttributeType::Text),
                 }),
                 properties: Some(indexmap! {}),
-                flagged_attributes: None,
             }),
         };
 
@@ -339,7 +337,6 @@ mod tests {
                     "issuer".to_string() => NestedAttrType::Null,
                 }),
                 properties: Some(indexmap! {}),
-                flagged_attributes: None,
             }),
         };
 
@@ -350,7 +347,6 @@ mod tests {
                     "documentType".to_string() => NestedAttrType::Null,
                 }),
                 properties: Some(indexmap! {}),
-                flagged_attributes: None,
             }),
         };
 
@@ -376,7 +372,7 @@ mod tests {
                     "documentType".to_string() => NestedAttrType::Value(AttributeType::Text),
                     "photo".to_string() => NestedAttrType::Value(AttributeType::Binary),
                 }),
-                flagged_attributes: None,
+                properties: Some(indexmap! {}),
             }),
         };
 
@@ -388,7 +384,6 @@ mod tests {
                     "last_name".to_string() => NestedAttrType::Value(AttributeType::Binary),
                 }),
                 properties: Some(indexmap! {}),
-                flagged_attributes: None,
             }),
         };
 
@@ -400,7 +395,6 @@ mod tests {
                     "address".to_string() => NestedAttrType::Value(AttributeType::Text),
                 }),
                 properties: Some(indexmap! {}),
-                flagged_attributes: None,
             }),
         };
 
@@ -412,7 +406,6 @@ mod tests {
                     "phone".to_string() => NestedAttrType::Value(AttributeType::Text),
                 }),
                 properties: Some(indexmap! {}),
-                flagged_attributes: None,
             }),
         };
 

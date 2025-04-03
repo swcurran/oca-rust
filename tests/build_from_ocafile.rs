@@ -49,14 +49,14 @@ ADD ATTR_FRAMING \
 
         assert_eq!(
             result.said.clone().unwrap().to_string(),
-            "ENrE_hCckfWbzflorW6rCZz9wAxcJKSQBMJEVJVAV6rV"
+            "EKV6NIHEeSuVK99Ub-Ok0Hya_8XeoaO5_KUMvlK0UHOV"
         );
 
         let code = HashFunctionCode::Blake3_256;
         let format = SerializationFormats::JSON;
         let oca_bundle_encoded = result.encode(&code, &format).unwrap();
         let oca_bundle_version = String::from_utf8(oca_bundle_encoded[6..23].to_vec()).unwrap();
-        assert_eq!(oca_bundle_version, "OCAS11JSON0009ac_");
+        assert_eq!(oca_bundle_version, "OCAS11JSON000980_");
 
         let search_result = facade.search_oca_bundle(None, "Ent".to_string(), 10, 1);
         assert_eq!(search_result.metadata.total, 1);
@@ -88,7 +88,7 @@ ADD ATTRIBUTE x=Text
 
         assert_eq!(
             result.said.unwrap().to_string(),
-            "EA4tLtFQd-xCvDBEEGuod6PkgjMdqORDQgbwdqhX1QLA"
+            "EBaX6WnWlKoRMTsOkzylU0UQWAVMO5MNLmV6BDatWec-"
         );
         Ok(())
     }
@@ -124,7 +124,7 @@ ADD ATTRIBUTE C=Array[refn:second]
 
         assert_eq!(
             result.said.unwrap().to_string(),
-            "EA6ptszucE7ehxcGJSDCHN3t-EG34CB1q_y0ZAckgJuD"
+            "EHZLWfCJSRN5aXHrlQ1Yu6Z_l2L0CpjqEtqolm4drpLH"
         );
 
         let from_ocafile = r#"
@@ -136,14 +136,14 @@ ADD ATTRIBUTE x=Text
         let result = facade.build_from_ocafile(from_ocafile)?;
         assert_eq!(
             result.said.unwrap().to_string(),
-            "EOtPb2eo7mPN2AgQin3jgXSWGzz00CV1TNvD9yN79rjq"
+            "EBaX6WnWlKoRMTsOkzylU0UQWAVMO5MNLmV6BDatWec-"
         );
         let refs = facade.fetch_all_refs().unwrap();
 
         assert_eq!(refs.len(), 2);
         assert_eq!(
             refs.get("second").unwrap(),
-            "EKtnSYGee8OwkYKryA_ZEWaYPgJRdncBQrFxaqrFwK1y"
+            "EGnHiIYFtwXC6ZtH185_je07TFS_h2DdszCqh3b8VvR8"
         );
 
         Ok(())
@@ -173,7 +173,7 @@ ADD LINK refn:first ATTRS b=a
 
         assert_eq!(
             result.said.unwrap().to_string(),
-            "ENFbq-Nzx23AuPvCRlGT-gMAnMqNnpsGdzfO4oQMhCNn"
+            "EOUgyR4Pk8Ckz3h5dA-0yFGhwKeNO2z8_PnmymTGMNdi"
         );
 
         Ok(())

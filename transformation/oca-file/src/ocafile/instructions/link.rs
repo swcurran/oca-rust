@@ -40,11 +40,6 @@ impl LinkInstruction {
                     object_kind = Some(ObjectKind::Link(LinkContent {
                         attributes: Some(link_attributes),
                     }));
-                    /* object_kind = Some(ObjectKind::CaptureBase(CaptureContent {
-                        properties: None,
-                        attributes: Some(link_attributes),
-                        flagged_attributes: None,
-                    })); */
                 }
                 _ => {
                     return Err(InstructionError::UnexpectedToken(format!(

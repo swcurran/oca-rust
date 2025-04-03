@@ -116,8 +116,7 @@ mod tests {
                     "name".to_string() => NestedAttrType::Value(AttributeType::Text),
                     "documentType".to_string() => NestedAttrType::Value(AttributeType::Text),
                     "photo".to_string() => NestedAttrType::Value(AttributeType::Binary),
-                }),
-                flagged_attributes: None,
+                })
             }),
         };
 

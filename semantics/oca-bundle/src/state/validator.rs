@@ -505,8 +505,7 @@ mod tests {
             "n1": "Text",
             "n2": "DateTime",
             "n3": "refs:EBQMQm_tXSC8tnNICl7paGUeGg0SyF1tceHhTUutn1aP"
-        },
-        "flagged_attributes": ["n1"]
+        }
     },
     "overlays": {
         "character_encoding": {

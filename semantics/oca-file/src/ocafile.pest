@@ -131,8 +131,7 @@ oca_object = _{
     entry_code |
     entry |
     link |
-    attribute_framing |
-    flagged_attrs
+    attribute_framing
   )
 }
 
@@ -152,8 +151,7 @@ remove_oca_object = _{
     entry_code |
     entry |
     link |
-    attribute_framing |
-    flagged_attrs
+    attribute_framing
   )
 }
 
@@ -187,8 +185,6 @@ json_key = ${ string }
 json_value = ${ string | url | json_object }
 json_pair = ${ json_key ~ arg_ws* ~ ":" ~ (arg_ws | NEWLINE)? ~ json_value ~ (arg_ws? ~ "," ~ (arg_ws | NEWLINE)?)? }
 json_object = ${ "{" ~ ((arg_ws | NEWLINE)? ~ arg_ws* ~ json_pair ~ (arg_ws | NEWLINE)?)+ ~ arg_ws* ~ "}" }
-
-flagged_attrs = {^"flagged_attributes" ~ arg_ws ~ list_value}
 
 //overlay_args = { ws* ~ ANY* }
 attribute = { ^"attribute" ~ attr_pairs+ }

@@ -28,9 +28,6 @@ mod tests {
       "n3": "Reference:sai"
     },
     "digest": "ElNWOR0fQbv_J6EL0pJlvCxEpbu4bg1AurHgr_0A7LKc",
-    "flagged_attributes": [
-      "n1"
-    ],
     "type": "spec/capture_base/1.0"
   },
   "overlays": [

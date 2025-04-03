@@ -684,9 +684,6 @@ impl From<OCABundle> for OCABox {
             };
             attributes.insert(attr_name.clone(), attr);
         }
-        for attr_name in oca_bundle.capture_base.flagged_attributes {
-            attributes.get_mut(&attr_name).unwrap().set_flagged();
-        }
 
         let meta_overlays = oca_bundle
             .overlays
@@ -931,7 +928,6 @@ impl OCABundle {
                 // TODO find out if we can use indexmap in capture base to simplify stuff
                 attributes: Some(self.capture_base.attributes.clone().into_iter().collect()),
                 properties,
-                flagged_attributes: None,
             }),
         };
         ast.commands.push(command);

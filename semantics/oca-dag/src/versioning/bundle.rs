@@ -47,8 +47,7 @@ mod tests {
     "type": "spec/capture_base/1.0",
     "attributes": {
       "passed": "Boolean"
-    },
-    "flagged_attributes": []
+    }
   },
   "overlays": {}
 }

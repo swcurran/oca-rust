@@ -104,7 +104,6 @@ mod tests {
             object_kind: ast::ObjectKind::CaptureBase(CaptureContent {
                 attributes: Some(attributes),
                 properties: None,
-                flagged_attributes: None,
             }),
         });
 
@@ -269,7 +268,6 @@ mod tests {
             object_kind: ast::ObjectKind::CaptureBase(CaptureContent {
                 attributes: Some(attributes),
                 properties: None,
-                flagged_attributes: None,
             }),
         });
 

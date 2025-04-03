@@ -536,7 +536,6 @@ ADD ATTRIBUTE list=Array[Text] el=Text
 ADD CARDINALITY ATTRS list="1-2"
 ADD ENTRY_CODE ATTRS list="entry_code_said" el=["o1", "o2", "o3"]
 ADD ENTRY en ATTRS list="entry_said" el={"o1": "o1_label", "o2": "o2_label", "o3": "o3_label"}
-ADD FLAGGED_ATTRIBUTES name age
 ADD ATTR_FRAMING \
         id=SNOMEDCT \
         label="Systematized Nomenclature of Medicine Clinical Terms" \

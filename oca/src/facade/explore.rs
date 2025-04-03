@@ -39,7 +39,6 @@ impl Facade {
             &[ObjectKind::CaptureBase(CaptureContent {
                 attributes: None,
                 properties: None,
-                flagged_attributes: None,
             })
             .into()],
         )?;

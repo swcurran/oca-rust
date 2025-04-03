@@ -44,7 +44,6 @@ impl RemoveInstruction {
                     object_kind = Some(ObjectKind::CaptureBase(CaptureContent {
                         attributes: Some(attributes),
                         properties: None,
-                        flagged_attributes: None,
                     }));
                 }
                 _ => {

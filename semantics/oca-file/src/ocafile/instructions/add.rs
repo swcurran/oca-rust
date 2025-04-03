@@ -48,7 +48,6 @@ impl AddInstruction {
                     object_kind = Some(ObjectKind::CaptureBase(CaptureContent {
                         properties: None,
                         attributes: Some(attributes),
-                        flagged_attributes: None,
                     }));
                 }
                 Rule::comment => continue,
@@ -130,13 +129,6 @@ impl AddInstruction {
                         helpers::extract_content(object),
                     ));
                 }
-                Rule::flagged_attrs => {
-                    object_kind = Some(ObjectKind::CaptureBase(CaptureContent {
-                        properties: None,
-                        attributes: None,
-                        flagged_attributes: Some(helpers::extract_flagged_attrs(object)),
-                    }));
-                }
                 _ => {
                     return Err(InstructionError::UnexpectedToken(format!(
                         "Overlay: unexpected token {:?}",
@@ -156,7 +148,7 @@ impl AddInstruction {
 #[cfg(test)]
 mod tests {
     use crate::ocafile::OCAfileParser;
-
+    use oca_ast_semantics::ast::NestedValue;
     use super::*;
     use pest::Parser;
 
@@ -177,7 +169,6 @@ mod tests {
             ("ADD attribute name=Text", true),
             ("add attribute name=Text", true),
             ("add attribute name=Random", false),
-            ("add flagged_attributes name documentType", true),
         ];
         let _ = env_logger::builder().is_test(true).try_init();
 
@@ -203,9 +194,6 @@ mod tests {
                                     }
                                     if content.properties.is_some() {
                                         assert!(!content.properties.unwrap().is_empty());
-                                    }
-                                    if content.flagged_attributes.is_some() {
-                                        assert!(!content.flagged_attributes.unwrap().is_empty());
                                     }
                                 }
                                 _ => {

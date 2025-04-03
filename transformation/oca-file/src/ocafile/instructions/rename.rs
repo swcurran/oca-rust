@@ -40,11 +40,6 @@ impl RenameInstruction {
                     object_kind = Some(ObjectKind::Rename(RenameContent {
                         attributes: Some(rename_attributes),
                     }));
-                    /* object_kind = Some(ObjectKind::CaptureBase(CaptureContent {
-                        properties: None,
-                        attributes: Some(rename_attributes),
-                        flagged_attributes: None,
-                    })); */
                 }
                 _ => {
                     return Err(InstructionError::UnexpectedToken(format!(

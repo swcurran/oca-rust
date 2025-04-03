@@ -14,7 +14,6 @@ pub struct Attribute {
     pub name: String,
     #[serde(rename = "type")]
     pub attribute_type: Option<NestedAttrType>,
-    pub is_flagged: bool,
     pub labels: Option<HashMap<Language, String>>,
     pub category_labels: Option<HashMap<Language, String>>,
     pub informations: Option<HashMap<Language, String>>,
@@ -49,7 +48,6 @@ impl Attribute {
             informations: None,
             category_labels: None,
             attribute_type: None,
-            is_flagged: false,
             mapping: None,
             encoding: None,
             #[cfg(feature = "format_overlay")]
@@ -66,10 +64,6 @@ impl Attribute {
             links: None,
             framings: None,
         }
-    }
-
-    pub fn set_flagged(&mut self) {
-        self.is_flagged = true;
     }
 
     pub fn set_attribute_type(&mut self, attribute_type: NestedAttrType) {
