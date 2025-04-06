@@ -12,7 +12,6 @@
     {
       "attribute_character_encoding": {},
       "capture_base": "EMdMn4N-HPgAmy4L8YcIyqxmHU5m68LH956CllwZwbMA",
-      "default_character_encoding": "utf-8",
       "digest": "EIh9bRqpF845Pgs31K93mR9GsCDZ4A0nhVZ70MBLlpKE",
       "type": "spec/overlays/character_encoding/1.0"
     },

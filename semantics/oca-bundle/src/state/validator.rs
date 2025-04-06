@@ -405,7 +405,6 @@ mod tests {
             "capture_base": "EDRt2wL8yVWVSJdF8aMFtU9VQ6aWzXZTgWj3WqsIKLqm",
             "said": "EBQMQm_tXSC8tnNICl7paGUeGg0SyF1tceHhTUutn1PN",
             "type": "spec/overlays/character_encoding/1.0",
-            "default_character_encoding": "utf-8",
             "attribute_character_encoding": {}
         }
     }

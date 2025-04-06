@@ -36,7 +36,6 @@ mod tests {
         "n2": "iso-8859-1"
       },
       "capture_base": "ElNWOR0fQbv_J6EL0pJlvCxEpbu4bg1AurHgr_0A7LKc",
-      "default_character_encoding": "utf-8",
       "digest": "E-fCW5Gcnzn4uTBIUUH4Gdl3xRdlDg25cM3UCk3blubU",
       "type": "spec/overlays/character_encoding/1.0"
     },
