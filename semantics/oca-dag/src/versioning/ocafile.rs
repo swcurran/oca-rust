@@ -178,16 +178,6 @@ mod tests {
             "lang".to_string(),
             ast::NestedValue::Value("en".to_string()),
         );
-        commands.push(ast::Command {
-            kind: ast::CommandType::Add,
-            object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Information(overlay_version.clone()),
-                Content {
-                    attributes: Some(attributes),
-                    properties: Some(properties),
-                },
-            ),
-        });
 
         let mut attributes = IndexMap::new();
         attributes.insert(

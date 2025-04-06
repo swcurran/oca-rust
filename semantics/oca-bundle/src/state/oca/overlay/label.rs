@@ -9,7 +9,6 @@ use std::collections::HashMap;
 
 pub trait Labels {
     fn set_label(&mut self, l: Language, label: String);
-    fn add_category_label(&mut self, l: Language, label: String);
 }
 
 impl Labels for Attribute {
@@ -22,18 +21,6 @@ impl Labels for Attribute {
                 let mut labels = HashMap::new();
                 labels.insert(l, label);
                 self.labels = Some(labels);
-            }
-        }
-    }
-    fn add_category_label(&mut self, l: Language, label: String) {
-        match self.category_labels {
-            Some(ref mut category_labels) => {
-                category_labels.insert(l, label);
-            }
-            None => {
-                let mut category_labels = HashMap::new();
-                category_labels.insert(l, label);
-                self.category_labels = Some(category_labels);
             }
         }
     }
@@ -76,14 +63,8 @@ pub struct LabelOverlay {
     #[serde(rename = "type")]
     overlay_type: OverlayType,
     language: Language,
-    #[serde(serialize_with = "serialize_categories")]
-    pub attribute_categories: Vec<String>, // TODO find out if we need duplicated structure to hold keys if we have hashmap with those keys
     #[serde(serialize_with = "serialize_labels")]
     pub attribute_labels: HashMap<String, String>,
-    #[serde(serialize_with = "serialize_labels")]
-    pub category_labels: HashMap<String, String>,
-    #[serde(skip)]
-    pub _category_attributes: HashMap<String, Vec<String>>,
 }
 
 impl Overlay for LabelOverlay {
@@ -109,17 +90,10 @@ impl Overlay for LabelOverlay {
         self.attribute_labels.keys().collect::<Vec<&String>>()
     }
     /// Add an attribute to the Label Overlay
-    /// TODO add assignment of attribute to category
     fn add(&mut self, attribute: &Attribute) {
         if let Some(labels) = &attribute.labels {
             if let Some(value) = labels.get(&self.language) {
                 self.attribute_labels
-                    .insert(attribute.name.clone(), value.to_string());
-            }
-        }
-        if let Some(category_labels) = &attribute.category_labels {
-            if let Some(value) = category_labels.get(&self.language) {
-                self.category_labels
                     .insert(attribute.name.clone(), value.to_string());
             }
         }
@@ -135,58 +109,9 @@ impl LabelOverlay {
             overlay_type: OverlayType::Label(overlay_version),
             language: lang,
             attribute_labels: HashMap::new(),
-            attribute_categories: vec![],
-            category_labels: HashMap::new(),
-            _category_attributes: HashMap::new(),
         }
     }
 
-    fn _add_to_category(&mut self, categories: Vec<&str>, attribute: &Attribute) {
-        let mut supercats: Vec<i32> = vec![];
-        for (i, category) in categories.iter().enumerate() {
-            let supercats_str: Vec<String> = supercats.iter().map(|c| c.to_string()).collect();
-            let mut supercat = String::new();
-            if !supercats_str.is_empty() {
-                supercat = format!("-{}", supercats_str.join("-"))
-            }
-            let regex = regex::Regex::new(format!("^_cat{supercat}(-[0-9]*)_$").as_str()).unwrap();
-            let mut acctual_cat_id = String::new();
-            let mut category_exists = false;
-            for (cat_id, cat_label) in self.category_labels.iter() {
-                if cat_label == category && regex.is_match(cat_id) {
-                    let cat_temp = cat_id.replace('_', "");
-                    let mut temp = cat_temp.split('-').collect::<Vec<&str>>();
-                    temp.remove(0);
-                    supercats = temp.iter().map(|c| c.parse::<i32>().unwrap()).collect();
-                    acctual_cat_id = cat_id.to_string();
-                    category_exists = true;
-                }
-            }
-
-            if !category_exists {
-                let mut count = 0;
-                for cat in self.attribute_categories.iter() {
-                    if regex.is_match(cat.as_str()) {
-                        count += 1;
-                    }
-                }
-                acctual_cat_id = format!("_cat{}-{}_", supercat, count + 1);
-                supercats.push(count + 1);
-                self.category_labels
-                    .insert(acctual_cat_id.clone(), category.to_string());
-                self.attribute_categories.push(acctual_cat_id.clone());
-                self._category_attributes
-                    .insert(acctual_cat_id.clone(), vec![]);
-            }
-
-            if i + 1 == categories.len() {
-                self._category_attributes
-                    .get_mut(acctual_cat_id.as_str())
-                    .unwrap()
-                    .push(attribute.name.clone());
-            }
-        }
-    }
 }
 
 #[cfg(test)]
@@ -200,8 +125,6 @@ mod tests {
             Attribute::new("attr1".to_string());
             ..set_label(Language::Pol, "Etykieta".to_string());
             ..set_label(Language::Eng, "Label".to_string());
-            ..add_category_label(Language::Eng, "Category".to_string());
-            ..add_category_label(Language::Pol, "Kategoria".to_string());
         };
         // even that attribute has 2 lagnuage only one attribute should be added to the overlay according to it's language
         overlay.add(&attr);
@@ -210,51 +133,5 @@ mod tests {
         assert_eq!(overlay.overlay_type, OverlayType::Label(overlay_version));
         assert_eq!(overlay.language, Language::Eng);
         assert_eq!(overlay.attribute_labels.len(), 1);
-        assert_eq!(overlay.category_labels.len(), 1);
-    }
-    #[test]
-    #[ignore = "not implemented"]
-    fn resolve_categories_from_label() {
-        let mut overlay = LabelOverlay::new(Language::Eng);
-        let attr = cascade! {
-            Attribute::new("attr1".to_string());
-            ..set_label(Language::Pol, "Label 1".to_string());
-            ..add_category_label(Language::Eng, "Cat 1".to_string());
-        };
-        overlay.add(&attr);
-        let attr = cascade! {
-            Attribute::new("attr2".to_string());
-            ..set_label(Language::Pol, "Label 2".to_string());
-            ..add_category_label(Language::Eng, "Cat 2".to_string());
-        };
-        overlay.add(&attr);
-
-        assert_eq!(overlay.category_labels.len(), 2);
-        assert!(overlay
-            .attribute_categories
-            .contains(&"_cat-1_".to_string()));
-        assert!(overlay
-            .attribute_categories
-            .contains(&"_cat-2_".to_string()));
-
-        assert!(overlay.category_labels.contains_key("_cat-1_"));
-        if let Some(cat1) = overlay.category_labels.get("_cat-1_") {
-            assert_eq!(*cat1, "Cat 1".to_string());
-        }
-        assert!(overlay.category_labels.contains_key("_cat-2_"));
-        if let Some(cat2) = overlay.category_labels.get("_cat-2_") {
-            assert_eq!(*cat2, "Cat 2".to_string());
-        }
-
-        assert!(overlay._category_attributes.contains_key("_cat-1_"));
-        if let Some(cat1_attrs) = overlay._category_attributes.get("_cat-1_") {
-            assert_eq!(cat1_attrs.len(), 1);
-            assert!(cat1_attrs.contains(&"attr1".to_string()));
-        }
-        assert!(overlay._category_attributes.contains_key("_cat-2_"));
-        if let Some(cat2_attrs) = overlay._category_attributes.get("_cat-2_") {
-            assert_eq!(cat2_attrs.len(), 1);
-            assert!(cat2_attrs.contains(&"attr2".to_string()));
-        }
     }
 }

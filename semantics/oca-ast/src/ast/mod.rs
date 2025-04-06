@@ -139,26 +139,21 @@ impl FromStr for AttributeType {
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum OverlayType {
     Label(String),
-    Information(String),
     Encoding(String),
     CharacterEncoding(String),
     Format(String),
     Meta(String),
     Standard(String),
     Cardinality(String),
-    Conditional(String),
     Conformance(String),
     EntryCode(String),
     Entry(String),
     Unit(String),
     AttributeMapping(String),
     EntryCodeMapping(String),
-    Subset(String),
     UnitMapping(String),
-    Layout(String),
     Sensitivity(String),
     Link(String),
-    AttributeFraming(String),
 }
 
 impl Serialize for OverlayType {
@@ -170,8 +165,6 @@ impl Serialize for OverlayType {
             OverlayType::Label(v) => {
                 serializer.serialize_str(&format!("spec/overlays/label/{v}"))
             }
-            OverlayType::Information(v) => serializer
-                .serialize_str(&format!("spec/overlays/information/{v}")),
             OverlayType::Encoding(v) => {
                 serializer.serialize_str(&format!("spec/overlays/encoding/{v}"))
             }
@@ -189,8 +182,6 @@ impl Serialize for OverlayType {
             }
             OverlayType::Cardinality(v) => serializer
                 .serialize_str(&format!("spec/overlays/cardinality/{v}")),
-            OverlayType::Conditional(v) => serializer
-                .serialize_str(&format!("spec/overlays/conditional/{v}")),
             OverlayType::Conformance(v) => serializer
                 .serialize_str(&format!("spec/overlays/conformance/{v}")),
             OverlayType::EntryCode(v) => serializer
@@ -207,21 +198,13 @@ impl Serialize for OverlayType {
             OverlayType::EntryCodeMapping(v) => serializer.serialize_str(
                 &format!("spec/overlays/entry_code_mapping/{v}"),
             ),
-            OverlayType::Subset(v) => {
-                serializer.serialize_str(&format!("spec/overlays/subset/{v}"))
-            }
             OverlayType::UnitMapping(v) => serializer
                 .serialize_str(&format!("spec/overlays/unit_mapping/{v}")),
-            OverlayType::Layout(v) => {
-                serializer.serialize_str(&format!("spec/overlays/layout/{v}"))
-            }
             OverlayType::Sensitivity(v) => serializer
                 .serialize_str(&format!("spec/overlays/sensitivity/{v}")),
             OverlayType::Link(v) => {
                 serializer.serialize_str(&format!("spec/overlays/link/{v}"))
             }
-            OverlayType::AttributeFraming(v) => serializer
-                .serialize_str(&format!("spec/overlays/attribute_framing/{v}")),
         }
     }
 }
@@ -259,26 +242,21 @@ impl FromStr for OverlayType {
         let v = "1.1".to_string();
         match s {
             "Label" => Ok(OverlayType::Label(v)),
-            "Information" => Ok(OverlayType::Information(v)),
             "Encoding" => Ok(OverlayType::Encoding(v)),
             "CharacterEncoding" => Ok(OverlayType::CharacterEncoding(v)),
             "Format" => Ok(OverlayType::Format(v)),
             "Meta" => Ok(OverlayType::Meta(v)),
             "Standard" => Ok(OverlayType::Standard(v)),
             "Cardinality" => Ok(OverlayType::Cardinality(v)),
-            "Conditional" => Ok(OverlayType::Conditional(v)),
             "Conformance" => Ok(OverlayType::Conformance(v)),
             "EntryCode" => Ok(OverlayType::EntryCode(v)),
             "Entry" => Ok(OverlayType::Entry(v)),
             "Unit" => Ok(OverlayType::Unit(v)),
             "Mapping" => Ok(OverlayType::AttributeMapping(v)),
             "EntryCodeMapping" => Ok(OverlayType::EntryCodeMapping(v)),
-            "Subset" => Ok(OverlayType::Subset(v)),
             "UnitMapping" => Ok(OverlayType::UnitMapping(v)),
-            "Layout" => Ok(OverlayType::Layout(v)),
             "Sensitivity" => Ok(OverlayType::Sensitivity(v)),
             "Link" => Ok(OverlayType::Link(v)),
-            "AttributeFraming" => Ok(OverlayType::AttributeFraming(v)),
             _ => Err(()),
         }
     }
@@ -288,26 +266,21 @@ impl fmt::Display for OverlayType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             OverlayType::Label(_) => write!(f, "Label"),
-            OverlayType::Information(_) => write!(f, "Information"),
             OverlayType::Encoding(_) => write!(f, "Encoding"),
             OverlayType::CharacterEncoding(_) => write!(f, "CharacterEncoding"),
             OverlayType::Format(_) => write!(f, "Format"),
             OverlayType::Meta(_) => write!(f, "Meta"),
             OverlayType::Standard(_) => write!(f, "Standard"),
             OverlayType::Cardinality(_) => write!(f, "Cardinality"),
-            OverlayType::Conditional(_) => write!(f, "Conditional"),
             OverlayType::Conformance(_) => write!(f, "Conformance"),
             OverlayType::EntryCode(_) => write!(f, "EntryCode"),
             OverlayType::Entry(_) => write!(f, "Entry"),
             OverlayType::Unit(_) => write!(f, "Unit"),
             OverlayType::AttributeMapping(_) => write!(f, "AttributeMapping"),
             OverlayType::EntryCodeMapping(_) => write!(f, "EntryCodeMapping"),
-            OverlayType::Subset(_) => write!(f, "Subset"),
             OverlayType::UnitMapping(_) => write!(f, "UnitMapping"),
-            OverlayType::Layout(_) => write!(f, "Layout"),
             OverlayType::Sensitivity(_) => write!(f, "Sensitivity"),
             OverlayType::Link(_) => write!(f, "Link"),
-            OverlayType::AttributeFraming(_) => write!(f, "AttributeFraming"),
         }
     }
 }
@@ -329,25 +302,20 @@ impl<'de> Deserialize<'de> for OverlayType {
             match captures.get(1).unwrap().as_str() {
                 "label" => Ok(OverlayType::Label(v)),
                 "format" => Ok(OverlayType::Format(v)),
-                "information" => Ok(OverlayType::Information(v)),
                 "encoding" => Ok(OverlayType::Encoding(v)),
                 "character_encoding" => Ok(OverlayType::CharacterEncoding(v)),
                 "meta" => Ok(OverlayType::Meta(v)),
                 "standard" => Ok(OverlayType::Standard(v)),
                 "cardinality" => Ok(OverlayType::Cardinality(v)),
-                "conditional" => Ok(OverlayType::Conditional(v)),
                 "conformance" => Ok(OverlayType::Conformance(v)),
                 "entry_code" => Ok(OverlayType::EntryCode(v)),
                 "entry" => Ok(OverlayType::Entry(v)),
                 "unit" => Ok(OverlayType::Unit(v)),
                 "mapping" => Ok(OverlayType::AttributeMapping(v)),
                 "entry_code_mapping" => Ok(OverlayType::EntryCodeMapping(v)),
-                "subset" => Ok(OverlayType::Subset(v)),
                 "unit_mapping" => Ok(OverlayType::UnitMapping(v)),
-                "layout" => Ok(OverlayType::Layout(v)),
                 "sensitivity" => Ok(OverlayType::Sensitivity(v)),
                 "link" => Ok(OverlayType::Link(v)),
-                "attribute_framing" => Ok(OverlayType::AttributeFraming(v)),
                 _ => Err(serde::de::Error::custom("Unknown overlay type")),
             }
         } else {
@@ -691,13 +659,6 @@ impl From<u8> for ObjectKind {
                     properties: None,
                 },
             ),
-            3 => ObjectKind::Overlay(
-                OverlayType::Information(overlay_version),
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
             4 => ObjectKind::Overlay(
                 OverlayType::Encoding(overlay_version),
                 Content {
@@ -735,13 +696,6 @@ impl From<u8> for ObjectKind {
             ),
             9 => ObjectKind::Overlay(
                 OverlayType::Cardinality(overlay_version),
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
-            10 => ObjectKind::Overlay(
-                OverlayType::Conditional(overlay_version),
                 Content {
                     attributes: None,
                     properties: None,
@@ -789,22 +743,8 @@ impl From<u8> for ObjectKind {
                     properties: None,
                 },
             ),
-            17 => ObjectKind::Overlay(
-                OverlayType::Subset(overlay_version),
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
             18 => ObjectKind::Overlay(
                 OverlayType::UnitMapping(overlay_version),
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
-            19 => ObjectKind::Overlay(
-                OverlayType::Layout(overlay_version),
                 Content {
                     attributes: None,
                     properties: None,
@@ -824,13 +764,6 @@ impl From<u8> for ObjectKind {
                     properties: None,
                 },
             ),
-            22 => ObjectKind::Overlay(
-                OverlayType::AttributeFraming(overlay_version),
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
             _ => panic!("Unknown object type"),
         }
     }
@@ -842,26 +775,21 @@ impl From<ObjectKind> for u8 {
             ObjectKind::CaptureBase(_) => 0,
             ObjectKind::OCABundle(_) => 1,
             ObjectKind::Overlay(OverlayType::Label(_), _) => 2,
-            ObjectKind::Overlay(OverlayType::Information(_), _) => 3,
             ObjectKind::Overlay(OverlayType::Encoding(_), _) => 4,
             ObjectKind::Overlay(OverlayType::CharacterEncoding(_), _) => 5,
             ObjectKind::Overlay(OverlayType::Format(_), _) => 6,
             ObjectKind::Overlay(OverlayType::Meta(_), _) => 7,
             ObjectKind::Overlay(OverlayType::Standard(_), _) => 8,
             ObjectKind::Overlay(OverlayType::Cardinality(_), _) => 9,
-            ObjectKind::Overlay(OverlayType::Conditional(_), _) => 10,
             ObjectKind::Overlay(OverlayType::Conformance(_), _) => 11,
             ObjectKind::Overlay(OverlayType::EntryCode(_), _) => 12,
             ObjectKind::Overlay(OverlayType::Entry(_), _) => 13,
             ObjectKind::Overlay(OverlayType::Unit(_), _) => 14,
             ObjectKind::Overlay(OverlayType::AttributeMapping(_), _) => 15,
             ObjectKind::Overlay(OverlayType::EntryCodeMapping(_), _) => 16,
-            ObjectKind::Overlay(OverlayType::Subset(_), _) => 17,
             ObjectKind::Overlay(OverlayType::UnitMapping(_), _) => 18,
-            ObjectKind::Overlay(OverlayType::Layout(_), _) => 19,
             ObjectKind::Overlay(OverlayType::Sensitivity(_), _) => 20,
             ObjectKind::Overlay(OverlayType::Link(_), _) => 21,
-            ObjectKind::Overlay(OverlayType::AttributeFraming(_), _) => 22,
         }
     }
 }
@@ -885,13 +813,6 @@ impl<'de> Deserialize<'de> for ObjectKind {
             })),
             "Label" => Ok(ObjectKind::Overlay(
                 OverlayType::Label(v),
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            "Information" => Ok(ObjectKind::Overlay(
-                OverlayType::Information(v),
                 Content {
                     attributes: None,
                     properties: None,
@@ -939,13 +860,6 @@ impl<'de> Deserialize<'de> for ObjectKind {
                     properties: None,
                 },
             )),
-            "Conditional" => Ok(ObjectKind::Overlay(
-                OverlayType::Conditional(v),
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
             "Conformance" => Ok(ObjectKind::Overlay(
                 OverlayType::Conformance(v),
                 Content {
@@ -988,22 +902,8 @@ impl<'de> Deserialize<'de> for ObjectKind {
                     properties: None,
                 },
             )),
-            "Subset" => Ok(ObjectKind::Overlay(
-                OverlayType::Subset(v),
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
             "UnitMapping" => Ok(ObjectKind::Overlay(
                 OverlayType::UnitMapping(v),
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            "Layout" => Ok(ObjectKind::Overlay(
-                OverlayType::Layout(v),
                 Content {
                     attributes: None,
                     properties: None,
@@ -1018,13 +918,6 @@ impl<'de> Deserialize<'de> for ObjectKind {
             )),
             "Link" => Ok(ObjectKind::Overlay(
                 OverlayType::Link(v),
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            "AttributeFraming" => Ok(ObjectKind::Overlay(
-                OverlayType::AttributeFraming(v),
                 Content {
                     attributes: None,
                     properties: None,

@@ -51,12 +51,6 @@ impl AddInstruction {
                     }));
                 }
                 Rule::comment => continue,
-                Rule::information => {
-                    object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Information(overlay_version),
-                        helpers::extract_content(object),
-                    ));
-                }
                 Rule::character_encoding => {
                     object_kind = Some(ObjectKind::Overlay(
                         OverlayType::CharacterEncoding(overlay_version),
@@ -93,12 +87,6 @@ impl AddInstruction {
                         helpers::extract_content(object),
                     ));
                 }
-                Rule::conditional => {
-                    object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Conditional(overlay_version),
-                        helpers::extract_content(object),
-                    ));
-                }
                 Rule::cardinality => {
                     object_kind = Some(ObjectKind::Overlay(
                         OverlayType::Cardinality(overlay_version),
@@ -120,12 +108,6 @@ impl AddInstruction {
                 Rule::link => {
                     object_kind = Some(ObjectKind::Overlay(
                         OverlayType::Link(overlay_version),
-                        helpers::extract_content(object),
-                    ));
-                }
-                Rule::attribute_framing => {
-                    object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::AttributeFraming(overlay_version),
                         helpers::extract_content(object),
                     ));
                 }

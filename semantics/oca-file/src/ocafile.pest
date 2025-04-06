@@ -120,13 +120,11 @@ oca_object = _{
     meta |
     label |
     attribute |
-    information |
     unit |
     character_encoding |
     character_encoding_props |
     format |
     conformance |
-    conditional |
     cardinality |
     entry_code |
     entry |
@@ -140,13 +138,11 @@ remove_oca_object = _{
     remove_meta |
     remove_label |
     remove_attribute |
-    information |
     unit |
     character_encoding |
     character_encoding_props |
     format |
     conformance |
-    conditional |
     cardinality |
     entry_code |
     entry |
@@ -159,12 +155,10 @@ attrs_key = _{ ^"attrs" ~ arg_ws}
 props_key = _{ ^"props" ~ arg_ws}
 label = { ^"label" ~ arg_ws ~ lang ~ arg_ws ~ attrs_key ~ attr_key_pairs }
 meta = { ^"meta" ~ arg_ws ~ lang ~  arg_ws ~ props_key ~ prop_key_pairs }
-information = {^"information" ~ arg_ws ~ lang ~ arg_ws ~ attrs_key ~ attr_key_pairs}
 character_encoding = {^"character_encoding" ~ arg_ws ~ attrs_key ~ attr_key_pairs}
 character_encoding_props = {^"character_encoding" ~ arg_ws ~ props_key ~ prop_key_pairs}
 format = {^"format" ~ arg_ws ~ attrs_key ~ attr_key_pairs}
 conformance = {^"conformance" ~ arg_ws ~ attrs_key ~ attr_key_pairs}
-conditional = {^"condition" ~ arg_ws ~ attrs_key ~ attr_key_pairs}
 cardinality = {^"cardinality" ~ arg_ws ~ attrs_key ~ attr_key_pairs}
 entry_code = {^"entry_code" ~ arg_ws ~ attrs_key ~ attr_entry_code_key_pairs}
 entry = {^"entry" ~ arg_ws ~ lang ~ arg_ws ~ attrs_key ~ attr_entry_key_pairs}

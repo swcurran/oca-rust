@@ -93,22 +93,5 @@
       "name": "Driving Licence",
       "type": "spec/overlays/meta/1.0"
     },
-    {
-      "capture_base": "EMdMn4N-HPgAmy4L8YcIyqxmHU5m68LH956CllwZwbMA",
-      "digest": "E4g-VtHiJ_fN9LSU9TqlwqK02zi79ZijJUhxVopoKoSc",
-      "layout": {
-        "elements": [
-          {
-            "parts": [
-              {
-                "name": "name"
-              }
-            ],
-            "type": "meta"
-          }
-        ]
-      },
-      "type": "spec/overlays/form_layout/1.0"
-    }
   ]
 }

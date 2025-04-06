@@ -1,17 +1,14 @@
 use crate::state::oca::overlay::cardinality::Cardinalitys;
 use crate::state::oca::overlay::character_encoding::CharacterEncodings;
-use crate::state::oca::overlay::conditional::Conditionals;
 use crate::state::oca::overlay::conformance::Conformances;
 use crate::state::oca::overlay::entry::Entries;
 use crate::state::oca::overlay::entry_code::EntryCodes;
 #[cfg(feature = "format_overlay")]
 use crate::state::oca::overlay::format::Formats;
-use crate::state::oca::overlay::information::Information;
 use crate::state::oca::overlay::label::Labels;
 use crate::state::oca::overlay::meta::Metas;
 use crate::state::oca::overlay::unit::Units;
 use indexmap::IndexMap;
-use overlay::attribute_framing::Framings;
 use overlay::link::Links;
 use said::derivation::HashFunctionCode;
 use said::sad::{SerializationFormats, SAD};
@@ -47,7 +44,7 @@ use oca_ast_semantics::ast::{
 ///
 ///
 /// TODO:
-/// How to add multiple overlays like mapping or layout (how to identify them?)
+/// How to add multiple overlays like mapping (how to identify them?)
 
 #[derive(Clone)]
 pub struct OCABox {
@@ -185,19 +182,6 @@ impl OCABox {
                 }
             }
 
-            if attribute.condition.is_some() {
-                let mut conditional_ov = overlays
-                    .iter_mut()
-                    .find(|x| x.overlay_type().eq(&OverlayType::Conditional(overlay_version.clone())));
-                if conditional_ov.is_none() {
-                    overlays.push(Box::new(overlay::Conditional::new()));
-                    conditional_ov = overlays.last_mut();
-                }
-                if let Some(ov) = conditional_ov {
-                    ov.add(attribute);
-                }
-            }
-
             if attribute.unit.is_some() {
                 let mut unit_ov = overlays
                     .iter_mut()
@@ -254,21 +238,6 @@ impl OCABox {
                 }
             }
 
-            if let Some(information) = &attribute.informations {
-                for lang in information.keys() {
-                    let mut info_ov = overlays.iter_mut().find(|x| {
-                        x.overlay_type().eq(&OverlayType::Information(overlay_version.clone())) && x.language() == Some(lang)
-                    });
-                    if info_ov.is_none() {
-                        overlays.push(Box::new(overlay::Information::new(*lang)));
-                        info_ov = overlays.last_mut();
-                    }
-                    if let Some(ov) = info_ov {
-                        ov.add(attribute);
-                    }
-                }
-            }
-
             if let Some(links) = &attribute.links {
                 for target_bundle in links.keys() {
                     let mut link_ov = overlays.iter_mut().find(|x| {
@@ -283,25 +252,6 @@ impl OCABox {
                         link_ov = overlays.last_mut();
                     }
                     if let Some(ov) = link_ov {
-                        ov.add(attribute);
-                    }
-                }
-            }
-
-            if let Some(framings) = &attribute.framings {
-                for frame_id in framings.keys() {
-                    let mut framing_ov = overlays.iter_mut().find(|x| {
-                        match x.as_any().downcast_ref::<overlay::AttributeFraming>() {
-                            Some(o) => o.metadata.get("frame_id") == Some(frame_id),
-                            None => false,
-                        }
-                    });
-
-                    if framing_ov.is_none() {
-                        overlays.push(Box::new(overlay::AttributeFraming::new(frame_id.clone())));
-                        framing_ov = overlays.last_mut();
-                    }
-                    if let Some(ov) = framing_ov {
                         ov.add(attribute);
                     }
                 }
@@ -380,15 +330,6 @@ impl<'de> Deserialize<'de> for DynOverlay {
                                 })?,
                         ));
                     }
-                    OverlayType::Conditional(_) => {
-                        return Ok(Box::new(
-                            de_overlay
-                                .deserialize_into::<overlay::Conditional>()
-                                .map_err(|e| {
-                                    serde::de::Error::custom(format!("Conditional overlay: {e}"))
-                                })?,
-                        ));
-                    }
                     OverlayType::Entry(_) => {
                         return Ok(Box::new(
                             de_overlay
@@ -439,15 +380,6 @@ impl<'de> Deserialize<'de> for DynOverlay {
                         ));
                     }
 
-                    OverlayType::Information(_) => {
-                        return Ok(Box::new(
-                            de_overlay
-                                .deserialize_into::<overlay::Information>()
-                                .map_err(|e| {
-                                    serde::de::Error::custom(format!("Information overlay: {e}"))
-                                })?,
-                        ));
-                    }
                     OverlayType::Label(_) => {
                         return Ok(Box::new(
                             de_overlay
@@ -467,33 +399,6 @@ impl<'de> Deserialize<'de> for DynOverlay {
                         ));
                     }
 
-                    /* OverlayType::FormLayout => {
-                        return Ok(Box::new(
-                            de_overlay
-                                .deserialize_into::<overlay::FormLayout>()
-                                .map_err(|e| {
-                                    serde::de::Error::custom(format!("Form Layout overlay: {e}"))
-                                })?,
-                        ));
-                    }
-                    OverlayType::CredentialLayout => {
-                        return Ok(Box::new(
-                            de_overlay
-                                .deserialize_into::<overlay::CredentialLayout>()
-                                .map_err(|e| {
-                                    serde::de::Error::custom(format!("Credential Layout overlay: {e}"))
-                                })?,
-                        ));
-                    } */
-                    OverlayType::Subset(_) => {
-                        return Ok(Box::new(
-                            de_overlay
-                                .deserialize_into::<overlay::Subset>()
-                                .map_err(|e| {
-                                    serde::de::Error::custom(format!("Subset overlay: {e}"))
-                                })?,
-                        ));
-                    }
                     OverlayType::Standard(_) => {
                         return Ok(Box::new(
                             de_overlay
@@ -509,17 +414,6 @@ impl<'de> Deserialize<'de> for DynOverlay {
                                 .deserialize_into::<overlay::Link>()
                                 .map_err(|e| {
                                     serde::de::Error::custom(format!("Link overlay: {e}"))
-                                })?,
-                        ));
-                    }
-                    OverlayType::AttributeFraming(_) => {
-                        return Ok(Box::new(
-                            de_overlay
-                                .deserialize_into::<overlay::AttributeFraming>()
-                                .map_err(|e| {
-                                    serde::de::Error::custom(format!(
-                                        "AttributeFraming overlay: {e}"
-                                    ))
                                 })?,
                         ));
                     }
@@ -559,9 +453,7 @@ where
         "meta",
         "entry",
         "label",
-        "information",
         "link",
-        "attribute_framing",
     ];
 
     let mut overlays_map: BTreeMap<Value, OverlayValue> = BTreeMap::new();
@@ -728,30 +620,6 @@ impl From<OCABundle> for OCABox {
             }
         }
 
-        let conditional_overlays = oca_bundle
-            .overlays
-            .iter()
-            .filter_map(|x| x.as_any().downcast_ref::<overlay::Conditional>())
-            .collect::<Vec<_>>();
-
-        let re = regex::Regex::new(r"\$\{(\d+)\}").unwrap();
-        for overlay in conditional_overlays {
-            for (attr_name, condition) in overlay.attribute_conditions.iter() {
-                let condition_dependencies = overlay.attribute_dependencies.get(attr_name).unwrap(); // todo
-                let cond = re
-                    .replace_all(condition, |caps: &regex::Captures| {
-                        let dep = condition_dependencies[caps[1].parse::<usize>().unwrap()].clone();
-                        format!("${{{}}}", dep)
-                    })
-                    .to_string();
-
-                attributes
-                    .get_mut(attr_name)
-                    .unwrap()
-                    .set_condition(cond.clone());
-            }
-        }
-
         let cardinality_overlays = oca_bundle
             .overlays
             .iter()
@@ -839,20 +707,6 @@ impl From<OCABundle> for OCABox {
             }
         }
 
-        let information_overlays = oca_bundle
-            .overlays
-            .iter()
-            .filter_map(|x| x.as_any().downcast_ref::<overlay::Information>())
-            .collect::<Vec<_>>();
-        for overlay in information_overlays {
-            for (attr_name, information) in overlay.attribute_information.iter() {
-                attributes
-                    .get_mut(attr_name)
-                    .unwrap()
-                    .set_information(*overlay.language().unwrap(), information.clone());
-            }
-        }
-
         let link_overlays = oca_bundle
             .overlays
             .iter()
@@ -864,33 +718,6 @@ impl From<OCABundle> for OCABox {
                     .get_mut(attr_name)
                     .unwrap()
                     .set_link(overlay.target_bundle.clone(), mapping.clone());
-            }
-        }
-
-        let framing_overlays = oca_bundle
-            .overlays
-            .iter()
-            .filter_map(|x| x.as_any().downcast_ref::<overlay::AttributeFraming>())
-            .collect::<Vec<_>>();
-        for overlay in framing_overlays {
-            let frame_id = overlay.metadata.get("frame_id").unwrap();
-            let mut frame_meta = overlay.metadata.clone();
-            frame_meta.remove("frame_id");
-
-            for (attr_name, attr_framing) in overlay.attribute_framing.iter() {
-                let framing = attr_framing
-                    .clone()
-                    .iter_mut()
-                    .map(|(f, scope)| {
-                        scope.frame_meta = frame_meta.clone();
-                        (f.clone(), scope.clone())
-                    })
-                    .collect::<HashMap<_, _>>();
-
-                attributes
-                    .get_mut(attr_name)
-                    .unwrap()
-                    .set_framing(frame_id.to_string(), framing);
             }
         }
 
@@ -912,7 +739,7 @@ impl OCABundle {
     pub fn to_ast(&self) -> OCAAst {
         let mut ast = OCAAst::new();
 
-        let mut properties = None;
+        let properties = None;
 
         let mut attributes = IndexMap::new();
         self.capture_base
@@ -1025,72 +852,6 @@ impl OCABundle {
                             Content {
                                 attributes: Some(attributes),
                                 properties: Some(properties),
-                            },
-                        ),
-                    };
-                    ast.commands.push(command);
-                }
-                OverlayType::Information(_) => {
-                    let information = overlay
-                        .as_any()
-                        .downcast_ref::<overlay::Information>()
-                        .unwrap();
-                    let mut properties = IndexMap::new();
-                    properties.insert(
-                        "lang".to_string(),
-                        NestedValue::Value(
-                            information
-                                .language()
-                                .unwrap()
-                                .to_639_1()
-                                .unwrap()
-                                .to_string(),
-                        ),
-                    );
-                    let mut attributes = IndexMap::new();
-                    for (attr_name, information) in information.attribute_information.iter() {
-                        attributes
-                            .insert(attr_name.clone(), NestedValue::Value(information.clone()));
-                    }
-                    let command = Command {
-                        kind: CommandType::Add,
-                        object_kind: ObjectKind::Overlay(
-                            overlay.overlay_type().clone(),
-                            Content {
-                                attributes: Some(attributes),
-                                properties: Some(properties),
-                            },
-                        ),
-                    };
-                    ast.commands.push(command);
-                }
-                OverlayType::Conditional(_) => {
-                    let conditional = overlay
-                        .as_any()
-                        .downcast_ref::<overlay::Conditional>()
-                        .unwrap();
-                    let mut attributes = IndexMap::new();
-                    let re = regex::Regex::new(r"\$\{(\d+)\}").unwrap();
-                    for (attr_name, condition) in conditional.attribute_conditions.iter() {
-                        let condition_dependencies =
-                            conditional.attribute_dependencies.get(attr_name).unwrap(); // todo
-                        let cond = re
-                            .replace_all(condition, |caps: &regex::Captures| {
-                                let dep = condition_dependencies[caps[1].parse::<usize>().unwrap()]
-                                    .clone();
-                                format!("${{{}}}", dep)
-                            })
-                            .to_string();
-
-                        attributes.insert(attr_name.clone(), NestedValue::Value(cond.clone()));
-                    }
-                    let command = Command {
-                        kind: CommandType::Add,
-                        object_kind: ObjectKind::Overlay(
-                            overlay.overlay_type().clone(),
-                            Content {
-                                attributes: Some(attributes),
-                                properties: None,
                             },
                         ),
                     };
@@ -1271,39 +1032,11 @@ impl OCABundle {
     }
 }
 
-/*
-#[derive(Clone)]
-struct AttributeLayoutValues {
-    pub reference_sai: Option<String>,
-    pub has_unit: bool,
-}
-
-impl AttributeLayoutValues {
-    pub fn new() -> Self {
-        Self {
-            reference_sai: None,
-            has_unit: false,
-        }
-    }
-
-    pub fn add_reference_sai(&mut self, reference_sai: String) {
-        self.reference_sai = Some(reference_sai);
-    }
-
-    pub fn add_unit(&mut self) {
-        self.has_unit = true;
-    }
-}
-*/
-
 #[cfg(test)]
 mod tests {
     use maplit::hashmap;
     use oca_ast_semantics::ast::{NestedAttrType, RefValue};
-    use overlay::{
-        attribute_framing::{FramingScope, Framings},
-        link::Links,
-    };
+    use overlay::link::Links;
     use said::SelfAddressingIdentifier;
 
     use super::*;
@@ -1362,23 +1095,12 @@ mod tests {
 
         let mut attr = Attribute::new("last_name".to_string());
         attr.set_attribute_type(NestedAttrType::Value(AttributeType::Text));
-        attr.set_condition("string.len(${first_name}) > 0".to_string());
         oca.add_attribute(attr);
 
         let mut attr = Attribute::new("ref".to_string());
         let said = SelfAddressingIdentifier::default();
         attr.set_attribute_type(NestedAttrType::Reference(RefValue::Said(said)));
         attr.set_link("target_bundle".to_string(), "linked_attr".to_string());
-        let mut framing = HashMap::new();
-        framing.insert(
-            "url".to_string(),
-            FramingScope {
-                predicate_id: "skos:exactMatch".to_string(),
-                framing_justification: "semapv:ManualMappingCuration".to_string(),
-                frame_meta: HashMap::new(),
-            },
-        );
-        attr.set_framing("frame_id".to_string(), framing);
         oca.add_attribute(attr);
 
         let oca_bundle = oca.generate_bundle();
@@ -1391,102 +1113,3 @@ mod tests {
         assert_eq!(said, said2);
     }
 }
-
-/* struct CatAttributes {
-    category_labels: HashMap<String, String>,
-    categorized: IndexMap<String, IndexMap<String, AttributeLayoutValues>>,
-    uncategorized: IndexMap<String, AttributeLayoutValues>,
-    lang: String,
-}
-
-impl CatAttributes {
-    fn add_to_category(&mut self, categories: Vec<&str>, attribute: &Attribute) {
-        let mut attribute_layout_values = AttributeLayoutValues::new();
-        if let Some(sai) = &attribute.reference_sai {
-            attribute_layout_values.add_reference_sai(sai.clone());
-        }
-        // if attribute.unit.is_some() {
-        //     attribute_layout_values.add_unit();
-        // }
-        if categories.is_empty() {
-            self.uncategorized
-                .insert(attribute.name.clone(), attribute_layout_values);
-            return;
-        }
-        let mut supercats: Vec<i32> = vec![];
-        for (i, category) in categories.iter().enumerate() {
-            let supercats_str: Vec<String> = supercats.iter().map(|c| c.to_string()).collect();
-            let mut supercat = String::new();
-            if !supercats_str.is_empty() {
-                supercat = format!("-{}", supercats_str.join("-"))
-            }
-            let regex = regex::Regex::new(format!("^_cat{supercat}(-[0-9]*)_$").as_str()).unwrap();
-            let mut acctual_cat_id = String::new();
-            let mut category_exists = false;
-            for (cat_id, cat_label) in self.category_labels.iter() {
-                if cat_label == category && regex.is_match(cat_id) {
-                    let cat_temp = cat_id.replace('_', "");
-                    let mut temp = cat_temp.split('-').collect::<Vec<&str>>();
-                    temp.remove(0);
-                    supercats = temp.iter().map(|c| c.parse::<i32>().unwrap()).collect();
-                    acctual_cat_id = cat_id.to_string();
-                    category_exists = true;
-                }
-            }
-
-            if !category_exists {
-                let mut count = 0;
-                for cat in self.categorized.keys() {
-                    if regex.is_match(cat.as_str()) {
-                        count += 1;
-                    }
-                }
-                acctual_cat_id = format!("_cat{}-{}_", supercat, count + 1);
-                supercats.push(count + 1);
-                self.category_labels
-                    .insert(acctual_cat_id.clone(), category.to_string());
-                self.categorized
-                    .insert(acctual_cat_id.clone(), IndexMap::new());
-            }
-
-            if i + 1 == categories.len() {
-                self.categorized
-                    .get_mut(acctual_cat_id.as_str())
-                    .unwrap()
-                    .insert(attribute.name.clone(), attribute_layout_values.clone());
-            }
-        }
-    }
-}
- */
-
-/*
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::state::{
-        attribute::{AttributeType, Entries, Entry},
-        encoding::Encoding,
-        entry_codes::EntryCodes,
-    };
-    use maplit::hashmap;
-
-    #[test]
-    fn build_oca_without_attributes() {
-        let oca = OCABuilder::new(Encoding::Utf8)
-            /*  .add_name(hashmap! {
-                "En".to_string() => "Driving Licence".to_string(),
-                "Pl".to_string() => "Prawo Jazdy".to_string(),
-            })
-            .add_description(hashmap! {
-                "En".to_string() => "Driving Licence".to_string(),
-                "Pl".to_string() => "Prawo Jazdy".to_string(),
-            }) */
-            .finalize();
-
-        // println!("{:#?}", serde_json::to_string(&oca).unwrap());
-
-        assert_eq!(oca.capture_base.attributes.len(), 0);
-    }
-}
-*/

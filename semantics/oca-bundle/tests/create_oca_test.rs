@@ -6,11 +6,9 @@ use oca_bundle_semantics::state::{
     entry_codes::EntryCodes as EntryCodesValue,
     oca::overlay::cardinality::Cardinalitys,
     oca::overlay::character_encoding::CharacterEncodings,
-    oca::overlay::conditional::Conditionals,
     oca::overlay::conformance::Conformances,
     oca::overlay::entry::Entries,
     oca::overlay::entry_code::EntryCodes,
-    oca::overlay::information::Information,
     oca::overlay::label::Labels,
     oca::overlay::meta::Metas,
     oca::overlay::unit::Units,
@@ -38,7 +36,6 @@ fn create_oca() {
         ..set_cardinality("1".to_string());
         ..set_conformance("O".to_string());
         ..set_label(isolang::Language::Eng, "Name".to_string());
-        ..set_information(isolang::Language::Eng, "name information".to_string());
         ..set_entry_codes(EntryCodesValue::Array(vec!["a".to_string(), "b".to_string()]));
         ..set_entry(isolang::Language::Pol, EntriesElement::Object(hashmap! {
             "a".to_string() => "Opcja A".to_string(),
@@ -61,9 +58,7 @@ fn create_oca() {
         ..set_encoding(Encoding::Utf8);
         ..set_cardinality("2".to_string());
         ..set_conformance("M".to_string());
-        ..set_condition("${name} ~= nil and ${name} ~= ''".to_string());
         ..set_label(isolang::Language::Eng, "Age".to_string());
-        ..set_information(isolang::Language::Eng, "age information".to_string());
         ..set_entry_codes(EntryCodesValue::Array(vec!["a".to_string(), "b".to_string()]));
         ..set_entry(isolang::Language::Eng, EntriesElement::Object(hashmap! {
             "a".to_string() => "Option A".to_string(),
@@ -85,7 +80,7 @@ fn create_oca() {
     #[cfg(not(feature = "format_overlay"))]
     assert_eq!(oca_bundle.overlays.len(), 11);
     #[cfg(feature = "format_overlay")]
-    assert_eq!(oca_bundle.overlays.len(), 12);
+    assert_eq!(oca_bundle.overlays.len(), 10);
 
     let serialized_bundle = serde_json::to_string_pretty(&oca_bundle).unwrap();
     println!("{}", serialized_bundle);
@@ -118,19 +113,6 @@ fn create_oca() {
       "attribute_character_encoding": {
         "age": "utf-8",
         "name": "utf-8"
-      }
-    },
-    "conditional": {
-      "d": "EHF7zB6Ajrxr9zCTg8SstIZE5YHWioG1bzWjzAuBJyaC",
-      "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "spec/overlays/conditional/1.1",
-      "attribute_conditions": {
-        "age": "${0} ~= nil and ${0} ~= ''"
-      },
-      "attribute_dependencies": {
-        "age": [
-          "name"
-        ]
       }
     },
     "conformance": {
@@ -271,19 +253,6 @@ fn create_oca() {
       "attribute_character_encoding": {
         "age": "utf-8",
         "name": "utf-8"
-      }
-    },
-    "conditional": {
-      "d": "EHF7zB6Ajrxr9zCTg8SstIZE5YHWioG1bzWjzAuBJyaC",
-      "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "spec/overlays/conditional/1.1",
-      "attribute_conditions": {
-        "age": "${0} ~= nil and ${0} ~= ''"
-      },
-      "attribute_dependencies": {
-        "age": [
-          "name"
-        ]
       }
     },
     "conformance": {

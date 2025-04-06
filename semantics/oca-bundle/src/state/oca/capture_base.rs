@@ -5,7 +5,7 @@ use said::{
     derivation::HashFunctionCode,
     sad::{SerializationFormats, SAD},
 };
-use serde::{ser::SerializeMap, ser::SerializeSeq, Deserialize, Serialize, Serializer};
+use serde::{ser::SerializeMap, Deserialize, Serialize, Serializer};
 
 pub fn serialize_attributes<S>(
     attributes: &IndexMap<String, NestedAttrType>,

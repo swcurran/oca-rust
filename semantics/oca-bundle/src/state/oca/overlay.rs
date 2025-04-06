@@ -1,39 +1,31 @@
-pub mod attribute_framing;
 pub mod attribute_mapping;
 pub mod cardinality;
 pub mod character_encoding;
-pub mod conditional;
 pub mod conformance;
 pub mod entry;
 pub mod entry_code;
 pub mod entry_code_mapping;
 #[cfg(feature = "format_overlay")]
 pub mod format;
-pub mod information;
 pub mod label;
 pub mod link;
 pub mod meta;
 pub mod standard;
-pub mod subset;
 pub mod unit;
 
-pub use self::attribute_framing::AttributeFramingOverlay as AttributeFraming;
 pub use self::attribute_mapping::AttributeMappingOverlay as AttributeMapping;
 pub use self::cardinality::CardinalityOverlay as Cardinality;
 pub use self::character_encoding::CharacterEncodingOverlay as CharacterEncoding;
-pub use self::conditional::ConditionalOverlay as Conditional;
 pub use self::conformance::ConformanceOverlay as Conformance;
 pub use self::entry::EntryOverlay as Entry;
 pub use self::entry_code::EntryCodeOverlay as EntryCode;
 pub use self::entry_code_mapping::EntryCodeMappingOverlay as EntryCodeMapping;
 #[cfg(feature = "format_overlay")]
 pub use self::format::FormatOverlay as Format;
-pub use self::information::InformationOverlay as Information;
 pub use self::label::LabelOverlay as Label;
 pub use self::link::LinkOverlay as Link;
 pub use self::meta::MetaOverlay as Meta;
 pub use self::standard::StandardOverlay as Standard;
-pub use self::subset::SubsetOverlay as Subset;
 pub use oca_ast_semantics::ast::OverlayType;
 use said::derivation::HashFunctionCode;
 

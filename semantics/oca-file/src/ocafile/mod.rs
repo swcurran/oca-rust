@@ -336,33 +336,6 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                                 }
                             };
                         }
-                        ast::OverlayType::Conditional(_) => {
-                            line.push_str("CONDITION ");
-                            if let Some(content) = command.object_kind.overlay_content() {
-                                if let Some(ref properties) = content.properties {
-                                    if !properties.is_empty() {
-                                        line.push_str("PROPS ");
-                                        properties.iter().for_each(|(key, value)| {
-                                            if let ast::NestedValue::Value(value) = value {
-                                                line.push_str(
-                                                    format!(" {}={}", key, value).as_str(),
-                                                );
-                                            }
-                                        });
-                                    }
-                                }
-                                if let Some(ref attributes) = content.attributes {
-                                    line.push_str("ATTRS");
-                                    attributes.iter().for_each(|(key, value)| {
-                                        if let ast::NestedValue::Value(value) = value {
-                                            line.push_str(
-                                                format!(" {}=\"{}\"", key, value).as_str(),
-                                            );
-                                        }
-                                    });
-                                }
-                            };
-                        }
                         ast::OverlayType::Link(_) => {
                             line.push_str("LINK ");
                             if let Some(content) = command.object_kind.overlay_content() {
@@ -380,58 +353,6 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                                         if let ast::NestedValue::Value(value) = value {
                                             line.push_str(
                                                 format!(" {}=\"{}\"", key, value).as_str(),
-                                            );
-                                        }
-                                    });
-                                }
-                            };
-                        }
-                        ast::OverlayType::AttributeFraming(_) => {
-                            line.push_str("ATTR_FRAMING \\\n");
-                            if let Some(content) = command.object_kind.overlay_content() {
-                                if let Some(ref properties) = content.properties {
-                                    for (prop_name, prop_value) in properties {
-                                        let key = prop_name.replace("frame_", "");
-                                        if let ast::NestedValue::Value(value) = prop_value {
-                                            line.push_str(format!("        {}=\"{}\" \\\n", key, value).as_str());
-                                        }
-                                    }
-                                }
-                                if let Some(ref attributes) = content.attributes {
-                                    line.push_str("    ATTRS \\");
-                                    attributes.iter().for_each(|(key, value)| {
-                                        if let ast::NestedValue::Object(object) = value {
-                                            let mut frames_str = "".to_string();
-                                            for (f_key, f_value) in object.iter() {
-                                                let mut frame_str = "\n            ".to_string();
-                                                frame_str.push_str(
-                                                    format!(
-                                                        "\"{}\": {{",
-                                                        f_key
-                                                    ).as_str()
-                                                );
-
-                                                if let ast::NestedValue::Object(frame) = f_value {
-                                                    frame.iter().for_each(|(frame_key, frame_value)| {
-                                                        if let ast::NestedValue::Value(frame_value) = frame_value {
-                                                            frame_str.push_str(
-                                                                format!(
-                                                                    "\n                \"{}\": \"{}\",",
-                                                                    frame_key,
-                                                                    frame_value
-                                                                ).as_str()
-                                                            );
-                                                        }
-
-                                                    });
-                                                }
-
-                                                frame_str.push_str("\n            },");
-
-                                                frames_str.push_str(frame_str.as_str());
-                                            }
-                                            line.push_str(
-                                                format!("\n        {}={{{}\n        }}", key, frames_str).as_str(),
                                             );
                                         }
                                     });
