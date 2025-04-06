@@ -27,7 +27,7 @@ where
 #[derive(SAD, Serialize, Deserialize, Debug, Clone)]
 pub struct CaptureBase {
     #[said]
-    #[serde(rename = "d")]
+    #[serde(rename = "digest")]
     pub said: Option<said::SelfAddressingIdentifier>,
     #[serde(rename = "type")]
     pub schema_type: String,

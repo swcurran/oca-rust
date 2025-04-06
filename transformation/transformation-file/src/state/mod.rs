@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 // #[said(format = "JSON")]
 pub struct Transformation {
     #[said]
-    #[serde(rename = "d")]
+    #[serde(rename = "digest")]
     pub said: Option<said::SelfAddressingIdentifier>,
     pub source: Option<String>,
     pub target: Option<String>,

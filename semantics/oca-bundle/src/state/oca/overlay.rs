@@ -95,7 +95,7 @@ macro_rules! overlay {
             #[derive(serde::Deserialize, serde::Serialize, SAD, Debug, Clone)]
             pub struct [<$name Overlay>] {
                 #[said]
-                #[serde(rename = "d")]
+                #[serde(rename = "digest")]
                 said: Option<said::SelfAddressingIdentifier>,
                 capture_base: Option<said::SelfAddressingIdentifier>,
                 #[serde(rename = "type")]

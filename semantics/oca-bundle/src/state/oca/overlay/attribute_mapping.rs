@@ -10,7 +10,7 @@ use said::{sad::SerializationFormats, sad::SAD};
 #[derive(SAD, Serialize, Deserialize, Debug, Clone)]
 pub struct AttributeMappingOverlay {
     #[said]
-    #[serde(rename = "d")]
+    #[serde(rename = "digest")]
     said: Option<said::SelfAddressingIdentifier>,
     #[serde(rename = "type")]
     overlay_type: OverlayType,

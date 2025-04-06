@@ -53,7 +53,7 @@ where
 #[derive(SAD, Serialize, Deserialize, Debug, Clone)]
 pub struct MetaOverlay {
     #[said]
-    #[serde(rename = "d")]
+    #[serde(rename = "digest")]
     said: Option<said::SelfAddressingIdentifier>,
     capture_base: Option<said::SelfAddressingIdentifier>,
     #[serde(rename = "type")]
