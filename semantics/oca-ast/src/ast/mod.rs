@@ -151,7 +151,6 @@ pub enum OverlayType {
     Unit(String),
     AttributeMapping(String),
     EntryCodeMapping(String),
-    UnitMapping(String),
     Sensitivity(String),
     Link(String),
 }
@@ -198,8 +197,6 @@ impl Serialize for OverlayType {
             OverlayType::EntryCodeMapping(v) => serializer.serialize_str(
                 &format!("spec/overlays/entry_code_mapping/{v}"),
             ),
-            OverlayType::UnitMapping(v) => serializer
-                .serialize_str(&format!("spec/overlays/unit_mapping/{v}")),
             OverlayType::Sensitivity(v) => serializer
                 .serialize_str(&format!("spec/overlays/sensitivity/{v}")),
             OverlayType::Link(v) => {
@@ -254,7 +251,6 @@ impl FromStr for OverlayType {
             "Unit" => Ok(OverlayType::Unit(v)),
             "Mapping" => Ok(OverlayType::AttributeMapping(v)),
             "EntryCodeMapping" => Ok(OverlayType::EntryCodeMapping(v)),
-            "UnitMapping" => Ok(OverlayType::UnitMapping(v)),
             "Sensitivity" => Ok(OverlayType::Sensitivity(v)),
             "Link" => Ok(OverlayType::Link(v)),
             _ => Err(()),
@@ -278,7 +274,6 @@ impl fmt::Display for OverlayType {
             OverlayType::Unit(_) => write!(f, "Unit"),
             OverlayType::AttributeMapping(_) => write!(f, "AttributeMapping"),
             OverlayType::EntryCodeMapping(_) => write!(f, "EntryCodeMapping"),
-            OverlayType::UnitMapping(_) => write!(f, "UnitMapping"),
             OverlayType::Sensitivity(_) => write!(f, "Sensitivity"),
             OverlayType::Link(_) => write!(f, "Link"),
         }
@@ -313,7 +308,6 @@ impl<'de> Deserialize<'de> for OverlayType {
                 "unit" => Ok(OverlayType::Unit(v)),
                 "mapping" => Ok(OverlayType::AttributeMapping(v)),
                 "entry_code_mapping" => Ok(OverlayType::EntryCodeMapping(v)),
-                "unit_mapping" => Ok(OverlayType::UnitMapping(v)),
                 "sensitivity" => Ok(OverlayType::Sensitivity(v)),
                 "link" => Ok(OverlayType::Link(v)),
                 _ => Err(serde::de::Error::custom("Unknown overlay type")),
@@ -743,13 +737,6 @@ impl From<u8> for ObjectKind {
                     properties: None,
                 },
             ),
-            18 => ObjectKind::Overlay(
-                OverlayType::UnitMapping(overlay_version),
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
             20 => ObjectKind::Overlay(
                 OverlayType::Sensitivity(overlay_version),
                 Content {
@@ -787,7 +774,6 @@ impl From<ObjectKind> for u8 {
             ObjectKind::Overlay(OverlayType::Unit(_), _) => 14,
             ObjectKind::Overlay(OverlayType::AttributeMapping(_), _) => 15,
             ObjectKind::Overlay(OverlayType::EntryCodeMapping(_), _) => 16,
-            ObjectKind::Overlay(OverlayType::UnitMapping(_), _) => 18,
             ObjectKind::Overlay(OverlayType::Sensitivity(_), _) => 20,
             ObjectKind::Overlay(OverlayType::Link(_), _) => 21,
         }
@@ -897,13 +883,6 @@ impl<'de> Deserialize<'de> for ObjectKind {
             )),
             "EntryCodeMapping" => Ok(ObjectKind::Overlay(
                 OverlayType::EntryCodeMapping(v),
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            "UnitMapping" => Ok(ObjectKind::Overlay(
-                OverlayType::UnitMapping(v),
                 Content {
                     attributes: None,
                     properties: None,
