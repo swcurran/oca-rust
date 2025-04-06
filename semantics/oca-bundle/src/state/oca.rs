@@ -3,7 +3,6 @@ use crate::state::oca::overlay::character_encoding::CharacterEncodings;
 use crate::state::oca::overlay::conformance::Conformances;
 use crate::state::oca::overlay::entry::Entries;
 use crate::state::oca::overlay::entry_code::EntryCodes;
-#[cfg(feature = "format_overlay")]
 use crate::state::oca::overlay::format::Formats;
 use crate::state::oca::overlay::label::Labels;
 use crate::state::oca::overlay::meta::Metas;
@@ -142,7 +141,6 @@ impl OCABox {
                 }
             }
 
-            #[cfg(feature = "format_overlay")]
             if attribute.format.is_some() {
                 let mut format_ov = overlays
                     .iter_mut()
@@ -369,7 +367,6 @@ impl<'de> Deserialize<'de> for DynOverlay {
                         ));
                     }
 
-                    #[cfg(feature = "format_overlay")]
                     OverlayType::Format(_) => {
                         return Ok(Box::new(
                             de_overlay
@@ -634,7 +631,6 @@ impl From<OCABundle> for OCABox {
             }
         }
 
-        #[cfg(feature = "format_overlay")]
         {
             let format_overlays = oca_bundle
                 .overlays
@@ -788,7 +784,6 @@ impl OCABundle {
                     };
                     ast.commands.push(command);
                 }
-                #[cfg(feature = "format_overlay")]
                 OverlayType::Format(_) => {
                     let format = overlay.as_any().downcast_ref::<overlay::Format>().unwrap();
                     let mut attributes = IndexMap::new();

@@ -5,7 +5,6 @@ pub mod conformance;
 pub mod entry;
 pub mod entry_code;
 pub mod entry_code_mapping;
-#[cfg(feature = "format_overlay")]
 pub mod format;
 pub mod label;
 pub mod link;
@@ -20,7 +19,6 @@ pub use self::conformance::ConformanceOverlay as Conformance;
 pub use self::entry::EntryOverlay as Entry;
 pub use self::entry_code::EntryCodeOverlay as EntryCode;
 pub use self::entry_code_mapping::EntryCodeMappingOverlay as EntryCodeMapping;
-#[cfg(feature = "format_overlay")]
 pub use self::format::FormatOverlay as Format;
 pub use self::label::LabelOverlay as Label;
 pub use self::link::LinkOverlay as Link;

@@ -3,7 +3,6 @@ use crate::state::oca::overlay::character_encoding::CharacterEncodings;
 use crate::state::oca::overlay::conformance::Conformances;
 use crate::state::oca::overlay::entry::Entries;
 use crate::state::oca::overlay::entry_code::EntryCodes;
-#[cfg(feature = "format_overlay")]
 use crate::state::oca::overlay::format::Formats;
 use crate::state::oca::overlay::label::Labels;
 use crate::state::oca::overlay::link::Links;
@@ -227,7 +226,6 @@ pub fn apply_command(base: Option<OCABox>, op: ast::Command) -> Result<OCABox, V
                     }
                 }
                 ast::OverlayType::Format(_) => {
-                    #[cfg(feature = "format_overlay")]
                     {
                         if let Some(ref attributes) = content.attributes {
                             for (attr_name, attr_type_value) in attributes {

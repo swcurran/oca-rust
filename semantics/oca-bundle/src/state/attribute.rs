@@ -18,7 +18,6 @@ pub struct Attribute {
     pub entries: Option<HashMap<Language, EntriesElement>>,
     pub mapping: Option<String>,
     pub encoding: Option<Encoding>,
-    #[cfg(feature = "format_overlay")]
     pub format: Option<String>,
     pub unit: Option<String>,
     pub entry_codes_mapping: Option<Vec<String>>,
@@ -43,7 +42,6 @@ impl Attribute {
             attribute_type: None,
             mapping: None,
             encoding: None,
-            #[cfg(feature = "format_overlay")]
             format: None,
             unit: None,
             entry_codes: None,
@@ -80,7 +78,6 @@ impl Attribute {
                 self.encoding.clone_from(&other.encoding);
             }
 
-            #[cfg(feature = "format_overlay")]
             if other.format.is_some() {
                 self.format.clone_from(&other.format);
             }

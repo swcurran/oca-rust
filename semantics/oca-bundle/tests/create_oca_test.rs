@@ -85,7 +85,7 @@ fn create_oca() {
     let serialized_bundle = serde_json::to_string_pretty(&oca_bundle).unwrap();
     println!("{}", serialized_bundle);
 
-    let expected = if cfg!(feature = "format_overlay") {
+    let expected = {
         r#"{
   "d": "EMVt_-xNfr5DbxqNklc5AvgOtEwZpMUwROWFn18s_Xwk",
   "capture_base": {
@@ -176,137 +176,6 @@ fn create_oca() {
       "attribute_formats": {
         "age": "^[a-zA-Z]*$",
         "name": "^[a-zA-Z]*$"
-      }
-    },
-    "information": [
-      {
-        "d": "EHliDSsOvIRV0Wfm7-O8Gyo514BvoCg_QD14fVQCHIha",
-        "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-        "type": "spec/overlays/information/1.1",
-        "language": "eng",
-        "attribute_information": {
-          "age": "age information",
-          "name": "name information"
-        }
-      }
-    ],
-    "label": [
-      {
-        "d": "EIaG22w9wI1Hz5KnDkbVfnBXRdUUeLiH1pK8fr33RnBf",
-        "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-        "type": "spec/overlays/label/1.1",
-        "language": "eng",
-        "attribute_categories": [],
-        "attribute_labels": {
-          "age": "Age",
-          "name": "Name"
-        },
-        "category_labels": {}
-      }
-    ],
-    "meta": [
-      {
-        "d": "EJsJpRSMmQcLCBysWWBGQIdBdXEBEem7i0ZJ8ShxvQ5l",
-        "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-        "type": "spec/overlays/meta/1.1",
-        "language": "eng",
-        "description": "Test case OCA",
-        "name": "Test"
-      }
-    ],
-    "unit": {
-      "d": "EMXt63BvnAvX-ESmFLjNpEMElog-DDOd8xl4iL3QEZMA",
-      "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "spec/overlays/unit/1.1",
-      "attribute_unit": {
-        "age": "kg",
-        "name": "kg"
-      }
-    }
-  }
-}"#
-    } else {
-        r#"{
-  "d": "EMVt_-xNfr5DbxqNklc5AvgOtEwZpMUwROWFn18s_Xwk",
-  "capture_base": {
-    "d": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-    "type": "spec/capture_base/1.1",
-    "attributes": {
-      "age": "Numeric",
-      "name": "Text"
-    }
-  },
-  "overlays": {
-    "cardinality": {
-      "d": "EJFjpi67XgNXHlDilb-UoyFcZcf9m4jnqRPiQnx4vUAA",
-      "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "spec/overlays/cardinality/1.1",
-      "attribute_cardinality": {
-        "age": "2",
-        "name": "1"
-      }
-    },
-    "character_encoding": {
-      "d": "EGcXsw3LaRTlmnCVbxLYI2xB7WMkig2qI8pW5P98W0Mz",
-      "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "spec/overlays/character_encoding/1.1",
-      "attribute_character_encoding": {
-        "age": "utf-8",
-        "name": "utf-8"
-      }
-    },
-    "conformance": {
-      "d": "ED1DI-zvv-Jm3v319ksQIFdKPCDkp4-d4gky2w2WPOk9",
-      "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "spec/overlays/conformance/1.1",
-      "attribute_conformance": {
-        "age": "M",
-        "name": "O"
-      }
-    },
-    "entry": [
-      {
-        "d": "EJk_7snxZ24OebeEN3BFtjcZ_-nBGjMXt4YHX07yXP6x",
-        "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-        "type": "spec/overlays/entry/1.1",
-        "language": "eng",
-        "attribute_entries": {
-          "age": {
-            "a": "Option A",
-            "b": "Option B"
-          },
-          "name": {
-            "a": "Option A",
-            "b": "Option B"
-          }
-        }
-      },
-      {
-        "d": "EKO-fGzwp7omXv8RJ4WMSoGI7e0DKHklbXbawvau3imH",
-        "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-        "type": "spec/overlays/entry/1.1",
-        "language": "pol",
-        "attribute_entries": {
-          "name": {
-            "a": "Opcja A",
-            "b": "Opcja B"
-          }
-        }
-      }
-    ],
-    "entry_code": {
-      "d": "EHXbVeI2onaOhmu2D-F63PXRPx2V0iHw71La_OCCzH2j",
-      "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "spec/overlays/entry_code/1.1",
-      "attribute_entry_codes": {
-        "age": [
-          "a",
-          "b"
-        ],
-        "name": [
-          "a",
-          "b"
-        ]
       }
     },
     "information": [
