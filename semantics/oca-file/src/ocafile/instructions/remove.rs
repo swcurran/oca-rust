@@ -15,7 +15,7 @@ impl RemoveInstruction {
 
         debug!("Parsing remove instruction: {:?}", record);
         for object in record.into_inner() {
-            let overlay_version = "1.1".to_string();
+            let overlay_version = "2.0.0".to_string();
             match object.as_rule() {
                 Rule::remove_meta => {
                     object_kind = Some(ObjectKind::Overlay(

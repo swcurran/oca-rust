@@ -162,45 +162,45 @@ impl Serialize for OverlayType {
     {
         match self {
             OverlayType::Label(v) => {
-                serializer.serialize_str(&format!("spec/overlays/label/{v}"))
+                serializer.serialize_str(&format!("overlays/label/{v}"))
             }
             OverlayType::Encoding(v) => {
-                serializer.serialize_str(&format!("spec/overlays/encoding/{v}"))
+                serializer.serialize_str(&format!("overlays/encoding/{v}"))
             }
             OverlayType::CharacterEncoding(v) => serializer.serialize_str(
-                &format!("spec/overlays/character_encoding/{v}"),
+                &format!("overlays/character_encoding/{v}"),
             ),
             OverlayType::Format(v) => {
-                serializer.serialize_str(&format!("spec/overlays/format/{v}"))
+                serializer.serialize_str(&format!("overlays/format/{v}"))
             }
             OverlayType::Meta(v) => {
-                serializer.serialize_str(&format!("spec/overlays/meta/{v}"))
+                serializer.serialize_str(&format!("overlays/meta/{v}"))
             }
             OverlayType::Standard(v) => {
-                serializer.serialize_str(&format!("spec/overlays/standard/{v}"))
+                serializer.serialize_str(&format!("overlays/standard/{v}"))
             }
             OverlayType::Cardinality(v) => serializer
-                .serialize_str(&format!("spec/overlays/cardinality/{v}")),
+                .serialize_str(&format!("overlays/cardinality/{v}")),
             OverlayType::Conformance(v) => serializer
-                .serialize_str(&format!("spec/overlays/conformance/{v}")),
+                .serialize_str(&format!("overlays/conformance/{v}")),
             OverlayType::EntryCode(v) => serializer
-                .serialize_str(&format!("spec/overlays/entry_code/{v}")),
+                .serialize_str(&format!("overlays/entry_code/{v}")),
             OverlayType::Entry(v) => {
-                serializer.serialize_str(&format!("spec/overlays/entry/{v}"))
+                serializer.serialize_str(&format!("overlays/entry/{v}"))
             }
             OverlayType::Unit(v) => {
-                serializer.serialize_str(&format!("spec/overlays/unit/{v}"))
+                serializer.serialize_str(&format!("overlays/unit/{v}"))
             }
             OverlayType::AttributeMapping(v) => {
-                serializer.serialize_str(&format!("spec/overlays/mapping/{v}"))
+                serializer.serialize_str(&format!("overlays/mapping/{v}"))
             }
             OverlayType::EntryCodeMapping(v) => serializer.serialize_str(
-                &format!("spec/overlays/entry_code_mapping/{v}"),
+                &format!("overlays/entry_code_mapping/{v}"),
             ),
             OverlayType::Sensitivity(v) => serializer
-                .serialize_str(&format!("spec/overlays/sensitivity/{v}")),
+                .serialize_str(&format!("overlays/sensitivity/{v}")),
             OverlayType::Link(v) => {
-                serializer.serialize_str(&format!("spec/overlays/link/{v}"))
+                serializer.serialize_str(&format!("overlays/link/{v}"))
             }
         }
     }
@@ -236,7 +236,7 @@ impl FromStr for OverlayType {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let v = "1.1".to_string();
+        let v = "2.0.0".to_string();
         match s {
             "Label" => Ok(OverlayType::Label(v)),
             "Encoding" => Ok(OverlayType::Encoding(v)),
@@ -289,7 +289,7 @@ impl<'de> Deserialize<'de> for OverlayType {
     {
         let overlay_type = String::deserialize(deserializer)?;
         let pattern = OVERLAY_PATTERN.get_or_init(|| {
-            regex::Regex::new(r"^spec/overlays/(\w+)/(\d+\.\d+)$").unwrap()
+            regex::Regex::new(r"^overlays/(\w+)/(\d+\.\d+)$").unwrap()
         });
 
         if let Some(captures) = pattern.captures(&overlay_type) {
@@ -619,7 +619,7 @@ impl OCAAst {
     pub fn new() -> Self {
         OCAAst {
             // Version of OCA specification
-            version: String::from("1.0.0"),
+            version: String::from("2.0.0"),
             commands: Vec::new(),
             commands_meta: IndexMap::new(),
             meta: HashMap::new(),
@@ -635,7 +635,7 @@ impl Default for OCAAst {
 
 impl From<u8> for ObjectKind {
     fn from(val: u8) -> Self {
-        let overlay_version = "1.1".to_string();
+        let overlay_version = "2.0.0".to_string();
         match val {
             0 => ObjectKind::CaptureBase(CaptureContent {
                 attributes: None,
@@ -786,7 +786,7 @@ impl<'de> Deserialize<'de> for ObjectKind {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        let v = "1.1".to_string();
+        let v = "2.0.0".to_string();
         match s.as_str() {
             "CaptureBase" => Ok(ObjectKind::CaptureBase(CaptureContent {
                 attributes: None,
@@ -941,7 +941,7 @@ mod tests {
         let lable_command = Command {
             kind: CommandType::Add,
             object_kind: ObjectKind::Overlay(
-                OverlayType::Label("1.1".to_string()),
+                OverlayType::Label("2.0.0".to_string()),
                 Content {
                     attributes: None,
                     properties: None,
@@ -956,7 +956,7 @@ mod tests {
         let serialized = serde_json::to_string(&ocaast).unwrap();
         assert_eq!(
             serialized,
-            r#"{"version":"1.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"},"properties":{"test":"test"}}},{"type":"Add","object_kind":"Label","content":{}}],"commands_meta":{},"meta":{}}"#
+            r#"{"version":"2.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"},"properties":{"test":"test"}}},{"type":"Add","object_kind":"Label","content":{}}],"commands_meta":{},"meta":{}}"#
         );
 
         let deser: OCAAst = serde_json::from_str(&serialized).unwrap();

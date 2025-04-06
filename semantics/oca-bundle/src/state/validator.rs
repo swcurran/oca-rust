@@ -392,7 +392,7 @@ mod tests {
     "version": "OCAB10000023_",
     "said": "EBQMQm_tXSC8tnNICl7paGUeGg0SyF1tceHhTUutn1PN",
     "capture_base": {
-        "type": "spec/capture_base/1.0",
+        "type": "capture_base/2.0.0",
         "said": "EBQMQm_tXSC8tnNICl7paGUeGg0SyF1tceHhTUutn1PN",
         "attributes": {
             "n1": "Text",
@@ -404,7 +404,7 @@ mod tests {
         "character_encoding": {
             "capture_base": "EDRt2wL8yVWVSJdF8aMFtU9VQ6aWzXZTgWj3WqsIKLqm",
             "said": "EBQMQm_tXSC8tnNICl7paGUeGg0SyF1tceHhTUutn1PN",
-            "type": "spec/overlays/character_encoding/1.0",
+            "type": "overlays/character_encoding/2.0.0",
             "attribute_character_encoding": {}
         }
     }

@@ -6,14 +6,14 @@
       "last_name": "Text"
     },
     "digest": "EMdMn4N-HPgAmy4L8YcIyqxmHU5m68LH956CllwZwbMA",
-    "type": "spec/capture_base/1.0"
+    "type": "capture_base/2.0.0"
   },
   "overlays": [
     {
       "attribute_character_encoding": {},
       "capture_base": "EMdMn4N-HPgAmy4L8YcIyqxmHU5m68LH956CllwZwbMA",
       "digest": "EIh9bRqpF845Pgs31K93mR9GsCDZ4A0nhVZ70MBLlpKE",
-      "type": "spec/overlays/character_encoding/1.0"
+      "type": "overlays/character_encoding/2.0.0"
     },
     {
       "attribute_categories": [],
@@ -26,7 +26,7 @@
       "category_labels": {},
       "digest": "EXj715PaoOuqm3fH4sN1zR-eAHkHttfBhE3_9FzcS22M",
       "language": "pl_PL",
-      "type": "spec/overlays/label/1.0"
+      "type": "overlays/label/2.0.0"
     },
     {
       "attribute_categories": [],
@@ -39,7 +39,7 @@
       "category_labels": {},
       "digest": "Ek8Gsi36FHbv2rfmF3HvSsFgC23k3j60Xx7AzMnb0J5M",
       "language": "en_EN",
-      "type": "spec/overlays/label/1.0"
+      "type": "overlays/label/2.0.0"
     },
     {
       "attribute_entry_codes": {
@@ -50,7 +50,7 @@
       },
       "capture_base": "EMdMn4N-HPgAmy4L8YcIyqxmHU5m68LH956CllwZwbMA",
       "digest": "Erb9Our8NsVqYOWH9rY2O1xvgreER7B2D190__YywPbI",
-      "type": "spec/overlays/entry_code/1.0"
+      "type": "overlays/entry_code/2.0.0"
     },
     {
       "attribute_entries": {
@@ -62,7 +62,7 @@
       "capture_base": "EMdMn4N-HPgAmy4L8YcIyqxmHU5m68LH956CllwZwbMA",
       "digest": "EiUCZGChxI41ZARmVGEYqJLhImeqVBt3YmjJ0A_wXYtU",
       "language": "en_EN",
-      "type": "spec/overlays/entry/1.0"
+      "type": "overlays/entry/2.0.0"
     },
     {
       "attribute_entries": {
@@ -74,7 +74,7 @@
       "capture_base": "EMdMn4N-HPgAmy4L8YcIyqxmHU5m68LH956CllwZwbMA",
       "digest": "E7iSzrUx9J2e8yRpMj0deJLnoyQHLmwsczOSA32YHB98",
       "language": "pl_PL",
-      "type": "spec/overlays/entry/1.0"
+      "type": "overlays/entry/2.0.0"
     },
     {
       "capture_base": "EMdMn4N-HPgAmy4L8YcIyqxmHU5m68LH956CllwZwbMA",
@@ -82,7 +82,7 @@
       "digest": "EsgOFGG85PB3ZRRbhveoo6XfZ1JN0C1sJXR8gOa3ciaw",
       "language": "pl_PL",
       "name": "Prawo Jazdy",
-      "type": "spec/overlays/meta/1.0"
+      "type": "overlays/meta/2.0.0"
     },
     {
       "capture_base": "EMdMn4N-HPgAmy4L8YcIyqxmHU5m68LH956CllwZwbMA",
@@ -90,7 +90,7 @@
       "digest": "EueYwaOJZLCaHWoDMmzss2blBPaqP8H5nrSAMCxr0OxM",
       "language": "en_EN",
       "name": "Driving Licence",
-      "type": "spec/overlays/meta/1.0"
+      "type": "overlays/meta/2.0.0"
     },
   ]
 }

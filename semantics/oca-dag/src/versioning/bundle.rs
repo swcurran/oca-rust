@@ -38,13 +38,14 @@ mod tests {
     #[test]
     #[ignore]
     fn test_to_digests() {
+        // TODO seems this object is wrong
         let oca_str = r#"
 {
   "version": "OCAB10000023_",
   "said": "EOGGSNS6CMlMfj3rW5ltFOv0RQux9-W7sND8SIMqsAiC",
   "capture_base": {
     "said": "EIJGJmS_P9jwZDamB6cTG9MoXKRu21myjXsMi7GYddDy",
-    "type": "spec/capture_base/1.0",
+    "type": "capture_base/2.0.0",
     "attributes": {
       "passed": "Boolean"
     }

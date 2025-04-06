@@ -90,7 +90,7 @@ fn create_oca() {
   "d": "EMVt_-xNfr5DbxqNklc5AvgOtEwZpMUwROWFn18s_Xwk",
   "capture_base": {
     "d": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-    "type": "spec/capture_base/1.1",
+    "type": "capture_base/2.0.0",
     "attributes": {
       "age": "Numeric",
       "name": "Text"
@@ -100,7 +100,7 @@ fn create_oca() {
     "cardinality": {
       "d": "EJFjpi67XgNXHlDilb-UoyFcZcf9m4jnqRPiQnx4vUAA",
       "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "spec/overlays/cardinality/1.1",
+      "type": "overlays/cardinality/2.0.0",
       "attribute_cardinality": {
         "age": "2",
         "name": "1"
@@ -109,7 +109,7 @@ fn create_oca() {
     "character_encoding": {
       "d": "EGcXsw3LaRTlmnCVbxLYI2xB7WMkig2qI8pW5P98W0Mz",
       "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "spec/overlays/character_encoding/1.1",
+      "type": "overlays/character_encoding/2.0.0",
       "attribute_character_encoding": {
         "age": "utf-8",
         "name": "utf-8"
@@ -118,7 +118,7 @@ fn create_oca() {
     "conformance": {
       "d": "ED1DI-zvv-Jm3v319ksQIFdKPCDkp4-d4gky2w2WPOk9",
       "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "spec/overlays/conformance/1.1",
+      "type": "overlays/conformance/2.0.0",
       "attribute_conformance": {
         "age": "M",
         "name": "O"
@@ -128,7 +128,7 @@ fn create_oca() {
       {
         "d": "EJk_7snxZ24OebeEN3BFtjcZ_-nBGjMXt4YHX07yXP6x",
         "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-        "type": "spec/overlays/entry/1.1",
+        "type": "overlays/entry/2.0.0",
         "language": "eng",
         "attribute_entries": {
           "age": {
@@ -144,7 +144,7 @@ fn create_oca() {
       {
         "d": "EKO-fGzwp7omXv8RJ4WMSoGI7e0DKHklbXbawvau3imH",
         "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-        "type": "spec/overlays/entry/1.1",
+        "type": "overlays/entry/2.0.0",
         "language": "pol",
         "attribute_entries": {
           "name": {
@@ -157,7 +157,7 @@ fn create_oca() {
     "entry_code": {
       "d": "EHXbVeI2onaOhmu2D-F63PXRPx2V0iHw71La_OCCzH2j",
       "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "spec/overlays/entry_code/1.1",
+      "type": "overlays/entry_code/2.0.0",
       "attribute_entry_codes": {
         "age": [
           "a",
@@ -172,7 +172,7 @@ fn create_oca() {
     "format": {
       "d": "EOJ-m-j3ieqptwpcUo_rztya33WODAqVqykuywW2PEft",
       "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "spec/overlays/format/1.1",
+      "type": "overlays/format/2.0.0",
       "attribute_formats": {
         "age": "^[a-zA-Z]*$",
         "name": "^[a-zA-Z]*$"
@@ -182,7 +182,7 @@ fn create_oca() {
       {
         "d": "EHliDSsOvIRV0Wfm7-O8Gyo514BvoCg_QD14fVQCHIha",
         "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-        "type": "spec/overlays/information/1.1",
+        "type": "overlays/information/2.0.0",
         "language": "eng",
         "attribute_information": {
           "age": "age information",
@@ -194,7 +194,7 @@ fn create_oca() {
       {
         "d": "EIaG22w9wI1Hz5KnDkbVfnBXRdUUeLiH1pK8fr33RnBf",
         "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-        "type": "spec/overlays/label/1.1",
+        "type": "overlays/label/2.0.0",
         "language": "eng",
         "attribute_categories": [],
         "attribute_labels": {
@@ -208,7 +208,7 @@ fn create_oca() {
       {
         "d": "EJsJpRSMmQcLCBysWWBGQIdBdXEBEem7i0ZJ8ShxvQ5l",
         "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-        "type": "spec/overlays/meta/1.1",
+        "type": "overlays/meta/2.0.0",
         "language": "eng",
         "description": "Test case OCA",
         "name": "Test"
@@ -217,7 +217,7 @@ fn create_oca() {
     "unit": {
       "d": "EMXt63BvnAvX-ESmFLjNpEMElog-DDOd8xl4iL3QEZMA",
       "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "spec/overlays/unit/1.1",
+      "type": "overlays/unit/2.0.0",
       "attribute_unit": {
         "age": "kg",
         "name": "kg"

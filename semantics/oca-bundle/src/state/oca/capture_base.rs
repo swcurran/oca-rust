@@ -44,7 +44,7 @@ impl Default for CaptureBase {
 impl CaptureBase {
     pub fn new() -> CaptureBase {
         CaptureBase {
-            schema_type: String::from("spec/capture_base/1.1"),
+            schema_type: String::from("capture_base/2.0.0"),
             said: None,
             attributes: IndexMap::new(),
         }
