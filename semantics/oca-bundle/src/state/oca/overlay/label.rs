@@ -102,7 +102,7 @@ impl Overlay for LabelOverlay {
 
 impl LabelOverlay {
     pub fn new(lang: Language) -> Self {
-        let overlay_version = "1.1".to_string();
+        let overlay_version = "2.0.0".to_string();
         Self {
             capture_base: None,
             said: None,
@@ -129,7 +129,7 @@ mod tests {
         // even that attribute has 2 lagnuage only one attribute should be added to the overlay according to it's language
         overlay.add(&attr);
 
-        let overlay_version = "1.1".to_string();
+        let overlay_version = "2.0.0".to_string();
         assert_eq!(overlay.overlay_type, OverlayType::Label(overlay_version));
         assert_eq!(overlay.language, Language::Eng);
         assert_eq!(overlay.attribute_labels.len(), 1);

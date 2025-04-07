@@ -783,7 +783,7 @@ mod tests {
         });
 
         let oca_ast = ast::OCAAst {
-            version: "1.0".to_string(),
+            version: "2.0.0".to_string(),
             commands,
             commands_meta: IndexMap::new(),
             meta: HashMap::new(),

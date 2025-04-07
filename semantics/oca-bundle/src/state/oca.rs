@@ -127,7 +127,7 @@ impl OCABox {
         }
 
         for attribute in self.attributes.values() {
-            let overlay_version = "1.1".to_string();
+            let overlay_version = "2.0.0".to_string();
             if attribute.encoding.is_some() {
                 let mut encoding_ov = overlays
                     .iter_mut()

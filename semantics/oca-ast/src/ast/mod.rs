@@ -289,7 +289,7 @@ impl<'de> Deserialize<'de> for OverlayType {
     {
         let overlay_type = String::deserialize(deserializer)?;
         let pattern = OVERLAY_PATTERN.get_or_init(|| {
-            regex::Regex::new(r"^overlays/(\w+)/(\d+\.\d+)$").unwrap()
+            regex::Regex::new(r"^overlays/(\w+)/(\d+\.\d+\.\d+)$").unwrap()
         });
 
         if let Some(captures) = pattern.captures(&overlay_type) {
