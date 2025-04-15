@@ -40,24 +40,10 @@ where
     ser.end()
 }
 
-pub fn serialize_categories<S>(attributes: &[String], s: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    let mut ser = s.serialize_seq(Some(attributes.len()))?;
-
-    let mut sorted_flagged_attributes = attributes.to_owned();
-    sorted_flagged_attributes.sort();
-    for attr in sorted_flagged_attributes {
-        ser.serialize_element(&attr)?;
-    }
-    ser.end()
-}
-
 #[derive(SAD, Serialize, Deserialize, Debug, Clone)]
 pub struct LabelOverlay {
     #[said]
-    #[serde(rename = "d")]
+    #[serde(rename = "digest")]
     said: Option<said::SelfAddressingIdentifier>,
     capture_base: Option<said::SelfAddressingIdentifier>,
     #[serde(rename = "type")]

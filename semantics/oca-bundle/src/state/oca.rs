@@ -97,10 +97,10 @@ impl OCABox {
         let mut capture_base = self.generate_capture_base();
         let mut overlays = self.generate_overlays();
 
-        capture_base.sign();
+        capture_base.calculate_said();
 
         let cb_said = capture_base.said.as_ref();
-        overlays.iter_mut().for_each(|x| x.sign(cb_said.unwrap()));
+        overlays.iter_mut().for_each(|x| x.calculate_said(cb_said.unwrap()));
 
         let mut oca_bundle = OCABundle {
             said: None,
@@ -548,7 +548,7 @@ impl std::fmt::Debug for DynOverlay {
 #[version(protocol = "OCAS", major = 1, minor = 1)]
 pub struct OCABundle {
     #[said]
-    #[serde(rename = "d")]
+    #[serde(rename = "digest")]
     pub said: Option<said::SelfAddressingIdentifier>,
     pub capture_base: CaptureBase,
     #[serde(

@@ -23,7 +23,7 @@ pub enum BundleElement {
 #[version(protocol = "B", major = 1, minor = 0)]
 pub struct Bundle {
     #[said]
-    #[serde(rename = "d")]
+    #[serde(rename = "digest")]
     pub said: Option<said::SelfAddressingIdentifier>,
     #[serde(rename = "m")]
     pub structural: Option<StructuralBundle>,

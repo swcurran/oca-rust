@@ -94,7 +94,7 @@ impl Validator {
         let capture_base = &oca_bundle.capture_base;
 
         let mut recalculated_capture_base = capture_base.clone();
-        recalculated_capture_base.sign();
+        recalculated_capture_base.calculate_said();
 
         if capture_base.said.ne(&recalculated_capture_base.said) {
             errors.push(Error::Custom("capture_base: Malformed SAID".to_string()));

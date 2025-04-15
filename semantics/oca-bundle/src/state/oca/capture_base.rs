@@ -76,7 +76,7 @@ impl CaptureBase {
         self.compute_digest(&code, &format);
     }
 
-    pub fn sign(&mut self) {
+    pub fn calculate_said(&mut self) {
         self.fill_said();
     }
 }

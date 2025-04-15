@@ -57,7 +57,7 @@ pub trait Overlay: erased_serde::Serialize + Clone + SAD {
         self.compute_digest(&code, &format);
     }
 
-    fn sign(&mut self, capture_base_sai: &said::SelfAddressingIdentifier) {
+    fn calculate_said(&mut self, capture_base_sai: &said::SelfAddressingIdentifier) {
         self.set_capture_base(capture_base_sai);
         self.fill_said();
     }

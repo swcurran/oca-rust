@@ -28,7 +28,7 @@ impl StandardAttribute for Attribute {
 #[derive(SAD, Serialize, Deserialize, Clone)]
 pub struct StandardOverlay {
     #[said]
-    #[serde(rename = "d")]
+    #[serde(rename = "digest")]
     said: Option<said::SelfAddressingIdentifier>,
     capture_base: Option<said::SelfAddressingIdentifier>,
     #[serde(rename = "type")]
