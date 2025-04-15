@@ -443,7 +443,6 @@ ADD META en PROPS description="Entrance credential" name="Entrance credential"
 ADD CHARACTER_ENCODING ATTRS d="utf-8" i="utf-8" passed="utf-8"
 ADD CONFORMANCE ATTRS d="M" i="M" passed="M"
 ADD LABEL en ATTRS d="Schema digest" i="Credential Issuee" passed="Passed"
-ADD INFORMATION en ATTRS d="Schema digest" i="Credential Issuee" passed="Enables or disables passing"
 ADD FORMAT ATTRS d="image/jpeg"
 ADD UNIT ATTRS i=m
 ADD ATTRIBUTE list=Array[Text] el=Text

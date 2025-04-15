@@ -450,7 +450,6 @@ ADD META en PROPS description="Entrance credential" name="Entrance credential"
 ADD CHARACTER_ENCODING ATTRS d="utf-8" i="utf-8" passed="utf-8"
 ADD CONFORMANCE ATTRS d="M" i="M" passed="M"
 ADD LABEL en ATTRS d="Schema digest" i="Credential Issuee" passed="Passed"
-ADD INFORMATION en ATTRS d="Name" i="Credential Issuee" passed="Enables or disables passing"
 ADD FORMAT ATTRS d="image/jpeg"
 ADD UNIT ATTRS i=m^2 d=°
 ADD ATTRIBUTE list=Array[Text] el=Text
@@ -498,7 +497,6 @@ ADD attribute name=Text age=Numeric
     fn test_deserialization_ast_to_ocafile() {
         let unparsed_file = r#"ADD ATTRIBUTE name=Text age=Numeric radio=Text list=Text
 ADD LABEL eo ATTRS name="Nomo" age="aĝo" radio="radio"
-ADD INFORMATION en ATTRS name="Object" age="Object"
 ADD CHARACTER_ENCODING ATTRS name="utf-8" age="utf-8"
 ADD ENTRY_CODE ATTRS radio=["o1", "o2", "o3"]
 ADD ENTRY eo ATTRS radio={"o1": "etikedo1", "o2": "etikedo2", "o3": "etikiedo3"}

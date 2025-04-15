@@ -175,18 +175,6 @@ fn create_oca() {
         "name": "^[a-zA-Z]*$"
       }
     },
-    "information": [
-      {
-        "d": "EHliDSsOvIRV0Wfm7-O8Gyo514BvoCg_QD14fVQCHIha",
-        "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-        "type": "overlays/information/2.0.0",
-        "language": "eng",
-        "attribute_information": {
-          "age": "age information",
-          "name": "name information"
-        }
-      }
-    ],
     "label": [
       {
         "d": "EIaG22w9wI1Hz5KnDkbVfnBXRdUUeLiH1pK8fr33RnBf",

@@ -35,10 +35,8 @@ use oca_ast_semantics::ast::{
 /// oca.add_attribute(attr)
 /// oca.get_attribute_by_name("name").setEncoding(Encoding::UTF8)
 /// oca.get_attribute_by_name("name").setLabel(Language::English, "Name")
-/// oca.get_attribute_by_name("name").setInformation(Language::German, "Name")
 /// oca.get_attribute_by_name("name").setUnit("kg")
 /// oca.get_attribute_by_name("name").setStandard("ISO 1234")
-/// oca.get_attribute_by_name("name").setCategory("personal")
 /// oca.generate_bundle().unwrap()
 ///
 ///
