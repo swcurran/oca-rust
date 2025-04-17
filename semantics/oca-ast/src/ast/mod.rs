@@ -139,7 +139,6 @@ impl FromStr for AttributeType {
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum OverlayType {
     Label(String),
-    Encoding(String),
     CharacterEncoding(String),
     Format(String),
     Meta(String),
@@ -162,9 +161,6 @@ impl Serialize for OverlayType {
         match self {
             OverlayType::Label(v) => {
                 serializer.serialize_str(&format!("overlays/label/{v}"))
-            }
-            OverlayType::Encoding(v) => {
-                serializer.serialize_str(&format!("overlays/encoding/{v}"))
             }
             OverlayType::CharacterEncoding(v) => serializer.serialize_str(
                 &format!("overlays/character_encoding/{v}"),
@@ -235,7 +231,6 @@ impl FromStr for OverlayType {
         let v = "2.0.0".to_string();
         match s {
             "Label" => Ok(OverlayType::Label(v)),
-            "Encoding" => Ok(OverlayType::Encoding(v)),
             "CharacterEncoding" => Ok(OverlayType::CharacterEncoding(v)),
             "Format" => Ok(OverlayType::Format(v)),
             "Meta" => Ok(OverlayType::Meta(v)),
@@ -257,7 +252,6 @@ impl fmt::Display for OverlayType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             OverlayType::Label(_) => write!(f, "Label"),
-            OverlayType::Encoding(_) => write!(f, "Encoding"),
             OverlayType::CharacterEncoding(_) => write!(f, "CharacterEncoding"),
             OverlayType::Format(_) => write!(f, "Format"),
             OverlayType::Meta(_) => write!(f, "Meta"),
@@ -291,7 +285,6 @@ impl<'de> Deserialize<'de> for OverlayType {
             match captures.get(1).unwrap().as_str() {
                 "label" => Ok(OverlayType::Label(v)),
                 "format" => Ok(OverlayType::Format(v)),
-                "encoding" => Ok(OverlayType::Encoding(v)),
                 "character_encoding" => Ok(OverlayType::CharacterEncoding(v)),
                 "meta" => Ok(OverlayType::Meta(v)),
                 "standard" => Ok(OverlayType::Standard(v)),
@@ -646,13 +639,6 @@ impl From<u8> for ObjectKind {
                     properties: None,
                 },
             ),
-            4 => ObjectKind::Overlay(
-                OverlayType::Encoding(overlay_version),
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
             5 => ObjectKind::Overlay(
                 OverlayType::CharacterEncoding(overlay_version),
                 Content {
@@ -748,7 +734,6 @@ impl From<ObjectKind> for u8 {
             ObjectKind::CaptureBase(_) => 0,
             ObjectKind::OCABundle(_) => 1,
             ObjectKind::Overlay(OverlayType::Label(_), _) => 2,
-            ObjectKind::Overlay(OverlayType::Encoding(_), _) => 4,
             ObjectKind::Overlay(OverlayType::CharacterEncoding(_), _) => 5,
             ObjectKind::Overlay(OverlayType::Format(_), _) => 6,
             ObjectKind::Overlay(OverlayType::Meta(_), _) => 7,
@@ -784,13 +769,6 @@ impl<'de> Deserialize<'de> for ObjectKind {
             })),
             "Label" => Ok(ObjectKind::Overlay(
                 OverlayType::Label(v),
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            "Encoding" => Ok(ObjectKind::Overlay(
-                OverlayType::Encoding(v),
                 Content {
                     attributes: None,
                     properties: None,
