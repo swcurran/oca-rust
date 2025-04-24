@@ -105,12 +105,6 @@ impl AddInstruction {
                         helpers::extract_content(object),
                     ));
                 }
-                Rule::link => {
-                    object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Link(overlay_version),
-                        helpers::extract_content(object),
-                    ));
-                }
                 _ => {
                     return Err(InstructionError::UnexpectedToken(format!(
                         "Overlay: unexpected token {:?}",

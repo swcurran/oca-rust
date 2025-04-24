@@ -5,7 +5,6 @@ use crate::state::oca::overlay::entry::Entries;
 use crate::state::oca::overlay::entry_code::EntryCodes;
 use crate::state::oca::overlay::format::Formats;
 use crate::state::oca::overlay::label::Labels;
-use crate::state::oca::overlay::link::Links;
 use crate::state::oca::overlay::meta::Metas;
 use crate::state::oca::overlay::unit::Units;
 use crate::state::oca::OCABundle;
@@ -384,37 +383,6 @@ pub fn apply_command(base: Option<OCABox>, op: ast::Command) -> Result<OCABox, V
                                     );
                                 }
                                 _ => (),
-                            }
-                            oca.add_attribute(attribute);
-                        }
-                    }
-                }
-                ast::OverlayType::Link(_) => {
-                    let mut target_bundle = None;
-                    if let Some(ref properties) = content.properties {
-                        if let Some(ast::NestedValue::Reference(ast::RefValue::Said(target_said))) =
-                            properties.get("target")
-                        {
-                            target_bundle = Some(target_said.to_string());
-                        }
-                    }
-                    if target_bundle.is_none() {
-                        errors.push("Undefined target bundle".to_string());
-                    }
-
-                    if let Some(ref attributes) = content.attributes {
-                        for (attr_name, attr_type_value) in attributes {
-                            let mut attribute = oca
-                                .attributes
-                                .get(attr_name)
-                                .ok_or_else(|| {
-                                    errors.push(format!("Undefined attribute: {attr_name}"));
-                                    errors.clone()
-                                })?
-                                .clone();
-                            if let ast::NestedValue::Value(linked_attr) = attr_type_value {
-                                attribute
-                                    .set_link(target_bundle.clone().unwrap(), linked_attr.clone());
                             }
                             oca.add_attribute(attribute);
                         }

@@ -77,7 +77,7 @@ fn create_oca() {
 
     assert_eq!(oca_bundle.capture_base.attributes.len(), 2);
 
-    assert_eq!(oca_bundle.overlays.len(), 16);
+    assert_eq!(oca_bundle.overlays.len(), 14);
 
     let serialized_bundle = serde_json::to_string_pretty(&oca_bundle).unwrap();
     println!("{}", serialized_bundle);

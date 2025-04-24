@@ -8,7 +8,6 @@ use crate::state::oca::overlay::label::Labels;
 use crate::state::oca::overlay::meta::Metas;
 use crate::state::oca::overlay::unit::Units;
 use indexmap::IndexMap;
-use overlay::link::Links;
 use said::derivation::HashFunctionCode;
 use said::sad::{SerializationFormats, SAD};
 use said::version::SerializationInfo;
@@ -233,25 +232,6 @@ impl OCABox {
                     }
                 }
             }
-
-            if let Some(links) = &attribute.links {
-                for target_bundle in links.keys() {
-                    let mut link_ov = overlays.iter_mut().find(|x| {
-                        match x.as_any().downcast_ref::<overlay::Link>() {
-                            Some(o) => o.target_bundle == *target_bundle,
-                            None => false,
-                        }
-                    });
-
-                    if link_ov.is_none() {
-                        overlays.push(Box::new(overlay::Link::new(target_bundle.clone())));
-                        link_ov = overlays.last_mut();
-                    }
-                    if let Some(ov) = link_ov {
-                        ov.add(attribute);
-                    }
-                }
-            }
         }
 
         overlays
@@ -400,15 +380,6 @@ impl<'de> Deserialize<'de> for DynOverlay {
                                 .deserialize_into::<overlay::Standard>()
                                 .map_err(|e| {
                                     serde::de::Error::custom(format!("Standard overlay: {e}"))
-                                })?,
-                        ));
-                    }
-                    OverlayType::Link(_) => {
-                        return Ok(Box::new(
-                            de_overlay
-                                .deserialize_into::<overlay::Link>()
-                                .map_err(|e| {
-                                    serde::de::Error::custom(format!("Link overlay: {e}"))
                                 })?,
                         ));
                     }
@@ -698,20 +669,6 @@ impl From<OCABundle> for OCABox {
                     .get_mut(attr_name)
                     .unwrap()
                     .set_label(*overlay.language().unwrap(), label.clone());
-            }
-        }
-
-        let link_overlays = oca_bundle
-            .overlays
-            .iter()
-            .filter_map(|x| x.as_any().downcast_ref::<overlay::Link>())
-            .collect::<Vec<_>>();
-        for overlay in link_overlays {
-            for (attr_name, mapping) in overlay.attribute_mapping.iter() {
-                attributes
-                    .get_mut(attr_name)
-                    .unwrap()
-                    .set_link(overlay.target_bundle.clone(), mapping.clone());
             }
         }
 
@@ -1029,7 +986,6 @@ impl OCABundle {
 mod tests {
     use maplit::hashmap;
     use oca_ast_semantics::ast::{NestedAttrType, RefValue};
-    use overlay::link::Links;
     use said::SelfAddressingIdentifier;
 
     use super::*;
@@ -1093,7 +1049,6 @@ mod tests {
         let mut attr = Attribute::new("ref".to_string());
         let said = SelfAddressingIdentifier::default();
         attr.set_attribute_type(NestedAttrType::Reference(RefValue::Said(said)));
-        attr.set_link("target_bundle".to_string(), "linked_attr".to_string());
         oca.add_attribute(attr);
 
         let oca_bundle = oca.generate_bundle();
