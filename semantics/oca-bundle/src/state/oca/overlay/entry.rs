@@ -87,11 +87,10 @@ impl Overlay for EntryOverlay {
 }
 impl EntryOverlay {
     pub fn new(lang: Language) -> Self {
-        let overlay_version = "2.0.0".to_string();
         Self {
             capture_base: None,
             said: None,
-            overlay_type: OverlayType::Entry(overlay_version),
+            overlay_type: OverlayType::Entry,
             language: lang,
             attribute_entries: HashMap::new(),
         }

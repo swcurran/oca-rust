@@ -154,10 +154,9 @@ impl Validator {
                 }
             }
 
-            let overlay_version = "1.1".to_string();
             for overlay_type in &[
-                OverlayType::Entry(overlay_version.clone()),
-                OverlayType::Label(overlay_version.clone()),
+                OverlayType::Entry,
+                OverlayType::Label,
             ] {
                 let typed_overlays: Vec<_> = oca_bundle
                     .overlays

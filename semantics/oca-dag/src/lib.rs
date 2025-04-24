@@ -194,7 +194,7 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Label(overlay_version.clone()),
+                ast::OverlayType::Label,
                 Content {
                     attributes: Some(indexmap! {
                         "abc".to_string() => ast::NestedValue::Value("ble".to_string())
@@ -221,7 +221,7 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Label(overlay_version.clone()),
+                ast::OverlayType::Label,
                 Content {
                     attributes: Some(indexmap! {
                         "abc".to_string() => ast::NestedValue::Value("ble".to_string())

@@ -14,11 +14,10 @@ impl AddInstruction {
 
         debug!("Parsing add instruction from the record: {:?}", record);
         for object in record.into_inner() {
-            let overlay_version = "1.1".to_string();
             match object.as_rule() {
                 Rule::meta => {
                     object_kind = Some(ObjectKind::Overlay(
-                        oca_ast_semantics::ast::OverlayType::Meta(overlay_version),
+                        oca_ast_semantics::ast::OverlayType::Meta,
                         helpers::extract_content(object),
                     ));
                 }
@@ -53,55 +52,55 @@ impl AddInstruction {
                 Rule::comment => continue,
                 Rule::character_encoding => {
                     object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::CharacterEncoding(overlay_version),
+                        OverlayType::CharacterEncoding,
                         helpers::extract_content(object),
                     ));
                 }
                 Rule::character_encoding_props => {
                     object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::CharacterEncoding(overlay_version),
+                        OverlayType::CharacterEncoding,
                         helpers::extract_content(object),
                     ));
                 }
                 Rule::label => {
                     object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Label(overlay_version),
+                        OverlayType::Label,
                         helpers::extract_content(object),
                     ));
                 }
                 Rule::unit => {
                     object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Unit(overlay_version),
+                        OverlayType::Unit,
                         helpers::extract_content(object),
                     ));
                 }
                 Rule::format => {
                     object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Format(overlay_version),
+                        OverlayType::Format,
                         helpers::extract_content(object),
                     ));
                 }
                 Rule::conformance => {
                     object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Conformance(overlay_version),
+                        OverlayType::Conformance,
                         helpers::extract_content(object),
                     ));
                 }
                 Rule::cardinality => {
                     object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Cardinality(overlay_version),
+                        OverlayType::Cardinality,
                         helpers::extract_content(object),
                     ));
                 }
                 Rule::entry_code => {
                     object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::EntryCode(overlay_version),
+                        OverlayType::EntryCode,
                         helpers::extract_content(object),
                     ));
                 }
                 Rule::entry => {
                     object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Entry(overlay_version),
+                        OverlayType::Entry,
                         helpers::extract_content(object),
                     ));
                 }
@@ -217,7 +216,7 @@ mod tests {
                             assert_eq!(instruction.kind, CommandType::Add);
                             match instruction.object_kind {
                                 ObjectKind::Overlay(overlay_type, content) => match overlay_type {
-                                    OverlayType::EntryCode(_) => {
+                                    OverlayType::EntryCode => {
                                         let attr_array = NestedValue::Array(vec![
                                             NestedValue::Value("o1".to_string()),
                                             NestedValue::Value("o2".to_string()),
@@ -229,7 +228,7 @@ mod tests {
                                             &attr_array
                                         );
                                     }
-                                    OverlayType::Format(_) => {
+                                    OverlayType::Format => {
                                         let attr_array = NestedValue::Value("^\\d+$".to_string());
 
                                         assert_eq!(
@@ -237,7 +236,7 @@ mod tests {
                                             &attr_array
                                         );
                                     }
-                                    OverlayType::CharacterEncoding(_) => {
+                                    OverlayType::CharacterEncoding => {
                                         let attr_array = NestedValue::Value("utf-16le".to_string());
 
                                         assert_eq!(

@@ -178,7 +178,7 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                         }
                     }
                     ast::ObjectKind::Overlay(o_type, _) => match o_type {
-                        ast::OverlayType::Meta(_) => {
+                        ast::OverlayType::Meta => {
                             line.push_str("META ");
                             if let Some(content) = command.object_kind.overlay_content() {
                                 if let Some(ref properties) = content.properties {
@@ -201,7 +201,7 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                                 }
                             };
                         }
-                        ast::OverlayType::Unit(_) => {
+                        ast::OverlayType::Unit => {
                             line.push_str("UNIT ");
                             if let Some(content) = command.object_kind.overlay_content() {
                                 if let Some(ref attributes) = content.attributes {
@@ -216,7 +216,7 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                                 }
                             };
                         }
-                        ast::OverlayType::EntryCode(_) => {
+                        ast::OverlayType::EntryCode => {
                             line.push_str("ENTRY_CODE ");
                             if let Some(content) = command.object_kind.overlay_content() {
                                 if let Some(ref properties) = content.properties {
@@ -281,7 +281,7 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                                 }
                             };
                         }
-                        ast::OverlayType::Entry(_) => {
+                        ast::OverlayType::Entry => {
                             line.push_str("ENTRY ");
                             if let Some(content) = command.object_kind.overlay_content() {
                                 if let Some(ref properties) = content.properties {

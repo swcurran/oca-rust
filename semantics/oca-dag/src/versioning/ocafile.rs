@@ -84,7 +84,6 @@ mod tests {
     #[ignore]
     fn test_ocafile_build() {
         let mut commands = vec![];
-        let overlay_version = "1.0".to_string();
 
         let mut attributes = IndexMap::new();
         attributes.insert(
@@ -123,7 +122,7 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Meta(overlay_version.clone()),
+                ast::OverlayType::Meta,
                 Content {
                     attributes: None,
                     properties: Some(properties),
@@ -152,7 +151,7 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Label(overlay_version.clone()),
+                ast::OverlayType::Label,
                 Content {
                     attributes: Some(attributes),
                     properties: Some(properties),
@@ -195,7 +194,7 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::CharacterEncoding(overlay_version.clone()),
+                ast::OverlayType::CharacterEncoding,
                 Content {
                     attributes: Some(attributes),
                     properties: None,
@@ -213,7 +212,7 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Conformance(overlay_version.clone()),
+                ast::OverlayType::Conformance,
                 Content {
                     attributes: Some(attributes),
                     properties: None,
