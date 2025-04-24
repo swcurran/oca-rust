@@ -754,7 +754,6 @@ impl<'de> Deserialize<'de> for ObjectKind {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        let v = "2.0.0".to_string();
         match s.as_str() {
             "CaptureBase" => Ok(ObjectKind::CaptureBase(CaptureContent {
                 attributes: None,

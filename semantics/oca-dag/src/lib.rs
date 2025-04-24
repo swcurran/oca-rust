@@ -177,7 +177,6 @@ mod tests {
     #[test]
     fn test_build_core_db_model() -> Result<(), Vec<String>> {
         let mut commands = vec![];
-        let overlay_version = "1.1".to_string();
 
         // 1. ADD ATTR abc
         commands.push(ast::Command {

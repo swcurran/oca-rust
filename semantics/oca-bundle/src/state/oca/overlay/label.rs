@@ -3,7 +3,7 @@ use isolang::Language;
 use oca_ast_semantics::ast::OverlayType;
 use said::derivation::HashFunctionCode;
 use said::{sad::SerializationFormats, sad::SAD};
-use serde::{ser::SerializeMap, ser::SerializeSeq, Deserialize, Serialize, Serializer};
+use serde::{ser::SerializeMap, Deserialize, Serialize, Serializer};
 use std::any::Any;
 use std::collections::HashMap;
 

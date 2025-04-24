@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use oca_ast_semantics::ast::{
-    CommandType, NestedAttrType, NestedValue, OCAAst, ObjectKind, OverlayType, RefValue,
+    CommandType, NestedAttrType, OCAAst, ObjectKind, RefValue,
 };
 use said::SelfAddressingIdentifier;
 
