@@ -513,7 +513,7 @@ impl std::fmt::Debug for DynOverlay {
 }
 
 #[derive(SAD, Serialize, Debug, Deserialize, Clone)]
-#[version(protocol = "OCAS", major = 1, minor = 1)]
+#[version(protocol = "OCAS", major = 2, minor = 0)]
 pub struct OCABundle {
     #[said]
     #[serde(rename = "digest")]

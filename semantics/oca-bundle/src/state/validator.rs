@@ -403,7 +403,7 @@ mod tests {
         "character_encoding": {
             "capture_base": "EDRt2wL8yVWVSJdF8aMFtU9VQ6aWzXZTgWj3WqsIKLqm",
             "said": "EBQMQm_tXSC8tnNICl7paGUeGg0SyF1tceHhTUutn1PN",
-            "type": "overlays/character_encoding/2.0.0",
+            "type": "overlay/character_encoding/2.0.0",
             "attribute_character_encoding": {}
         }
     }

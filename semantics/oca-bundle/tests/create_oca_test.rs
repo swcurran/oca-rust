@@ -1,24 +1,17 @@
 use isolang::Language;
-use oca_bundle_semantics::state::{
+use oca_bundle_semantics::{state::{
     attribute::{Attribute, AttributeType},
     encoding::Encoding,
     entries::EntriesElement,
     entry_codes::EntryCodes as EntryCodesValue,
-    oca::overlay::cardinality::Cardinalitys,
-    oca::overlay::character_encoding::CharacterEncodings,
-    oca::overlay::conformance::Conformances,
-    oca::overlay::entry::Entries,
-    oca::overlay::entry_code::EntryCodes,
-    oca::overlay::label::Labels,
-    oca::overlay::meta::Metas,
-    oca::overlay::unit::Units,
-    oca::OCABox,
-};
+    oca::{overlay::{cardinality::Cardinalitys, character_encoding::CharacterEncodings, conformance::Conformances, entry::Entries, entry_code::EntryCodes, label::Labels, meta::Metas, unit::Units}, OCABox},
+}, Encode as EncodeBundle, HashFunctionCode, SerializationFormats};
 
 use oca_bundle_semantics::state::oca::overlay::format::Formats;
 
 use cascade::cascade;
 use maplit::hashmap;
+use serde_value::Value;
 
 #[test]
 fn create_oca() {
@@ -70,20 +63,26 @@ fn create_oca() {
 
     let oca_bundle = oca.generate_bundle();
     assert_eq!(oca_bundle.said, oca.generate_bundle().said);
-    println!("{:#?}", oca_bundle);
+
+    let code = HashFunctionCode::Blake3_256;
+    let format = SerializationFormats::JSON;
+
+    let oca_bundle_encoded = oca_bundle.encode(&code, &format).unwrap();
+    let oca_bundle_version = String::from_utf8(oca_bundle_encoded[6..23].to_vec()).unwrap();
+    let oca_bundle_json = String::from_utf8(oca_bundle_encoded).unwrap();
+
+    assert_eq!(oca_bundle_version, "OCAS20JSON0009c7_");
 
     assert_eq!(oca_bundle.capture_base.attributes.len(), 2);
 
     assert_eq!(oca_bundle.overlays.len(), 10);
 
-    let serialized_bundle = serde_json::to_string_pretty(&oca_bundle).unwrap();
-    println!("{}", serialized_bundle);
-
-    let expected = {
+    let sample = {
         r#"{
-  "d": "EMVt_-xNfr5DbxqNklc5AvgOtEwZpMUwROWFn18s_Xwk",
+  "v": "OCAS20JSON0009c7_",
+  "digest": "EJGdam92dtQt4xuycxsofie56L_IbMkOYjbSXR6ofM1M",
   "capture_base": {
-    "d": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
+    "digest": "ELWv7hk0Ek2XDTFaMEdYeOXwxs97YROpQ3lfBsY6lTLa",
     "type": "capture_base/2.0.0",
     "attributes": {
       "age": "Numeric",
@@ -92,27 +91,27 @@ fn create_oca() {
   },
   "overlays": {
     "cardinality": {
-      "d": "EJFjpi67XgNXHlDilb-UoyFcZcf9m4jnqRPiQnx4vUAA",
-      "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "overlays/cardinality/2.0.0",
+      "digest": "EJzb8RLuTQGdFNqMaCb6A8T_xLnzUljStx04MGtNKUOy",
+      "capture_base": "ELWv7hk0Ek2XDTFaMEdYeOXwxs97YROpQ3lfBsY6lTLa",
+      "type": "overlay/cardinality/2.0.0",
       "attribute_cardinality": {
         "age": "2",
         "name": "1"
       }
     },
     "character_encoding": {
-      "d": "EGcXsw3LaRTlmnCVbxLYI2xB7WMkig2qI8pW5P98W0Mz",
-      "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "overlays/character_encoding/2.0.0",
+      "digest": "EAlGlIc5TOOwxl0WAq8mvw1RUTpU-azydYwxMWOJ0Xfp",
+      "capture_base": "ELWv7hk0Ek2XDTFaMEdYeOXwxs97YROpQ3lfBsY6lTLa",
+      "type": "overlay/character_encoding/2.0.0",
       "attribute_character_encoding": {
         "age": "utf-8",
         "name": "utf-8"
       }
     },
     "conformance": {
-      "d": "ED1DI-zvv-Jm3v319ksQIFdKPCDkp4-d4gky2w2WPOk9",
-      "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "overlays/conformance/2.0.0",
+      "digest": "EFY4yw6VlaWkfsTnoecPLzcTQXoeMGIHJiRrsylU4zAe",
+      "capture_base": "ELWv7hk0Ek2XDTFaMEdYeOXwxs97YROpQ3lfBsY6lTLa",
+      "type": "overlay/conformance/2.0.0",
       "attribute_conformance": {
         "age": "M",
         "name": "O"
@@ -120,9 +119,9 @@ fn create_oca() {
     },
     "entry": [
       {
-        "d": "EJk_7snxZ24OebeEN3BFtjcZ_-nBGjMXt4YHX07yXP6x",
-        "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-        "type": "overlays/entry/2.0.0",
+        "digest": "EGoCpJb3yribWgUoE9GDlrF0W1j90LKFyoHPv-gf-tjy",
+        "capture_base": "ELWv7hk0Ek2XDTFaMEdYeOXwxs97YROpQ3lfBsY6lTLa",
+        "type": "overlay/entry/2.0.0",
         "language": "eng",
         "attribute_entries": {
           "age": {
@@ -136,9 +135,9 @@ fn create_oca() {
         }
       },
       {
-        "d": "EKO-fGzwp7omXv8RJ4WMSoGI7e0DKHklbXbawvau3imH",
-        "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-        "type": "overlays/entry/2.0.0",
+        "digest": "EMmNN95FiuEtEihd2RP95DulmxnACwaE2095HJM1nSnP",
+        "capture_base": "ELWv7hk0Ek2XDTFaMEdYeOXwxs97YROpQ3lfBsY6lTLa",
+        "type": "overlay/entry/2.0.0",
         "language": "pol",
         "attribute_entries": {
           "name": {
@@ -149,9 +148,9 @@ fn create_oca() {
       }
     ],
     "entry_code": {
-      "d": "EHXbVeI2onaOhmu2D-F63PXRPx2V0iHw71La_OCCzH2j",
-      "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "overlays/entry_code/2.0.0",
+      "digest": "EBzneOmABK1DZoNMM9IY7aVaEFafUJ0wPQTwLGxdwzwB",
+      "capture_base": "ELWv7hk0Ek2XDTFaMEdYeOXwxs97YROpQ3lfBsY6lTLa",
+      "type": "overlay/entry_code/2.0.0",
       "attribute_entry_codes": {
         "age": [
           "a",
@@ -164,9 +163,9 @@ fn create_oca() {
       }
     },
     "format": {
-      "d": "EOJ-m-j3ieqptwpcUo_rztya33WODAqVqykuywW2PEft",
-      "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "overlays/format/2.0.0",
+      "digest": "EDxPeL07zBRW2TS3Dr_BUlNwrVR9RvMtRWqLJfTX4F9z",
+      "capture_base": "ELWv7hk0Ek2XDTFaMEdYeOXwxs97YROpQ3lfBsY6lTLa",
+      "type": "overlay/format/2.0.0",
       "attribute_formats": {
         "age": "^[a-zA-Z]*$",
         "name": "^[a-zA-Z]*$"
@@ -174,32 +173,30 @@ fn create_oca() {
     },
     "label": [
       {
-        "d": "EIaG22w9wI1Hz5KnDkbVfnBXRdUUeLiH1pK8fr33RnBf",
-        "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-        "type": "overlays/label/2.0.0",
+        "digest": "EOBdWMsW1rd4gVhDEXnEzQhVTJKVsY_xmsR6l8p4b0o_",
+        "capture_base": "ELWv7hk0Ek2XDTFaMEdYeOXwxs97YROpQ3lfBsY6lTLa",
+        "type": "overlay/label/2.0.0",
         "language": "eng",
-        "attribute_categories": [],
         "attribute_labels": {
           "age": "Age",
           "name": "Name"
-        },
-        "category_labels": {}
+        }
       }
     ],
     "meta": [
       {
-        "d": "EJsJpRSMmQcLCBysWWBGQIdBdXEBEem7i0ZJ8ShxvQ5l",
-        "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-        "type": "overlays/meta/2.0.0",
+        "digest": "EKfqq_oWk9IPS_e4fgAdybFlwFcpnoL_08HGM6V4B0cc",
+        "capture_base": "ELWv7hk0Ek2XDTFaMEdYeOXwxs97YROpQ3lfBsY6lTLa",
+        "type": "overlay/meta/2.0.0",
         "language": "eng",
         "description": "Test case OCA",
         "name": "Test"
       }
     ],
     "unit": {
-      "d": "EMXt63BvnAvX-ESmFLjNpEMElog-DDOd8xl4iL3QEZMA",
-      "capture_base": "EKxVMSYCnIoPUfZHsKf8OTOhsNgJppZPLH8yHz2FdB9z",
-      "type": "overlays/unit/2.0.0",
+      "digest": "EHiR16flGctWaLh4dWn3wLyJEm5kb7eUJ24mb6kXgvK6",
+      "capture_base": "ELWv7hk0Ek2XDTFaMEdYeOXwxs97YROpQ3lfBsY6lTLa",
+      "type": "overlay/unit/2.0.0",
       "attribute_unit": {
         "age": "kg",
         "name": "kg"
@@ -209,5 +206,7 @@ fn create_oca() {
 }"#
     };
 
+    let serialized_bundle: Value = serde_json::from_str(&oca_bundle_json).unwrap();
+    let expected: Value = serde_json::from_str(sample).unwrap();
     assert_eq!(serialized_bundle, expected);
 }

@@ -18,29 +18,6 @@ ADD META en PROPS name = "Entrance credential" description = "Entrance credentia
 ADD CHARACTER_ENCODING ATTRS d=utf-8 i=utf-8 passed=utf-8
 ADD CONFORMANCE ATTRS d=M i=M passed=M
 ADD LABEL en ATTRS d="Schema digest" i="Credential Issuee" passed="Passed"
-
-ADD ATTR_FRAMING \
-        id=SNOMEDCT \
-        label="Systematized Nomenclature of Medicine Clinical Terms" \
-        location="https://bioportal.bioontology.org/ontologies/SNOMEDCT" \
-        version=2023AA \
-    ATTRS \
-        d = {
-            "http://purl.bioontology.org/ontology/SNOMEDCT/703503000": {
-                "Predicate_id": "skos:exactMatch",
-                "Framing_justification": "semapv:ManualMappingCuration"
-            },
-            "http://purl.bioontology.org/ontology/SNOMEDCT/703503001": {
-                "Predicate_id": "skos:exactMatch",
-                "Framing_justification": "semapv:ManualMappingCuration"
-            }
-        }
-        i = {
-            "http://purl.bioontology.org/ontology/SNOMEDCT/397669002": {
-                "Predicate_id": "skos:exactMatch",
-                "Framing_justification": "semapv:ManualMappingCuration"
-            }
-        }
 "#.to_string();
         let mut facade = Facade::new(Box::new(db), Box::new(db_cache), cache_storage_config);
 
@@ -48,14 +25,14 @@ ADD ATTR_FRAMING \
 
         assert_eq!(
             result.said.clone().unwrap().to_string(),
-            "EKV6NIHEeSuVK99Ub-Ok0Hya_8XeoaO5_KUMvlK0UHOV"
+            "EL7Qhl-wWldmBoJ0-sx35EL4gRXDQixm69zOphfwySfG"
         );
 
         let code = HashFunctionCode::Blake3_256;
         let format = SerializationFormats::JSON;
         let oca_bundle_encoded = result.encode(&code, &format).unwrap();
         let oca_bundle_version = String::from_utf8(oca_bundle_encoded[6..23].to_vec()).unwrap();
-        assert_eq!(oca_bundle_version, "OCAS11JSON000980_");
+        assert_eq!(oca_bundle_version, "OCAS20JSON0004ce_");
 
         let search_result = facade.search_oca_bundle(None, "Ent".to_string(), 10, 1);
         assert_eq!(search_result.metadata.total, 1);
@@ -86,7 +63,7 @@ ADD ATTRIBUTE x=Text
 
         assert_eq!(
             result.said.unwrap().to_string(),
-            "EBaX6WnWlKoRMTsOkzylU0UQWAVMO5MNLmV6BDatWec-"
+            "EAXRzHPTRUtNVi-9Stb6vPwiMdZu5_kISQD93YaSHSHV"
         );
         Ok(())
     }
@@ -122,7 +99,7 @@ ADD ATTRIBUTE C=Array[refn:second]
 
         assert_eq!(
             result.said.unwrap().to_string(),
-            "EHZLWfCJSRN5aXHrlQ1Yu6Z_l2L0CpjqEtqolm4drpLH"
+            "EPUejWOHzKRj78qY0sbtQvDZQzKPQ405Iv8L0QM66fVU"
         );
 
         let from_ocafile = r#"
@@ -134,14 +111,14 @@ ADD ATTRIBUTE x=Text
         let result = facade.build_from_ocafile(from_ocafile)?;
         assert_eq!(
             result.said.unwrap().to_string(),
-            "EBaX6WnWlKoRMTsOkzylU0UQWAVMO5MNLmV6BDatWec-"
+            "EAXRzHPTRUtNVi-9Stb6vPwiMdZu5_kISQD93YaSHSHV"
         );
         let refs = facade.fetch_all_refs().unwrap();
 
         assert_eq!(refs.len(), 2);
         assert_eq!(
             refs.get("second").unwrap(),
-            "EGnHiIYFtwXC6ZtH185_je07TFS_h2DdszCqh3b8VvR8"
+            "EIutIGQ4LDtZK_ungE7VZJVAw23hGnESEIZivWHFY1Cn"
         );
 
         Ok(())
