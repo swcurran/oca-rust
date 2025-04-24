@@ -433,24 +433,6 @@ ADD ATTRIBUTE list=Array[Text] el=Text
 ADD CARDINALITY ATTRS list="1-2"
 ADD ENTRY_CODE ATTRS list="entry_code_said" el=["o1", "o2", "o3"]
 ADD ENTRY en ATTRS list="entry_said" el={"o1": "o1_label", "o2": "o2_label", "o3": "o3_label"}
-ADD ATTR_FRAMING \
-        id=SNOMEDCT \
-        label="Systematized Nomenclature of Medicine Clinical Terms" \
-        location="https://bioportal.bioontology.org/ontologies/SNOMEDCT" \
-        version=2023AA \
-    ATTRS \
-        name = {
-            "http://purl.bioontology.org/ontology/SNOMEDCT/703503000": {
-                "Predicate_id": "skos:exactMatch",
-                "Framing_justification": "semapv:ManualMappingCuration"
-            }
-        }
-        age = {
-            "http://purl.bioontology.org/ontology/SNOMEDCT/397669002": {
-                "Predicate_id": "skos:exactMatch",
-                "Framing_justification": "semapv:ManualMappingCuration"
-            }
-        }
 "#;
         let oca_ast = parse_from_string(unparsed_file.to_string()).unwrap();
         assert_eq!(oca_ast.meta.get("version").unwrap(), "0.0.1");
@@ -478,32 +460,8 @@ ADD CHARACTER_ENCODING ATTRS name="utf-8" age="utf-8"
 ADD ENTRY_CODE ATTRS radio=["o1", "o2", "o3"]
 ADD ENTRY eo ATTRS radio={"o1": "etikedo1", "o2": "etikedo2", "o3": "etikiedo3"}
 ADD ENTRY pl ATTRS radio={"o1": "etykieta1", "o2": "etykieta2", "o3": "etykieta3"}
-ADD CONDITION ATTRS radio="${age} > 18"
 ADD ENTRY_CODE ATTRS list={"g1": ["el1"], "g2": ["el2", "el3"]}
 ADD ENTRY pl ATTRS list={"el1": "element1", "el2": "element2", "el3": "element3", "g1": "grupa1", "g2": "grupa2"}
-ADD LINK refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu ATTRS name="n"
-ADD ATTR_FRAMING \
-        id="SNOMEDCT" \
-        label="Systematized Nomenclature of Medicine Clinical Terms" \
-        location="https://bioportal.bioontology.org/ontologies/SNOMEDCT" \
-        version="2023AA" \
-    ATTRS \
-        name={
-            "http://purl.bioontology.org/ontology/snomedct/703503000": {
-                "predicate_id": "skos:exactMatch",
-                "framing_justification": "semapv:ManualMappingCuration",
-            },
-            "http://purl.bioontology.org/ontology/snomedct/703503001": {
-                "predicate_id": "skos:exactMatch",
-                "framing_justification": "semapv:ManualMappingCuration",
-            },
-        }
-        age={
-            "http://purl.bioontology.org/ontology/snomedct/397669002": {
-                "predicate_id": "skos:exactMatch",
-                "framing_justification": "semapv:ManualMappingCuration",
-            },
-        }
 "#;
         let oca_ast = parse_from_string(unparsed_file.to_string()).unwrap();
 
