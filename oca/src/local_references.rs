@@ -50,26 +50,6 @@ pub fn replace_refn_with_refs<R: References>(
                 }
             }
         }
-
-        if let (CommandType::Add, ObjectKind::Overlay(OverlayType::Link(_), content)) =
-            (&command.kind, &mut command.object_kind)
-        {
-            if let Some(properties) = &mut content.properties {
-                if let Some(NestedValue::Reference(RefValue::Name(refn))) = properties.get("target")
-                {
-                    if let Some(said) = references.find(refn) {
-                        let said = SelfAddressingIdentifier::from_str(&said).unwrap(); // todo
-                        properties.insert(
-                            "target".to_string(),
-                            NestedValue::Reference(RefValue::Said(said)),
-                        );
-                        *properties = properties.clone();
-                    } else {
-                        return Err(ValidationError::UnknownRefn(refn.clone()));
-                    }
-                }
-            }
-        }
     }
     Ok(())
 }

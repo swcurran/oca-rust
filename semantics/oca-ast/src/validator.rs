@@ -26,7 +26,7 @@ impl Validator for OCAValidator {
         let mut errors = Vec::new();
         let mut valid = true;
         match ast.version.as_str() {
-            "1.0.0" => {
+            "2.0.0" | "1.0.0" => {
                 let version_validator = validate_1_0_0(ast, command);
                 if version_validator.is_err() {
                     valid = false;
