@@ -15,7 +15,6 @@ use oca_bundle_semantics::state::{
     oca::OCABox,
 };
 
-#[cfg(feature = "format_overlay")]
 use oca_bundle_semantics::state::oca::overlay::format::Formats;
 
 use cascade::cascade;
@@ -47,7 +46,6 @@ fn create_oca() {
         }));
         ..set_unit("kg".to_string());
     };
-    #[cfg(feature = "format_overlay")]
     attribute.set_format("^[a-zA-Z]*$".to_string());
 
     oca.add_attribute(attribute);
@@ -66,7 +64,6 @@ fn create_oca() {
         }));
         ..set_unit("kg".to_string());
     };
-    #[cfg(feature = "format_overlay")]
     attribute_2.set_format("^[a-zA-Z]*$".to_string());
 
     oca.add_attribute(attribute_2);

@@ -23,9 +23,7 @@ local-references = []
 dyn-clonable = "0.9.0"
 isolang = "2.3.0"
 oca-ast-semantics = { version = "0.7.1", path = "../semantics/oca-ast" }
-oca-bundle-semantics = { version = "0.7.1", path = "../semantics/oca-bundle", features = [
-  "format_overlay",
-] }
+oca-bundle-semantics = { version = "0.7.1", path = "../semantics/oca-bundle" }
 oca-dag-semantics = { version = "0.7.1", path = "../semantics/oca-dag" }
 oca-file-semantics = { version = "0.7.1", path = "../semantics/oca-file" }
 oca-file = { version = "0.7.1", path = "../oca-file" }

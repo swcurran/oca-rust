@@ -18,9 +18,6 @@ include = ["src/**/*", "config/**/*", "README.md"]
 name = "oca_bundle_semantics"
 path = "src/lib.rs"
 
-[features]
-format_overlay = []
-
 [dependencies]
 cascade = "1.0.1"
 convert_case = "0.6.0"
