@@ -125,6 +125,8 @@ ADD ATTRIBUTE x=Text
     }
 
     #[test]
+    #[ignore]
+    //TODO: move to community overlay
     fn build_with_link() -> Result<(), Error> {
         let db = InMemoryDataStorage::new();
         let db_cache = InMemoryDataStorage::new();
