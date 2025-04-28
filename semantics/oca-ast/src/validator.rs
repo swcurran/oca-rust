@@ -279,9 +279,7 @@ mod tests {
     use indexmap::indexmap;
 
     use super::*;
-    use crate::ast::{
-        AttributeType, CaptureContent, Command, CommandType, OCAAst, ObjectKind,
-    };
+    use crate::ast::{AttributeType, CaptureContent, Command, CommandType, OCAAst, ObjectKind};
 
     #[test]
     fn test_rule_remove_if_exist() {

@@ -225,22 +225,20 @@ pub fn apply_command(base: Option<OCABox>, op: ast::Command) -> Result<OCABox, V
                     }
                 }
                 ast::OverlayType::Format => {
-                    {
-                        if let Some(ref attributes) = content.attributes {
-                            for (attr_name, attr_type_value) in attributes {
-                                let mut attribute = oca
-                                    .attributes
-                                    .get(attr_name)
-                                    .ok_or_else(|| {
-                                        errors.push(format!("Undefined attribute: {attr_name}"));
-                                        errors.clone()
-                                    })?
-                                    .clone();
-                                if let ast::NestedValue::Value(attr_format) = attr_type_value {
-                                    attribute.set_format(attr_format.clone());
-                                }
-                                oca.add_attribute(attribute);
+                    if let Some(ref attributes) = content.attributes {
+                        for (attr_name, attr_type_value) in attributes {
+                            let mut attribute = oca
+                                .attributes
+                                .get(attr_name)
+                                .ok_or_else(|| {
+                                    errors.push(format!("Undefined attribute: {attr_name}"));
+                                    errors.clone()
+                                })?
+                                .clone();
+                            if let ast::NestedValue::Value(attr_format) = attr_type_value {
+                                attribute.set_format(attr_format.clone());
                             }
+                            oca.add_attribute(attribute);
                         }
                     }
                 }

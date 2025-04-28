@@ -122,9 +122,9 @@ impl AddInstruction {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::ocafile::OCAfileParser;
     use oca_ast_semantics::ast::NestedValue;
-    use super::*;
     use pest::Parser;
 
     #[test]

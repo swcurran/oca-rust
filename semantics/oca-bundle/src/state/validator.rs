@@ -154,10 +154,7 @@ impl Validator {
                 }
             }
 
-            for overlay_type in &[
-                OverlayType::Entry,
-                OverlayType::Label,
-            ] {
+            for overlay_type in &[OverlayType::Entry, OverlayType::Label] {
                 let typed_overlays: Vec<_> = oca_bundle
                     .overlays
                     .iter()

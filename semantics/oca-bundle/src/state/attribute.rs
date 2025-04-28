@@ -5,9 +5,7 @@ use oca_ast_semantics::ast::NestedAttrType;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::state::{
-    encoding::Encoding, entries::EntriesElement, entry_codes::EntryCodes,
-};
+use crate::state::{encoding::Encoding, entries::EntriesElement, entry_codes::EntryCodes};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Attribute {
     pub name: String,

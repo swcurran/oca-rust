@@ -110,9 +110,7 @@ impl ObjectKind {
     }
 }
 #[wasm_bindgen]
-#[derive(
-    Debug, PartialEq, Serialize, Deserialize, Clone, Copy, Display, Eq, Hash,
-)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Copy, Display, Eq, Hash)]
 pub enum AttributeType {
     Boolean,
     Binary,
@@ -160,41 +158,31 @@ impl Serialize for OverlayType {
     {
         let v = "2.0.0".to_string();
         match self {
-            OverlayType::Label => {
-                serializer.serialize_str(&format!("overlay/label/{v}"))
+            OverlayType::Label => serializer.serialize_str(&format!("overlay/label/{v}")),
+            OverlayType::CharacterEncoding => {
+                serializer.serialize_str(&format!("overlay/character_encoding/{v}"))
             }
-            OverlayType::CharacterEncoding => serializer.serialize_str(
-                &format!("overlay/character_encoding/{v}"),
-            ),
-            OverlayType::Format => {
-                serializer.serialize_str(&format!("overlay/format/{v}"))
+            OverlayType::Format => serializer.serialize_str(&format!("overlay/format/{v}")),
+            OverlayType::Meta => serializer.serialize_str(&format!("overlay/meta/{v}")),
+            OverlayType::Standard => serializer.serialize_str(&format!("overlay/standard/{v}")),
+            OverlayType::Cardinality => {
+                serializer.serialize_str(&format!("overlay/cardinality/{v}"))
             }
-            OverlayType::Meta => {
-                serializer.serialize_str(&format!("overlay/meta/{v}"))
+            OverlayType::Conformance => {
+                serializer.serialize_str(&format!("overlay/conformance/{v}"))
             }
-            OverlayType::Standard => {
-                serializer.serialize_str(&format!("overlay/standard/{v}"))
-            }
-            OverlayType::Cardinality => serializer
-                .serialize_str(&format!("overlay/cardinality/{v}")),
-            OverlayType::Conformance => serializer
-                .serialize_str(&format!("overlay/conformance/{v}")),
-            OverlayType::EntryCode => serializer
-                .serialize_str(&format!("overlay/entry_code/{v}")),
-            OverlayType::Entry => {
-                serializer.serialize_str(&format!("overlay/entry/{v}"))
-            }
-            OverlayType::Unit => {
-                serializer.serialize_str(&format!("overlay/unit/{v}"))
-            }
+            OverlayType::EntryCode => serializer.serialize_str(&format!("overlay/entry_code/{v}")),
+            OverlayType::Entry => serializer.serialize_str(&format!("overlay/entry/{v}")),
+            OverlayType::Unit => serializer.serialize_str(&format!("overlay/unit/{v}")),
             OverlayType::AttributeMapping => {
                 serializer.serialize_str(&format!("overlay/mapping/{v}"))
             }
-            OverlayType::EntryCodeMapping => serializer.serialize_str(
-                &format!("overlay/entry_code_mapping/{v}"),
-            ),
-            OverlayType::Sensitivity => serializer
-                .serialize_str(&format!("overlay/sensitivity/{v}")),
+            OverlayType::EntryCodeMapping => {
+                serializer.serialize_str(&format!("overlay/entry_code_mapping/{v}"))
+            }
+            OverlayType::Sensitivity => {
+                serializer.serialize_str(&format!("overlay/sensitivity/{v}"))
+            }
         }
     }
 }
@@ -276,9 +264,8 @@ impl<'de> Deserialize<'de> for OverlayType {
         D: Deserializer<'de>,
     {
         let overlay_type = String::deserialize(deserializer)?;
-        let pattern = OVERLAY_PATTERN.get_or_init(|| {
-            regex::Regex::new(r"^overlay/(\w+)/(\d+\.\d+\.\d+)$").unwrap()
-        });
+        let pattern = OVERLAY_PATTERN
+            .get_or_init(|| regex::Regex::new(r"^overlay/(\w+)/(\d+\.\d+\.\d+)$").unwrap());
 
         if let Some(captures) = pattern.captures(&overlay_type) {
             match captures.get(1).unwrap().as_str() {
@@ -416,12 +403,8 @@ impl Serialize for RefValue {
         S: Serializer,
     {
         match &self {
-            RefValue::Said(said) => {
-                serializer.serialize_str(format!("refs:{}", said).as_str())
-            }
-            RefValue::Name(name) => {
-                serializer.serialize_str(format!("refn:{}", name).as_str())
-            }
+            RefValue::Said(said) => serializer.serialize_str(format!("refs:{}", said).as_str()),
+            RefValue::Name(name) => serializer.serialize_str(format!("refn:{}", name).as_str()),
         }
     }
 }
@@ -447,10 +430,7 @@ impl<'de> Deserialize<'de> for Command {
                 impl Visitor<'_> for FieldVisitor {
                     type Value = Field;
 
-                    fn expecting(
-                        &self,
-                        formatter: &mut fmt::Formatter,
-                    ) -> fmt::Result {
+                    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                         formatter.write_str("`type` or `object_kind`")
                     }
 
@@ -496,58 +476,42 @@ impl<'de> Deserialize<'de> for Command {
                         }
                         Field::ObjectKind => {
                             if object_kind.is_some() {
-                                return Err(de::Error::duplicate_field(
-                                    "object_kind",
-                                ));
+                                return Err(de::Error::duplicate_field("object_kind"));
                             }
                             let object_kind_str: String = map.next_value()?;
                             match object_kind_str.as_str() {
                                 "CaptureBase" => {
                                     // take the key frist otherwise next value would not work
                                     // properly
-                                    let _content_key: Option<String> =
-                                        map.next_key()?;
-                                    let content: CaptureContent =
-                                        map.next_value()?;
-                                    object_kind =
-                                        Some(ObjectKind::CaptureBase(content));
+                                    let _content_key: Option<String> = map.next_key()?;
+                                    let content: CaptureContent = map.next_value()?;
+                                    object_kind = Some(ObjectKind::CaptureBase(content));
                                 }
                                 "OCABundle" => {
                                     // take the key frist otherwise next value would not work
                                     // properly
-                                    let _content_key: Option<String> =
-                                        map.next_key()?;
-                                    let content: BundleContent =
-                                        map.next_value()?;
-                                    object_kind =
-                                        Some(ObjectKind::OCABundle(content));
+                                    let _content_key: Option<String> = map.next_key()?;
+                                    let content: BundleContent = map.next_value()?;
+                                    object_kind = Some(ObjectKind::OCABundle(content));
                                 }
                                 _ => {
                                     // take the key frist otherwise next value would not work
                                     // properly
-                                    let _content_key: Option<String> =
-                                        map.next_key()?;
+                                    let _content_key: Option<String> = map.next_key()?;
                                     // if it is not a CaptureBase or OCABundle, it must be an Overlay
-                                    let overlay_type = OverlayType::from_str(
-                                        object_kind_str.as_str(),
-                                    );
+                                    let overlay_type =
+                                        OverlayType::from_str(object_kind_str.as_str());
                                     match overlay_type {
                                         Ok(overlay_type) => {
-                                            let content: Content =
-                                                map.next_value()?;
+                                            let content: Content = map.next_value()?;
                                             object_kind =
-                                                Some(ObjectKind::Overlay(
-                                                    overlay_type,
-                                                    content,
-                                                ));
+                                                Some(ObjectKind::Overlay(overlay_type, content));
                                         }
                                         Err(_) => {
-                                            return Err(
-                                                de::Error::unknown_field(
-                                                    &object_kind_str,
-                                                    VARIANTS,
-                                                ),
-                                            )
+                                            return Err(de::Error::unknown_field(
+                                                &object_kind_str,
+                                                VARIANTS,
+                                            ))
                                         }
                                     }
                                 }
@@ -556,10 +520,9 @@ impl<'de> Deserialize<'de> for Command {
                     }
                 }
 
-                let kind =
-                    kind.ok_or_else(|| de::Error::missing_field("type"))?;
-                let object_kind = object_kind
-                    .ok_or_else(|| de::Error::missing_field("object_kind"))?;
+                let kind = kind.ok_or_else(|| de::Error::missing_field("type"))?;
+                let object_kind =
+                    object_kind.ok_or_else(|| de::Error::missing_field("object_kind"))?;
 
                 Ok(Command { kind, object_kind })
             }
@@ -577,9 +540,10 @@ impl<'de> Deserialize<'de> for RefValue {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        let (tag, rest) = s.split_once(':').ok_or(serde::de::Error::custom(
-            format!("invalid reference: {}", s),
-        ))?;
+        let (tag, rest) = s.split_once(':').ok_or(serde::de::Error::custom(format!(
+            "invalid reference: {}",
+            s
+        )))?;
         match tag {
             "refs" => {
                 let said = SelfAddressingIdentifier::from_str(rest);
@@ -626,9 +590,7 @@ impl From<u8> for ObjectKind {
                 properties: None,
             }),
             1 => ObjectKind::OCABundle(BundleContent {
-                said: ReferenceAttrType::Reference(RefValue::Name(
-                    "".to_string(),
-                )),
+                said: ReferenceAttrType::Reference(RefValue::Name("".to_string())),
             }),
             2 => ObjectKind::Overlay(
                 OverlayType::Label,
@@ -760,9 +722,7 @@ impl<'de> Deserialize<'de> for ObjectKind {
                 properties: None,
             })),
             "OCABundle" => Ok(ObjectKind::OCABundle(BundleContent {
-                said: ReferenceAttrType::Reference(RefValue::Name(
-                    "".to_string(),
-                )),
+                said: ReferenceAttrType::Reference(RefValue::Name("".to_string())),
             })),
             "Label" => Ok(ObjectKind::Overlay(
                 OverlayType::Label,
@@ -872,17 +832,14 @@ mod tests {
         let mut attributes = IndexMap::new();
         let mut properties = IndexMap::new();
 
-        let arr = NestedAttrType::Array(Box::new(NestedAttrType::Value(
-            AttributeType::Boolean,
-        )));
+        let arr = NestedAttrType::Array(Box::new(NestedAttrType::Value(AttributeType::Boolean)));
         attributes.insert("allowed".to_string(), arr);
         attributes.insert(
             "test".to_string(),
             NestedAttrType::Value(AttributeType::Text),
         );
 
-        properties
-            .insert("test".to_string(), NestedValue::Value("test".to_string()));
+        properties.insert("test".to_string(), NestedValue::Value("test".to_string()));
         let command = Command {
             kind: CommandType::Add,
             object_kind: ObjectKind::CaptureBase(CaptureContent {

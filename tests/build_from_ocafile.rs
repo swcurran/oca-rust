@@ -18,7 +18,8 @@ ADD META en PROPS name = "Entrance credential" description = "Entrance credentia
 ADD CHARACTER_ENCODING ATTRS d=utf-8 i=utf-8 passed=utf-8
 ADD CONFORMANCE ATTRS d=M i=M passed=M
 ADD LABEL en ATTRS d="Schema digest" i="Credential Issuee" passed="Passed"
-"#.to_string();
+"#
+        .to_string();
         let mut facade = Facade::new(Box::new(db), Box::new(db_cache), cache_storage_config);
 
         let result = facade.build_from_ocafile(ocafile)?;
@@ -51,7 +52,8 @@ ADD META en PROPS name="Entrance credential" description="Entrance credential"
 ADD CHARACTER_ENCODING ATTRS d=utf-8 i=utf-8 passed=utf-8
 ADD CONFORMANCE ATTRS d=M i=M passed=M
 ADD LABEL en ATTRS d="Schema digest" i="Credential Issuee" passed="Passed"
-"#.to_string();
+"#
+        .to_string();
         facade.build_from_ocafile(other_ocafile)?;
 
         let ocafile = r#"

@@ -97,7 +97,9 @@ impl OCABox {
         capture_base.calculate_said();
 
         let cb_said = capture_base.said.as_ref();
-        overlays.iter_mut().for_each(|x| x.calculate_said(cb_said.unwrap()));
+        overlays
+            .iter_mut()
+            .for_each(|x| x.calculate_said(cb_said.unwrap()));
 
         let mut oca_bundle = OCABundle {
             said: None,
@@ -414,12 +416,7 @@ where
         Object(Box<dyn Overlay + Send>),
     }
 
-    let overlays_many = [
-        "meta",
-        "entry",
-        "label",
-        "link",
-    ];
+    let overlays_many = ["meta", "entry", "label", "link"];
 
     let mut overlays_map: BTreeMap<Value, OverlayValue> = BTreeMap::new();
     for overlay in overlays {
@@ -709,8 +706,9 @@ impl OCABundle {
         };
         ast.commands.push(command);
 
-        self.overlays.iter().for_each(|overlay| {
-            match overlay.overlay_type() {
+        self.overlays
+            .iter()
+            .for_each(|overlay| match overlay.overlay_type() {
                 OverlayType::CharacterEncoding => {
                     let character_encoding = overlay
                         .as_any()
@@ -974,8 +972,7 @@ impl OCABundle {
                     ast.commands.push(command);
                 }
                 _ => {}
-            }
-        });
+            });
 
         ast
     }

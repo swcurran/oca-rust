@@ -1,11 +1,21 @@
 use isolang::Language;
-use oca_bundle_semantics::{state::{
-    attribute::{Attribute, AttributeType},
-    encoding::Encoding,
-    entries::EntriesElement,
-    entry_codes::EntryCodes as EntryCodesValue,
-    oca::{overlay::{cardinality::Cardinalitys, character_encoding::CharacterEncodings, conformance::Conformances, entry::Entries, entry_code::EntryCodes, label::Labels, meta::Metas, unit::Units}, OCABox},
-}, Encode as EncodeBundle, HashFunctionCode, SerializationFormats};
+use oca_bundle_semantics::{
+    state::{
+        attribute::{Attribute, AttributeType},
+        encoding::Encoding,
+        entries::EntriesElement,
+        entry_codes::EntryCodes as EntryCodesValue,
+        oca::{
+            overlay::{
+                cardinality::Cardinalitys, character_encoding::CharacterEncodings,
+                conformance::Conformances, entry::Entries, entry_code::EntryCodes, label::Labels,
+                meta::Metas, unit::Units,
+            },
+            OCABox,
+        },
+    },
+    Encode as EncodeBundle, HashFunctionCode, SerializationFormats,
+};
 
 use oca_bundle_semantics::state::oca::overlay::format::Formats;
 

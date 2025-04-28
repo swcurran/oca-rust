@@ -96,7 +96,6 @@ impl LabelOverlay {
             attribute_labels: HashMap::new(),
         }
     }
-
 }
 
 #[cfg(test)]

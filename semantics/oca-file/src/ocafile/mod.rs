@@ -252,26 +252,30 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                                                 .iter()
                                                 .filter_map(|(group, value)| {
                                                     if let ast::NestedValue::Array(value) = value {
-
-                                            let codes = value
-                                                .iter()
-                                                .filter_map(|value| {
-                                                    if let ast::NestedValue::Value(value) = value {
-                                                        Some(format!("\"{}\"", value))
+                                                        let codes = value
+                                                            .iter()
+                                                            .filter_map(|value| {
+                                                                if let ast::NestedValue::Value(
+                                                                    value,
+                                                                ) = value
+                                                                {
+                                                                    Some(format!("\"{}\"", value))
+                                                                } else {
+                                                                    None
+                                                                }
+                                                            })
+                                                            .collect::<Vec<String>>()
+                                                            .join(", ");
+                                                        Some(format!("\"{}\": [{}]", group, codes))
                                                     } else {
                                                         None
                                                     }
                                                 })
                                                 .collect::<Vec<String>>()
                                                 .join(", ");
-                                                    Some(format!("\"{}\": [{}]", group, codes))
-                                                    } else {
-                                                        None
-                                                    }
-                                                })
-                                                .collect::<Vec<String>>()
-                                                .join(", ");
-                                            line.push_str(format!(" {}={{{}}}", key, group_codes).as_str());
+                                            line.push_str(
+                                                format!(" {}={{{}}}", key, group_codes).as_str(),
+                                            );
                                         } else if let ast::NestedValue::Value(said) = value {
                                             line.push_str(
                                                 format!(" {}=\"{}\"", key, said).as_str(),
