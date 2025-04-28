@@ -1,6 +1,6 @@
 [package]
 name = "oca-dag-semantics"
-version = "0.7.1"
+version = "2.0.0-rc1"
 edition = "2021"
 authors = [
   "Marcin Olichwiruk <marcin.olichwiruk@opensoftware.pl>",
@@ -22,8 +22,8 @@ path = "src/lib.rs"
 dyn-clonable = "0.9.0"
 indexmap = { version = "1.9.3", features = ["serde"] }
 isolang = { version = "2.3.0", features = ["serde"] }
-oca-ast-semantics = { version = "0.7.1", path = "../oca-ast" }
-oca-bundle-semantics = { version = "0.7.1", path = "../oca-bundle" }
+oca-ast-semantics = { version = "2.0.0-rc1", path = "../oca-ast" }
+oca-bundle-semantics = { version = "2.0.0-rc1", path = "../oca-bundle" }
 said = { version = "0.4.1", features = ["macros"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

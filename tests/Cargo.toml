@@ -1,6 +1,6 @@
 [package]
 name = "tests-integration"
-version = "0.7.1"
+version = "2.0.0-rc1"
 edition = "2021"
 publish = false
 
