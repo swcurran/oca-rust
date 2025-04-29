@@ -822,7 +822,7 @@ dependencies = [
 
 [[package]]
 name = "oca-ast"
-version = "2.0.0-rc1"
+version = "2.0.0-rc2"
 dependencies = [
  "env_logger",
  "indexmap 1.9.3",
@@ -841,7 +841,7 @@ dependencies = [
 
 [[package]]
 name = "oca-ast-transformation"
-version = "2.0.0-rc1"
+version = "2.0.0-rc2"
 dependencies = [
  "env_logger",
  "indexmap 1.9.3",
@@ -859,7 +859,7 @@ dependencies = [
 
 [[package]]
 name = "oca-bundle"
-version = "2.0.0-rc1"
+version = "2.0.0-rc2"
 dependencies = [
  "cascade",
  "convert_case",
@@ -887,7 +887,7 @@ dependencies = [
 
 [[package]]
 name = "oca-dag"
-version = "2.0.0-rc1"
+version = "2.0.0-rc2"
 dependencies = [
  "dyn-clonable",
  "indexmap 1.9.3",
@@ -902,7 +902,7 @@ dependencies = [
 
 [[package]]
 name = "oca-file"
-version = "2.0.0-rc1"
+version = "2.0.0-rc2"
 dependencies = [
  "clap 4.5.37",
  "convert_case",
@@ -924,7 +924,7 @@ dependencies = [
 
 [[package]]
 name = "oca-file-semantics"
-version = "2.0.0-rc1"
+version = "2.0.0-rc2"
 dependencies = [
  "clap 4.5.37",
  "convert_case",
@@ -945,7 +945,7 @@ dependencies = [
 
 [[package]]
 name = "oca-file-transformation"
-version = "2.0.0-rc1"
+version = "2.0.0-rc2"
 dependencies = [
  "clap 4.5.37",
  "convert_case",
@@ -966,7 +966,7 @@ dependencies = [
 
 [[package]]
 name = "oca-rs"
-version = "2.0.0-rc1"
+version = "2.0.0-rc2"
 dependencies = [
  "dyn-clonable",
  "isolang",
@@ -1577,7 +1577,7 @@ dependencies = [
 
 [[package]]
 name = "tests-integration"
-version = "2.0.0-rc1"
+version = "2.0.0-rc2"
 dependencies = [
  "oca-rs",
 ]
@@ -1630,7 +1630,7 @@ dependencies = [
 
 [[package]]
 name = "transformation-file"
-version = "2.0.0-rc1"
+version = "2.0.0-rc2"
 dependencies = [
  "indexmap 1.9.3",
  "oca-ast-transformation",
