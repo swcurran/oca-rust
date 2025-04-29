@@ -22,7 +22,7 @@ pub use self::format::FormatOverlay as Format;
 pub use self::label::LabelOverlay as Label;
 pub use self::meta::MetaOverlay as Meta;
 pub use self::standard::StandardOverlay as Standard;
-pub use oca_ast_semantics::ast::OverlayType;
+pub use oca_ast::ast::OverlayType;
 use said::derivation::HashFunctionCode;
 
 pub use self::unit::UnitOverlay as Unit;
@@ -95,7 +95,7 @@ macro_rules! overlay {
                 said: Option<said::SelfAddressingIdentifier>,
                 capture_base: Option<said::SelfAddressingIdentifier>,
                 #[serde(rename = "type")]
-                overlay_type: oca_ast_semantics::ast::OverlayType,
+                overlay_type: oca_ast::ast::OverlayType,
                 #[serde(serialize_with = "serialize_attributes")]
                 pub $field1: std::collections::HashMap<String, $field2_type>
             }
@@ -104,7 +104,7 @@ macro_rules! overlay {
                 fn as_any(&self) -> &dyn std::any::Any {
                     self
                 }
-                fn overlay_type(&self) -> &oca_ast_semantics::ast::OverlayType {
+                fn overlay_type(&self) -> &oca_ast::ast::OverlayType {
                     &self.overlay_type
                 }
                 fn capture_base(&self) -> &Option<said::SelfAddressingIdentifier> {
@@ -138,7 +138,7 @@ macro_rules! overlay {
                     Self {
                         capture_base: None,
                         said: None,
-                        overlay_type: oca_ast_semantics::ast::OverlayType::$name,
+                        overlay_type: oca_ast::ast::OverlayType::$name,
                         $field1: std::collections::HashMap::new(),
 
                     }

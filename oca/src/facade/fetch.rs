@@ -6,9 +6,9 @@ use crate::{
     data_storage::DataStorage,
     repositories::{OCABundleCacheRepo, OCABundleFTSRepo},
 };
-use oca_ast_semantics::ast::{self, OCAAst, ObjectKind, RefValue};
-use oca_bundle_semantics::build::OCABuildStep;
-use oca_bundle_semantics::state::oca::{capture_base::CaptureBase, DynOverlay, OCABundle};
+use oca_ast::ast::{self, OCAAst, ObjectKind, RefValue};
+use oca_bundle::build::OCABuildStep;
+use oca_bundle::state::oca::{capture_base::CaptureBase, DynOverlay, OCABundle};
 use said::{
     derivation::HashFunctionCode,
     sad::{SerializationFormats, SAD},
@@ -277,7 +277,7 @@ impl Facade {
         fn extract_operation(
             db: &Box<dyn DataStorage>,
             said: &String,
-        ) -> Result<(String, oca_ast_semantics::ast::Command), Vec<String>> {
+        ) -> Result<(String, oca_ast::ast::Command), Vec<String>> {
             let r = db
                 .get(Namespace::OCA, &format!("oca.{}.operation", said))
                 .map_err(|e| vec![format!("{}", e)])?
@@ -291,7 +291,7 @@ impl Facade {
             )
             .to_string();
 
-            match serde_json::from_str::<oca_ast_semantics::ast::Command>(&op) {
+            match serde_json::from_str::<oca_ast::ast::Command>(&op) {
                 Ok(command) => Ok((parent_said, command)),
                 Err(e) => Err(vec![format!("Failed to parse command: {}", e)]),
             }

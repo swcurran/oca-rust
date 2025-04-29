@@ -3,7 +3,7 @@ use std::str::FromStr;
 use crate::ocafile::{error::ExtractingAttributeError, Pair, Rule};
 use indexmap::IndexMap;
 use log::debug;
-use oca_ast_semantics::ast::{
+use oca_ast::ast::{
     recursive_attributes::{AttributeTypeResult, NestedAttrTypeFrame},
     AttributeType, Content, NestedAttrType, NestedValue, RefValue,
 };
@@ -18,7 +18,7 @@ fn extract_attr_type(input: Pair) -> Result<NestedAttrType, ExtractingAttributeE
                 ExtractingAttributeError::Unexpected("Missing attribute type".to_string()).into()
             }
         },
-        Rule::alias => NestedAttrTypeFrame::Reference(oca_ast_semantics::ast::RefValue::Name(
+        Rule::alias => NestedAttrTypeFrame::Reference(oca_ast::ast::RefValue::Name(
             seed.as_str().to_string(),
         ))
         .into(),

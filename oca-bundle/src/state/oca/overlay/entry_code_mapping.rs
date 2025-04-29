@@ -1,24 +1,23 @@
 use crate::state::{attribute::Attribute, oca::Overlay};
-use oca_ast_semantics::ast::OverlayType;
+use oca_ast::ast::OverlayType;
+use said::derivation::HashFunctionCode;
+use said::{sad::SerializationFormats, sad::SAD};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::BTreeMap;
 
-use said::derivation::HashFunctionCode;
-use said::{sad::SerializationFormats, sad::SAD};
-
 #[derive(SAD, Serialize, Deserialize, Debug, Clone)]
-pub struct AttributeMappingOverlay {
+pub struct EntryCodeMappingOverlay {
     #[said]
     #[serde(rename = "digest")]
     said: Option<said::SelfAddressingIdentifier>,
+    capture_base: Option<said::SelfAddressingIdentifier>,
     #[serde(rename = "type")]
     overlay_type: OverlayType,
-    capture_base: Option<said::SelfAddressingIdentifier>,
-    pub attribute_mapping: BTreeMap<String, String>,
+    pub attribute_entry_codes_mapping: BTreeMap<String, Vec<String>>,
 }
 
-impl Overlay for AttributeMappingOverlay {
+impl Overlay for EntryCodeMappingOverlay {
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -35,25 +34,27 @@ impl Overlay for AttributeMappingOverlay {
         &self.overlay_type
     }
     fn attributes(&self) -> Vec<&String> {
-        self.attribute_mapping.keys().collect::<Vec<&String>>()
+        self.attribute_entry_codes_mapping
+            .keys()
+            .collect::<Vec<&String>>()
     }
 
-    fn add(&mut self, _attribute: &Attribute) {
-        // if attribute.mapping.is_some() {
-        //     self.attribute_mapping.insert(
-        //         attribute.name.clone(),
-        //         attribute.mapping.as_ref().unwrap().clone(),
-        //     );
-        // }
+    fn add(&mut self, attribute: &Attribute) {
+        if attribute.entry_codes_mapping.is_some() {
+            self.attribute_entry_codes_mapping.insert(
+                attribute.name.clone(),
+                attribute.entry_codes_mapping.as_ref().unwrap().clone(),
+            );
+        }
     }
 }
-impl AttributeMappingOverlay {
+impl EntryCodeMappingOverlay {
     pub fn new() -> Box<Self> {
         Box::new(Self {
             capture_base: None,
             said: None,
-            overlay_type: OverlayType::AttributeMapping,
-            attribute_mapping: BTreeMap::new(),
+            overlay_type: OverlayType::EntryCodeMapping,
+            attribute_entry_codes_mapping: BTreeMap::new(),
         })
     }
 }

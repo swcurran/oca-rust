@@ -7,8 +7,8 @@ use self::{
 };
 use crate::ocafile::error::InstructionError;
 use convert_case::{Case, Casing};
-pub use oca_ast_semantics::ast::OCAAst;
-use oca_ast_semantics::{
+pub use oca_ast::ast::OCAAst;
+use oca_ast::{
     ast::{
         self, recursive_attributes::NestedAttrTypeFrame, Command, CommandMeta, NestedAttrType,
         RefValue,
@@ -410,7 +410,7 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
 
 #[cfg(test)]
 mod tests {
-    use oca_ast_semantics::ast::AttributeType;
+    use oca_ast::ast::AttributeType;
     use said::derivation::{HashFunction, HashFunctionCode};
 
     use super::{error::ExtractingAttributeError, *};

@@ -1,7 +1,7 @@
 use super::standard::Standard;
 use isolang::Language;
-pub use oca_ast_semantics::ast::AttributeType;
-use oca_ast_semantics::ast::NestedAttrType;
+pub use oca_ast::ast::AttributeType;
+use oca_ast::ast::NestedAttrType;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

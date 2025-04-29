@@ -1,7 +1,7 @@
 use crate::ocafile::{error::InstructionError, instructions::helpers, Pair, Rule};
 use indexmap::IndexMap;
 use log::{debug, info};
-use oca_ast_semantics::ast::{
+use oca_ast::ast::{
     CaptureContent, Command, CommandType, NestedAttrType, ObjectKind, OverlayType,
 };
 
@@ -17,7 +17,7 @@ impl AddInstruction {
             match object.as_rule() {
                 Rule::meta => {
                     object_kind = Some(ObjectKind::Overlay(
-                        oca_ast_semantics::ast::OverlayType::Meta,
+                        oca_ast::ast::OverlayType::Meta,
                         helpers::extract_content(object),
                     ));
                 }
@@ -124,7 +124,7 @@ impl AddInstruction {
 mod tests {
     use super::*;
     use crate::ocafile::OCAfileParser;
-    use oca_ast_semantics::ast::NestedValue;
+    use oca_ast::ast::NestedValue;
     use pest::Parser;
 
     #[test]

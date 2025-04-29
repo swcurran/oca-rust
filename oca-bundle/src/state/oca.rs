@@ -21,7 +21,7 @@ use crate::state::{
 };
 use convert_case::{Case, Casing};
 use isolang::Language;
-use oca_ast_semantics::ast::{
+use oca_ast::ast::{
     CaptureContent, Command, CommandType, Content, NestedValue, OCAAst, ObjectKind, OverlayType,
 };
 /// Internal representation of OCA objects in split between non-attributes values and attributes.
@@ -981,7 +981,7 @@ impl OCABundle {
 #[cfg(test)]
 mod tests {
     use maplit::hashmap;
-    use oca_ast_semantics::ast::{NestedAttrType, RefValue};
+    use oca_ast::ast::{NestedAttrType, RefValue};
     use said::SelfAddressingIdentifier;
 
     use super::*;

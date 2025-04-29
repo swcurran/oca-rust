@@ -1,7 +1,7 @@
 use crate::state::oca::overlay::Overlay;
 use crate::state::oca::DynOverlay;
 use isolang::Language;
-use oca_ast_semantics::ast::OverlayType;
+use oca_ast::ast::OverlayType;
 use std::collections::HashSet;
 
 use super::oca::{overlay, OCABundle};
@@ -287,7 +287,7 @@ impl Validator {
 
 #[cfg(test)]
 mod tests {
-    use oca_ast_semantics::ast::NestedAttrType;
+    use oca_ast::ast::NestedAttrType;
 
     use super::*;
     use crate::controller::load_oca;

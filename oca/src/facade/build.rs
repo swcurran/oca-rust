@@ -11,11 +11,11 @@ use crate::repositories::{
 };
 #[cfg(feature = "local-references")]
 use log::debug;
-use oca_ast_semantics::ast::{OCAAst, ObjectKind, RefValue, ReferenceAttrType};
-use oca_bundle_semantics::build::{OCABuild, OCABuildStep};
-use oca_bundle_semantics::state::oca::OCABundle;
-use oca_bundle_semantics::Encode;
-use oca_dag_semantics::build_core_db_model;
+use oca_ast::ast::{OCAAst, ObjectKind, RefValue, ReferenceAttrType};
+use oca_bundle::build::{OCABuild, OCABuildStep};
+use oca_bundle::state::oca::OCABundle;
+use oca_bundle::Encode;
+use oca_dag::build_core_db_model;
 use said::derivation::HashFunctionCode;
 use said::sad::SerializationFormats;
 
@@ -34,7 +34,7 @@ pub enum ValidationError {
     #[error(transparent)]
     OCAFileParse(#[from] oca_file::ocafile::error::ParseError),
     #[error(transparent)]
-    OCABundleBuild(#[from] oca_bundle_semantics::build::Error),
+    OCABundleBuild(#[from] oca_bundle::build::Error),
     #[error(transparent)]
     TransformationBuild(#[from] transformation_file::build::Error),
     #[error("Error at line {line_number} ({raw_line}): {message}")]
@@ -71,7 +71,7 @@ pub fn build_from_ocafile(ocafile: String) -> Result<OCABundle, Error> {
     match ast {
         oca_file::ocafile::OCAAst::TransformationAst(_) => Err(Error::Deprecated),
         oca_file::ocafile::OCAAst::SemanticsAst(ast) => {
-            let oca_build = oca_bundle_semantics::build::from_ast(None, &ast)
+            let oca_build = oca_bundle::build::from_ast(None, &ast)
                 .map_err(|e| {
                     e.iter()
                         .map(|e| ValidationError::OCABundleBuild(e.clone()))
@@ -92,7 +92,7 @@ impl Facade {
     #[cfg(not(feature = "local-references"))]
     pub fn validate_ocafile(&self, ocafile: String) -> Result<OCABuild, Vec<ValidationError>> {
         let (base, oca_ast) = Self::parse_and_check_base(self.storage(), ocafile)?;
-        oca_bundle_semantics::build::from_ast(base, &oca_ast).map_err(|e| {
+        oca_bundle::build::from_ast(base, &oca_ast).map_err(|e| {
             e.iter()
                 .map(|e| ValidationError::OCABundleBuild(e.clone()))
                 .collect::<Vec<_>>()
@@ -172,7 +172,7 @@ impl Facade {
         // TODO this should be avoided if the ast is passed for further processing, the base is
         // checked again in generate bundle
         if let Some(first_command) = oca_ast.commands.first() {
-            if let (oca_ast_semantics::ast::CommandType::From, ObjectKind::OCABundle(content)) = (
+            if let (oca_ast::ast::CommandType::From, ObjectKind::OCABundle(content)) = (
                 first_command.clone().kind,
                 first_command.clone().object_kind,
             ) {
@@ -187,7 +187,7 @@ impl Facade {
                                     }
                                     Err(e) => {
                                         let default_command_meta =
-                                            oca_ast_semantics::ast::CommandMeta {
+                                            oca_ast::ast::CommandMeta {
                                                 line_number: 0,
                                                 raw_line: "unknown".to_string(),
                                             };
@@ -225,7 +225,7 @@ impl Facade {
         // not match.
         local_references::replace_refn_with_refs(&mut oca_ast, references).map_err(|e| vec![e])?;
 
-        let oca_build = oca_bundle_semantics::build::from_ast(base, &oca_ast).map_err(|e| {
+        let oca_build = oca_bundle::build::from_ast(base, &oca_ast).map_err(|e| {
             e.iter()
                 .map(|e| ValidationError::OCABundleBuild(e.clone()))
                 .collect::<Vec<_>>()
@@ -258,7 +258,7 @@ impl Facade {
             .iter()
             .filter_map(|x| {
                 x.as_any()
-                    .downcast_ref::<oca_bundle_semantics::state::oca::overlay::Meta>()
+                    .downcast_ref::<oca_bundle::state::oca::overlay::Meta>()
             })
             .collect::<Vec<_>>();
         if !meta_overlays.is_empty() {

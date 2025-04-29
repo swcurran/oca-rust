@@ -1,4 +1,4 @@
-use oca_bundle_semantics::state::oca::OCABundle;
+use oca_bundle::state::oca::OCABundle;
 
 struct OCABundleDTO {
     bundle: OCABundle,
@@ -53,7 +53,7 @@ mod tests {
   "overlays": {}
 }
 "#;
-        let oca = oca_bundle_semantics::controller::load_oca(&mut oca_str.as_bytes()).unwrap();
+        let oca = oca_bundle::controller::load_oca(&mut oca_str.as_bytes()).unwrap();
         let digests: Vec<u8> = OCABundleDTO::new(oca).into();
         assert_eq!(
             digests,

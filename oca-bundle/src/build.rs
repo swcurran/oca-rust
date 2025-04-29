@@ -13,7 +13,7 @@ use crate::state::{
     entry_codes::EntryCodes as EntryCodesValue, oca::OCABox,
 };
 use indexmap::IndexMap;
-use oca_ast_semantics::ast;
+use oca_ast::ast;
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -415,7 +415,7 @@ pub fn apply_command(base: Option<OCABox>, op: ast::Command) -> Result<OCABox, V
 mod tests {
     use super::*;
     use indexmap::IndexMap;
-    use oca_ast_semantics::ast::{AttributeType, CaptureContent};
+    use oca_ast::ast::{AttributeType, CaptureContent};
     use said::{derivation::HashFunctionCode, sad::SerializationFormats, version::Encode};
 
     #[test]
@@ -733,7 +733,7 @@ mod tests {
         );
         attributes.insert(
             "list".to_string(),
-            oca_ast_semantics::ast::NestedValue::Object(grouped_elements),
+            oca_ast::ast::NestedValue::Object(grouped_elements),
         );
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
