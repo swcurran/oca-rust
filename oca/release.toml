@@ -2,22 +2,22 @@ publish = false
 
 [[pre-release-replacements]]
 file = "Cargo.toml"
-search = "oca-ast-semantics = . version = \"[a-z0-9\\.-]+\""
-replace = "oca-ast-semantics = { version = \"{{version}}\""
+search = "oca-ast = . version = \"[a-z0-9\\.-]+\""
+replace = "oca-ast = { version = \"{{version}}\""
 exactly = 1
 prerelease = true
 
 [[pre-release-replacements]]
 file = "Cargo.toml"
-search = "oca-bundle-semantics = . version = \"[a-z0-9\\.-]+\""
-replace = "oca-bundle-semantics = { version = \"{{version}}\""
+search = "oca-bundle = . version = \"[a-z0-9\\.-]+\""
+replace = "oca-bundle = { version = \"{{version}}\""
 exactly = 1
 prerelease = true
 
 [[pre-release-replacements]]
 file = "Cargo.toml"
-search = "oca-dag-semantics = . version = \"[a-z0-9\\.-]+\""
-replace = "oca-dag-semantics = { version = \"{{version}}\""
+search = "oca-dag = . version = \"[a-z0-9\\.-]+\""
+replace = "oca-dag = { version = \"{{version}}\""
 exactly = 1
 prerelease = true
 
