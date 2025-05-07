@@ -89,11 +89,11 @@ pub fn extract_attribute_key_pairs(attr_pair: Pair) -> Option<(String, NestedVal
     debug!("Extracting the attribute from: {:?}", attr_pair);
     for item in attr_pair.into_inner() {
         match item.as_rule() {
-            Rule::attr_key | Rule::framing_metadata_key => {
+            Rule::attr_key => {
                 key = item.as_str().to_string();
                 debug!("Extracting attribute key {:?}", key);
             }
-            Rule::key_value | Rule::unit_value | Rule::framing_metadata_value => {
+            Rule::key_value | Rule::unit_value => {
                 if let Some(nested_item) = item.clone().into_inner().next() {
                     match nested_item.as_rule() {
                         Rule::string => {
@@ -365,8 +365,7 @@ pub fn extract_attributes_key_paris(object: Pair) -> Option<IndexMap<String, Nes
             Rule::attr_key_pairs
             | Rule::attr_entry_code_key_pairs
             | Rule::attr_entry_key_pairs
-            | Rule::unit_attr_key_pairs
-            | Rule::attr_framing_key_pairs => {
+            | Rule::unit_attr_key_pairs => {
                 for attr in attr.into_inner() {
                     debug!("Parsing attribute {:?}", attr);
                     if let Some((key, value)) = extract_attribute_key_pairs(attr) {
@@ -438,18 +437,6 @@ pub fn extract_properites_key_pairs(object: Pair) -> Option<IndexMap<String, Nes
                     "unit_system".to_string(),
                     NestedValue::Value(attr.as_str().to_string()),
                 );
-            }
-            Rule::framing_metadata => {
-                debug!("Parsing framing metadata: {:?}", attr.as_str());
-                for prop in attr.into_inner() {
-                    debug!("Parsing property {:?}", prop);
-                    if let Some((key, value)) = extract_attribute_key_pairs(prop) {
-                        debug!("Parsed property: {:?} = {:?}", key, value);
-                        properties.insert(key, value);
-                    } else {
-                        debug!("Skipping property");
-                    }
-                }
             }
             _ => {
                 debug!(

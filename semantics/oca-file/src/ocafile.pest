@@ -127,9 +127,7 @@ oca_object = _{
     conformance |
     cardinality |
     entry_code |
-    entry |
-    link |
-    attribute_framing
+    entry
   )
 }
 
@@ -145,9 +143,7 @@ remove_oca_object = _{
     conformance |
     cardinality |
     entry_code |
-    entry |
-    link |
-    attribute_framing
+    entry
   )
 }
 
@@ -163,16 +159,6 @@ cardinality = {^"cardinality" ~ arg_ws ~ attrs_key ~ attr_key_pairs}
 entry_code = {^"entry_code" ~ arg_ws ~ attrs_key ~ attr_entry_code_key_pairs}
 entry = {^"entry" ~ arg_ws ~ lang ~ arg_ws ~ attrs_key ~ attr_entry_key_pairs}
 unit = {^"unit" ~ arg_ws ~ attrs_key ~ unit_attr_key_pairs}
-link = {^"link" ~ arg_ws ~ reference_type ~ arg_ws ~ attrs_key ~ attr_key_pairs}
-attribute_framing = {^"attr_framing" ~ arg_ws ~ framing_metadata ~ arg_ws ~ attrs_key ~ attr_framing_key_pairs+}
-
-framing_metadata_key = ${ "id" | "label" | "location" | "version" }
-framing_metadata_value = ${ string | char+ }
-framing_metadata_pair = @{ framing_metadata_key ~ arg_ws? ~ "=" ~ arg_ws? ~ framing_metadata_value }
-framing_metadata = { framing_metadata_pair ~ (arg_ws ~ framing_metadata_pair)* }
-
-attr_framing_key_pair = @{ attr_key ~ arg_ws? ~ "=" ~ arg_ws? ~ json_object }
-attr_framing_key_pairs = ${ arg_ws* ~ attr_framing_key_pair ~ (arg_ws | NEWLINE)? }
 
 url = ${ string }
 json_key = ${ string }
