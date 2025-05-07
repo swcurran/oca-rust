@@ -104,6 +104,12 @@ impl AddInstruction {
                         helpers::extract_content(object),
                     ));
                 }
+                Rule::sensitive => {
+                    object_kind = Some(ObjectKind::Overlay(
+                        OverlayType::Sensitive,
+                        helpers::extract_content(object),
+                    ));
+                }
                 _ => {
                     return Err(InstructionError::UnexpectedToken(format!(
                         "Overlay: unexpected token {:?}",
@@ -124,6 +130,7 @@ impl AddInstruction {
 mod tests {
     use super::*;
     use crate::ocafile::OCAfileParser;
+    use indexmap::indexmap;
     use oca_ast::ast::NestedValue;
     use pest::Parser;
 
@@ -195,6 +202,7 @@ mod tests {
             ("ADD ENTRY_CODE ATTRS radio=[\"o1\",\"o2\", \"o3\"]", true),
             ("ADD FORMAT ATTRS name = \"^\\d+$\"", true),
             ("ADD CHARACTER_ENCODING ATTRS name=\"utf-16le\"", true),
+            ("ADD SENSITIVE ATTRS name last_name address", true),
         ];
 
         let _ = env_logger::builder().is_test(true).try_init();
@@ -242,6 +250,18 @@ mod tests {
                                         assert_eq!(
                                             content.attributes.unwrap().get("name").unwrap(),
                                             &attr_array
+                                        );
+                                    }
+                                    OverlayType::Sensitive => {
+                                        let attrs = indexmap! {
+                                            "name".to_string() => NestedValue::Value("".to_string()),
+                                            "last_name".to_string() => NestedValue::Value("".to_string()),
+                                            "address".to_string() => NestedValue::Value("".to_string()),
+                                        };
+
+                                        assert_eq!(
+                                            content.attributes.unwrap(),
+                                            attrs
                                         );
                                     }
                                     _ => {

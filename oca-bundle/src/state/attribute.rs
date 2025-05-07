@@ -24,6 +24,7 @@ pub struct Attribute {
     pub conformance: Option<String>,
     pub standards: Option<Vec<Standard>>,
     pub links: Option<HashMap<String, String>>,
+    pub sensitive: Option<bool>,
 }
 
 impl Default for Attribute {
@@ -50,7 +51,12 @@ impl Attribute {
             conformance: None,
             standards: None,
             links: None,
+            sensitive: None,
         }
+    }
+
+    pub fn set_sensitive(&mut self) {
+        self.sensitive = Some(true);
     }
 
     pub fn set_attribute_type(&mut self, attribute_type: NestedAttrType) {
@@ -109,6 +115,10 @@ impl Attribute {
 
             if other.links.is_some() {
                 self.links.clone_from(&other.links);
+            }
+
+            if other.sensitive.is_some() {
+                self.sensitive.clone_from(&other.sensitive);
             }
         }
     }

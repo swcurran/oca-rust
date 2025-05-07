@@ -10,6 +10,7 @@ pub mod label;
 pub mod meta;
 pub mod standard;
 pub mod unit;
+pub mod sensitive;
 
 pub use self::attribute_mapping::AttributeMappingOverlay as AttributeMapping;
 pub use self::cardinality::CardinalityOverlay as Cardinality;
@@ -22,6 +23,8 @@ pub use self::format::FormatOverlay as Format;
 pub use self::label::LabelOverlay as Label;
 pub use self::meta::MetaOverlay as Meta;
 pub use self::standard::StandardOverlay as Standard;
+pub use self::sensitive::SensitiveOverlay as Sensitive;
+
 pub use oca_ast::ast::OverlayType;
 use said::derivation::HashFunctionCode;
 

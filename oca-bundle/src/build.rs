@@ -386,6 +386,22 @@ pub fn apply_command(base: Option<OCABox>, op: ast::Command) -> Result<OCABox, V
                         }
                     }
                 }
+                ast::OverlayType::Sensitive => {
+                    if let Some(ref attributes) = content.attributes {
+                        for (attr_name, _) in attributes {
+                            let mut attribute = oca
+                                .attributes
+                                .get(attr_name)
+                                .ok_or_else(|| {
+                                    errors.push(format!("Undefined attribute: {attr_name}"));
+                                    errors.clone()
+                                })?
+                                .clone();
+                            attribute.set_sensitive();
+                            oca.add_attribute(attribute);
+                        }
+                    }
+                }
                 _ => (),
             }
         }
@@ -745,6 +761,20 @@ mod tests {
                 },
             ),
         });
+        let mut sensitive_attrs = IndexMap::new();
+        sensitive_attrs.insert("d".to_string(), ast::NestedValue::Value("".to_string()));
+        sensitive_attrs.insert("i".to_string(), ast::NestedValue::Value("".to_string()));
+
+        commands.push(ast::Command {
+            kind: ast::CommandType::Add,
+            object_kind: ast::ObjectKind::Overlay(
+                ast::OverlayType::Sensitive,
+                ast::Content {
+                    attributes: Some(sensitive_attrs),
+                    properties: None,
+                },
+            ),
+        });
 
         let oca_ast = ast::OCAAst {
             version: "2.0.0".to_string(),
@@ -756,11 +786,13 @@ mod tests {
         let build_result = from_ast(None, &oca_ast);
         match build_result {
             Ok(oca_build) => {
+                assert_eq!(oca_build.oca_bundle.overlays.len(), 6);
+                assert_eq!(oca_build.oca_bundle.capture_base.attributes.len(), 4);
                 let code = HashFunctionCode::Blake3_256;
                 let format = SerializationFormats::JSON;
                 let oca_bundle_encoded = oca_build.oca_bundle.encode(&code, &format).unwrap();
                 let oca_bundle_json = String::from_utf8(oca_bundle_encoded).unwrap();
-                println!("{}", oca_bundle_json);
+                println!("Bundle: {}", oca_bundle_json);
             }
             Err(e) => {
                 println!("{:?}", e);

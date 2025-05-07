@@ -148,7 +148,7 @@ pub enum OverlayType {
     Unit,
     AttributeMapping,
     EntryCodeMapping,
-    Sensitivity,
+    Sensitive,
 }
 
 impl Serialize for OverlayType {
@@ -180,8 +180,8 @@ impl Serialize for OverlayType {
             OverlayType::EntryCodeMapping => {
                 serializer.serialize_str(&format!("overlay/entry_code_mapping/{v}"))
             }
-            OverlayType::Sensitivity => {
-                serializer.serialize_str(&format!("overlay/sensitivity/{v}"))
+            OverlayType::Sensitive => {
+                serializer.serialize_str(&format!("overlay/sensitive/{v}"))
             }
         }
     }
@@ -230,7 +230,7 @@ impl FromStr for OverlayType {
             "Unit" => Ok(OverlayType::Unit),
             "Mapping" => Ok(OverlayType::AttributeMapping),
             "EntryCodeMapping" => Ok(OverlayType::EntryCodeMapping),
-            "Sensitivity" => Ok(OverlayType::Sensitivity),
+            "Sensitive" => Ok(OverlayType::Sensitive),
             _ => Err(()),
         }
     }
@@ -251,7 +251,7 @@ impl fmt::Display for OverlayType {
             OverlayType::Unit => write!(f, "Unit"),
             OverlayType::AttributeMapping => write!(f, "AttributeMapping"),
             OverlayType::EntryCodeMapping => write!(f, "EntryCodeMapping"),
-            OverlayType::Sensitivity => write!(f, "Sensitivity"),
+            OverlayType::Sensitive => write!(f, "Sensitive"),
         }
     }
 }
@@ -281,7 +281,7 @@ impl<'de> Deserialize<'de> for OverlayType {
                 "unit" => Ok(OverlayType::Unit),
                 "mapping" => Ok(OverlayType::AttributeMapping),
                 "entry_code_mapping" => Ok(OverlayType::EntryCodeMapping),
-                "sensitivity" => Ok(OverlayType::Sensitivity),
+                "sensitive" => Ok(OverlayType::Sensitive),
                 _ => Err(serde::de::Error::custom("Unknown overlay type")),
             }
         } else {
@@ -677,7 +677,7 @@ impl From<u8> for ObjectKind {
                 },
             ),
             20 => ObjectKind::Overlay(
-                OverlayType::Sensitivity,
+                OverlayType::Sensitive,
                 Content {
                     attributes: None,
                     properties: None,
@@ -705,7 +705,7 @@ impl From<ObjectKind> for u8 {
             ObjectKind::Overlay(OverlayType::Unit, _) => 14,
             ObjectKind::Overlay(OverlayType::AttributeMapping, _) => 15,
             ObjectKind::Overlay(OverlayType::EntryCodeMapping, _) => 16,
-            ObjectKind::Overlay(OverlayType::Sensitivity, _) => 20,
+            ObjectKind::Overlay(OverlayType::Sensitive, _) => 20,
         }
     }
 }
@@ -808,8 +808,8 @@ impl<'de> Deserialize<'de> for ObjectKind {
                     properties: None,
                 },
             )),
-            "Sensitivity" => Ok(ObjectKind::Overlay(
-                OverlayType::Sensitivity,
+            "Sensitive" => Ok(ObjectKind::Overlay(
+                OverlayType::Sensitive,
                 Content {
                     attributes: None,
                     properties: None,

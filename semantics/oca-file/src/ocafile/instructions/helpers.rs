@@ -377,6 +377,12 @@ pub fn extract_attributes_key_paris(object: Pair) -> Option<IndexMap<String, Nes
                     }
                 }
             }
+            Rule::attr_key => {
+                debug!("Parsing attribute key {:?}", attr);
+                let attr_key = attr.as_str().to_string();
+                attributes.insert(attr_key, NestedValue::Value("".to_string()));
+            }
+
             _ => {
                 debug!(
                     "Unexpected token: Skipping invalid attribute in instruction {:?}",

@@ -127,7 +127,8 @@ oca_object = _{
     conformance |
     cardinality |
     entry_code |
-    entry
+    entry |
+    sensitive
   )
 }
 
@@ -143,7 +144,8 @@ remove_oca_object = _{
     conformance |
     cardinality |
     entry_code |
-    entry
+    entry |
+    sensitive
   )
 }
 
@@ -159,6 +161,7 @@ cardinality = {^"cardinality" ~ arg_ws ~ attrs_key ~ attr_key_pairs}
 entry_code = {^"entry_code" ~ arg_ws ~ attrs_key ~ attr_entry_code_key_pairs}
 entry = {^"entry" ~ arg_ws ~ lang ~ arg_ws ~ attrs_key ~ attr_entry_key_pairs}
 unit = {^"unit" ~ arg_ws ~ attrs_key ~ unit_attr_key_pairs}
+sensitive = {^"sensitive" ~ arg_ws ~ attrs_key ~ attr_key ~ (arg_ws ~ attr_key)* }
 
 url = ${ string }
 json_key = ${ string }

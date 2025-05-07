@@ -233,6 +233,18 @@ impl OCABox {
                     }
                 }
             }
+            if let Some(_sensitive) = &attribute.sensitive {
+                let mut sensitive_ov = overlays
+                    .iter_mut()
+                    .find(|x| x.overlay_type().eq(&OverlayType::Sensitive));
+                if sensitive_ov.is_none() {
+                    overlays.push(Box::new(overlay::Sensitive::new()));
+                    sensitive_ov = overlays.last_mut();
+                }
+                if let Some(ov) = sensitive_ov {
+                    ov.add(attribute);
+                }
+            }
         }
 
         overlays
@@ -381,6 +393,15 @@ impl<'de> Deserialize<'de> for DynOverlay {
                                 .deserialize_into::<overlay::Standard>()
                                 .map_err(|e| {
                                     serde::de::Error::custom(format!("Standard overlay: {e}"))
+                                })?,
+                        ));
+                    }
+                    OverlayType::Sensitive => {
+                        return Ok(Box::new(
+                            de_overlay
+                                .deserialize_into::<overlay::Sensitive>()
+                                .map_err(|e| {
+                                    serde::de::Error::custom(format!("Sensitive overlay: {e}"))
                                 })?,
                         ));
                     }
