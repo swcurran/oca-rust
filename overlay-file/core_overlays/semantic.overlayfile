@@ -1,0 +1,6 @@
+ADD OVERLAY label
+  VERSION 2.0.0
+  ADD ATTRIBUTES language=Text
+  ADD OBJECT attr_labels
+    WITH KEYS attr-names
+    WITH VALUES Text

@@ -1,17 +1,18 @@
 [workspace]
 
 members = [
-  "oca-bundle",
-  "oca-ast",
-  "oca-dag",
-  "oca",
-  "oca-file",
-  "semantics/oca-file",
-  "transformation/ast",
-  "transformation/oca-file",
-  "transformation/transformation-file",
+    "oca-bundle",
+    "oca-ast",
+    "oca-dag",
+    "oca",
+    "oca-file",
+    "semantics/oca-file",
+    "transformation/ast",
+    "transformation/oca-file",
+    "transformation/transformation-file",
+    "overlay-file",
 
-  "tests",
+    "tests",
 ]
 
 resolver = "2"

@@ -14,6 +14,7 @@ comment = @{ "#" ~ (!NEWLINE ~ ANY)* }
 comment_line = _{ ws* ~ comment ~ NEWLINE? }
 empty_line = @{ ws* ~ NEWLINE }
 
+/// Double quoted string
 double_quoted_string  = _{ "\"" ~ inner ~ "\"" }
 inner   = @{ (!("\"" | "\\" | "\u{0000}" | "\u{001F}") ~ ANY)* ~ (escape ~ inner)? }
 escape  = @{ "\\" ~ ("b" | "t" | "n" | "f" | "r" | "\"" | "\\" | "'" | unicode | NEWLINE)? }

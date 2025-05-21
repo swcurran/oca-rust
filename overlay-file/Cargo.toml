@@ -1,0 +1,20 @@
+[package]
+name = "overlay-file"
+version = "1.0.0-rc1"
+edition = "2021"
+authors = ["Human Colossus <contact@humancolossus.org>"]
+license = "EUPL-1.2"
+readme = "README.md"
+description = "Rust implementation of OverlayFile used to define overlays in OCA"
+
+[lib]
+name = "overlay_file"
+path = "src/lib.rs"
+
+[dependencies]
+pest = "2.8.0"
+pest_derive = "2.8.0"
+serde_json = { version = "1.0", features = ["preserve_order"] }
+serde = { version = "1.0", features = ["derive"] }
+indexmap = { version = "1.9.3", features = ["serde"] }
+thiserror = "2.0.12"

@@ -1,0 +1,241 @@
+// BEGIN of GENERIC RULES
+
+/// insignificant whitespace, not repeated
+ws = _{ " " | "\t" }
+/// 2 spaces or tab allowed for indented line
+iws    =  _{ "  " | "\t" }
+arg_ws = _{ (ws | line_continuation ~ (comment_line | empty_line)*)+ }
+/// a line continuation, allowing an instruction to continue onto a new line
+line_continuation = _{ "\\" ~ ws* ~ NEWLINE }
+comment           = @{ "#" ~ (!NEWLINE ~ ANY)* }
+comment_line      = _{ ws* ~ comment ~ NEWLINE? }
+empty_line        = @{ ws* ~ NEWLINE }
+
+meta_attr_key     = ${ "name" | "version" | "precompiler" }
+meta_attr_value   = ${ string | char+ }
+meta_key_pair     = @{ meta_attr_key ~ arg_ws? ~ "=" ~ arg_ws? ~ meta_attr_value }
+meta_comment      = @{ "--" ~ ws* ~ (!NEWLINE ~ meta_key_pair)* }
+meta_comment_line = _{ ws* ~ meta_comment ~ NEWLINE? }
+
+string               = ${ single_quoted_string | double_quoted_string }
+single_quoted_string = _{ "'" ~ single_quoted_inner ~ "'" }
+single_quoted_inner  = @{ (!("'" | "\\" | "\u{0000}" | "\u{001F}") ~ ANY)* ~ (escape ~ single_quoted_inner)? }
+double_quoted_string = _{ "\"" ~ inner ~ "\"" }
+inner                = @{ (!("\"" | "\\" | "\u{0000}" | "\u{001F}") ~ ANY)* ~ (escape ~ inner)? }
+escape               = @{ "\\" ~ ("b" | "t" | "n" | "f" | "r" | "\"" | "\\" | "'" | unicode | NEWLINE)? }
+unicode              = @{ "u" ~ ASCII_HEX_DIGIT{4} | "U" ~ ASCII_HEX_DIGIT{8} }
+
+SCRIPTS = {
+    ADLAM
+  | AHOM
+  | ANATOLIAN_HIEROGLYPHS
+  | ARABIC
+  | ARMENIAN
+  | AVESTAN
+  | BALINESE
+  | BAMUM
+  | BASSA_VAH
+  | BATAK
+  | BENGALI
+  | BHAIKSUKI
+  | BOPOMOFO
+  | BRAHMI
+  | BRAILLE
+  | BUGINESE
+  | BUHID
+  | CANADIAN_ABORIGINAL
+  | CARIAN
+  | CAUCASIAN_ALBANIAN
+  | CHAKMA
+  | CHAM
+  | CHEROKEE
+  | CHORASMIAN
+  | COPTIC
+  | CUNEIFORM
+  | CYPRIOT
+  | CYPRO_MINOAN
+  | CYRILLIC
+  | DESERET
+  | DEVANAGARI
+  | DIVES_AKURU
+  | DOGRA
+  | DUPLOYAN
+  | EGYPTIAN_HIEROGLYPHS
+  | ELBASAN
+  | ELYMAIC
+  | ETHIOPIC
+  | GEORGIAN
+  | GLAGOLITIC
+  | GOTHIC
+  | GRANTHA
+  | GREEK
+  | GUJARATI
+  | GUNJALA_GONDI
+  | GURMUKHI
+  | HAN
+  | HANGUL
+  | HANIFI_ROHINGYA
+  | HANUNOO
+  | HATRAN
+  | HEBREW
+  | HIRAGANA
+  | IMPERIAL_ARAMAIC
+  | INHERITED
+  | INSCRIPTIONAL_PAHLAVI
+  | INSCRIPTIONAL_PARTHIAN
+  | JAVANESE
+  | KAITHI
+  | KANNADA
+  | KATAKANA
+  | KAWI
+  | KAYAH_LI
+  | KHAROSHTHI
+  | KHITAN_SMALL_SCRIPT
+  | KHMER
+  | KHOJKI
+  | KHUDAWADI
+  | LAO
+  | LATIN
+  | LEPCHA
+  | LIMBU
+  | LINEAR_A
+  | LINEAR_B
+  | LISU
+  | LYCIAN
+  | LYDIAN
+  | MAHAJANI
+  | MAKASAR
+  | MALAYALAM
+  | MANDAIC
+  | MANICHAEAN
+  | MARCHEN
+  | MASARAM_GONDI
+  | MEDEFAIDRIN
+  | MEETEI_MAYEK
+  | MENDE_KIKAKUI
+  | MEROITIC_CURSIVE
+  | MEROITIC_HIEROGLYPHS
+  | MIAO
+  | MODI
+  | MONGOLIAN
+  | MRO
+  | MULTANI
+  | MYANMAR
+  | NABATAEAN
+  | NAG_MUNDARI
+  | NANDINAGARI
+  | NEW_TAI_LUE
+  | NEWA
+  | NKO
+  | NUSHU
+  | NYIAKENG_PUACHUE_HMONG
+  | OGHAM
+  | OL_CHIKI
+  | OLD_HUNGARIAN
+  | OLD_ITALIC
+  | OLD_NORTH_ARABIAN
+  | OLD_PERMIC
+  | OLD_PERSIAN
+  | OLD_SOGDIAN
+  | OLD_SOUTH_ARABIAN
+  | OLD_TURKIC
+  | OLD_UYGHUR
+  | ORIYA
+  | OSAGE
+  | OSMANYA
+  | PAHAWH_HMONG
+  | PALMYRENE
+  | PAU_CIN_HAU
+  | PHAGS_PA
+  | PHOENICIAN
+  | PSALTER_PAHLAVI
+  | REJANG
+  | RUNIC
+  | SAMARITAN
+  | SAURASHTRA
+  | SHARADA
+  | SHAVIAN
+  | SIDDHAM
+  | SIGNWRITING
+  | SINHALA
+  | SOGDIAN
+  | SORA_SOMPENG
+  | SOYOMBO
+  | SUNDANESE
+  | SYLOTI_NAGRI
+  | SYRIAC
+  | TAGALOG
+  | TAGBANWA
+  | TAI_LE
+  | TAI_THAM
+  | TAI_VIET
+  | TAKRI
+  | TAMIL
+  | TANGSA
+  | TANGUT
+  | TELUGU
+  | THAANA
+  | THAI
+  | TIBETAN
+  | TIFINAGH
+  | TIRHUTA
+  | TOTO
+  | UGARITIC
+  | VAI
+  | VITHKUQI
+  | WANCHO
+  | WARANG_CITI
+  | YEZIDI
+  | YI
+  | ZANABAZAR_SQUARE
+}
+char    = { LETTER | NUMBER | "." | "-" | "_" | "/" | ":" | SCRIPTS }
+
+file = {
+    SOI ~ (empty_line | meta_comment_line | comment_line | overlay_block)* ~ EOI
+}
+
+overlay_block     =  { overlay_header ~ overlay_body }
+overlay_header    =  _{ ^"ADD OVERLAY" ~ ws+ ~ overlay_name ~ ws* ~ NEWLINE }
+/// Overlay name including namespace
+overlay_name      = @{ (ASCII_ALPHANUMERIC | ":" | "_")+ }
+overlay_body      =  _{ overlay_version ~ overlay_entry+ }
+overlay_entry      =  _{ ( overlay_object | overlay_attributes)+ }
+/// The version of the overlay
+overlay_version   =  _{ iws ~ "VERSION" ~ ws+ ~ version ~ ws* ~ NEWLINE }
+
+
+overlay_object = { overlay_object_header ~ overlay_object_body }
+
+overlay_object_header = { iws ~ "ADD OBJECT" ~ ws+ ~ attr_name ~ ws* ~ NEWLINE* }
+
+overlay_object_body = {
+    iws+ ~ "WITH KEYS" ~ ws+ ~ key_type ~ ws* ~ NEWLINE
+    ~ iws+ ~ "WITH VALUES" ~ ws+ ~ value_type ~ ws* ~ NEWLINE*
+}
+
+overlay_attributes = { iws ~ "ADD ATTRIBUTES" ~ ws* ~ key_pair+}
+key_pair = { ws* ~ attr_name ~ ws* ~ "=" ~ ws* ~ attr_value_type ~ ws* ~ NEWLINE* }
+attr_value_type = { "Text" | "Binary" | "Number" | "Boolean" | "DateTime" | "Array" }
+attr_name = ${ (ASCII_ALPHANUMERIC | "-" | "_" | ".")+ }
+version = @{ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+ }
+
+
+/// Type of the keys allowed for given object,
+/// - "attr-names" - attribute from capture base,
+/// - "Text" - any string,
+/// - "array" - array of strings either fixed or with ellipsis allowing additional strings
+key_type   = _{ ATTR_NAMES_TYPE | TEXT_TYPE | ARRAY_TYPE }
+ATTR_NAMES_TYPE = { ^"attr-names" }
+TEXT_TYPE      = { ^"Text" }
+REF_TYPE       = { ^"REF" }
+ARRAY_TYPE      = { "[" ~ ws* ~ key_item ~ ("," ~ ws* ~ key_item)* ~ trailing_ellipsis? ~ ws* ~ "]" }
+key_item      = { attr_name }
+trailing_ellipsis = { "," ~ ws* ~ "..." }
+
+value_type = _{ TEXT_TYPE | ARRAY_TYPE | object_type | REF_TYPE | complex_value_type }
+object_type = _ { "OBJECT" ~ NEWLINE ~ overlay_object_body }
+
+complex_value_type = {
+    (("ARRAY" | "OBJECT" | "REF") ~ "|" ~ ("ARRAY" | "OBJECT" | "REF" | "Text"))+
+}
