@@ -1,10 +1,10 @@
-use crate::parse_from_string;
+use crate::{parse_from_string, OverlayDef};
 use std::{collections::HashMap, fs, path::{Path, PathBuf}};
 use crate::OverlayFile;
 
 pub trait OverlayRegistry {
     fn get_by_filename(&self, name: &str) -> Option<&OverlayFile>;
-    fn get_by_name(&self, namespace: Option<&str>, name: &str,) -> Option<&OverlayFile>;
+    fn get_by_name(&self, namespace: Option<&str>, name: &str,) -> Option<&OverlayDef>;
     fn list_by_namespace(&self, namespace: &str) -> Vec<&OverlayFile>;
 
     fn list_all(&self) -> Vec<String>;
@@ -46,17 +46,23 @@ impl OverlayLocalRegistry {
 }
 
 impl OverlayRegistry for OverlayLocalRegistry {
+    // TODO remove it shouldn't be needed
     fn get_by_filename(&self, name: &str) -> Option<&OverlayFile> {
         self.overlays.get(name)
     }
 
-    fn get_by_name(&self, namespace: Option<&str>, name: &str) -> Option<&OverlayFile> {
-        self.overlays.values().find(|overlay| {
-            overlay.overlays_def.iter().any(|o| {
-                o.namespace.as_deref() == namespace && o.name == name
+    fn get_by_name(&self, namespace: Option<&str>, name: &str) -> Option<&OverlayDef> {
+        let name = name.to_ascii_lowercase();
+        let namespace = namespace.map(|ns| ns.to_ascii_lowercase());
+
+        self.overlays.values().find_map(|overlay_file| {
+            overlay_file.overlays_def.iter().find(|o| {
+                let o_ns = o.namespace.as_ref().map(|s| s.to_ascii_lowercase());
+                o_ns == namespace && o.name.eq_ignore_ascii_case(&name)
             })
         })
     }
+
 
     fn list_all(&self) -> Vec<String> {
         self.overlays.keys().cloned().collect()

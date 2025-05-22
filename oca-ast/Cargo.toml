@@ -4,11 +4,7 @@ description = "Library for handling Abstract Syntax Tree of OCA bundle"
 version = "2.0.0-rc2"
 license = "EUPL-1.2"
 edition = "2021"
-authors = [
-  "Marcin Olichwiruk <marcin.olichwiruk@opensoftware.pl>",
-  "Robert Mitwicki <robert.mitwicki@opensoftware.pl>",
-  "Michał Pietrus <michal.pietrus@opensoftware.pl>",
-]
+authors = [ "Human Colossus Community <contact@humancolossus.org>" ]
 readme = "README.md"
 include = ["src/**/*", "LICENSE", "README.md"]
 
@@ -30,3 +26,4 @@ strum = "0.24"
 strum_macros = "0.24"
 thiserror = "1.0.38"
 wasm-bindgen = { version = "0.2.89" }
+overlay-file = { version = "1.0.0-rc1", path = "../overlay-file/" }

@@ -1,12 +1,13 @@
 use indexmap::IndexMap;
+use overlay_file::{overlay_registry::OverlayRegistry, OverlayDef};
 use said::SelfAddressingIdentifier;
 use serde::{
-    de::{self, MapAccess, Visitor},
+    de::{self, DeserializeSeed, Error},
     ser::SerializeStruct,
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use std::{collections::HashMap, fmt, str::FromStr};
-use std::{hash::Hash, sync::OnceLock};
+use std::hash::Hash;
 use strum_macros::Display;
 use thiserror::Error;
 use wasm_bindgen::prelude::*;
@@ -17,7 +18,7 @@ pub mod attributes;
 pub mod error;
 pub mod recursive_attributes;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct OCAAst {
     pub version: String,
     pub commands: Vec<Command>,
@@ -31,6 +32,11 @@ pub struct Command {
     pub kind: CommandType,
     #[serde(flatten)]
     pub object_kind: ObjectKind,
+}
+
+// Temporary struct used only for deserialization to feed registry context
+pub struct CommandSeed<'a> {
+    pub registry: &'a dyn OverlayRegistry,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -47,11 +53,101 @@ pub enum CommandType {
     From,
 }
 
-#[derive(Debug, PartialEq, Clone, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Eq)]
+#[serde(untagged)]
 pub enum ObjectKind {
     CaptureBase(CaptureContent),
     OCABundle(BundleContent),
-    Overlay(OverlayType, Content),
+    Overlay(String, Content),
+}
+
+impl<'de, 'a> DeserializeSeed<'de> for CommandSeed<'a> {
+    type Value = Command;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Command, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct Raw {
+            #[serde(rename = "type")]
+            kind: CommandType,
+            object_kind: String,
+            content: serde_json::Value,
+        }
+
+        let raw = Raw::deserialize(deserializer)?;
+
+        let object_kind = match raw.object_kind.as_str() {
+            "CaptureBase" => ObjectKind::CaptureBase(
+                serde_json::from_value(raw.content).map_err(de::Error::custom)?,
+            ),
+            "OCABundle" => ObjectKind::OCABundle(
+                serde_json::from_value(raw.content).map_err(de::Error::custom)?,
+            ),
+            overlay => {
+                if self.registry.get_by_name(None, overlay).is_none() {
+                    return Err(de::Error::custom(format!("Unknown overlay: {overlay}")));
+                }
+                let content = serde_json::from_value(raw.content).map_err(de::Error::custom)?;
+                ObjectKind::Overlay(overlay.to_string(), content)
+            }
+        };
+
+        Ok(Command {
+            kind: raw.kind,
+            object_kind,
+        })
+    }
+}
+
+// Temporaryr struct used only for serialization to feed registry context
+pub struct OCAAstWithRegistry<'a> {
+    pub ast: &'a OCAAst,
+    pub registry: &'a dyn OverlayRegistry,
+}
+
+impl<'a> Serialize for OCAAstWithRegistry<'a> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut s = serializer.serialize_struct("OCAAst", 4)?;
+
+        s.serialize_field("version", &self.ast.version)?;
+
+        let wrapped_commands: Vec<_> = self
+            .ast
+            .commands
+            .iter()
+            .map(|cmd| CommandWithRegistry {
+                command: cmd,
+                registry: self.registry,
+            })
+            .collect();
+
+        s.serialize_field("commands", &wrapped_commands)?;
+        s.serialize_field("commands_meta", &self.ast.commands_meta)?;
+        s.serialize_field("meta", &self.ast.meta)?;
+        s.end()
+    }
+}
+
+pub struct OverlayInstance<'a> {
+    pub schema: &'a OverlayDef,
+    pub content: &'a Content,
+}
+
+/// TODO find out if this is needed...
+impl ObjectKind {
+    pub fn as_overlay<'a>(
+        &'a self,
+        registry: &'a dyn OverlayRegistry,
+    ) -> Option<OverlayInstance<'a>> {
+        match self {
+            ObjectKind::Overlay(name, content) => registry
+                .get_by_name(None, name)
+                .map(|schema| OverlayInstance { schema, content }),
+            _ => None,
+        }
+    }
 }
 
 impl Hash for ObjectKind {
@@ -130,162 +226,6 @@ impl FromStr for AttributeType {
             "Numeric" => Ok(AttributeType::Numeric),
             "DateTime" => Ok(AttributeType::DateTime),
             _ => Err(()),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub enum OverlayType {
-    Label,
-    CharacterEncoding,
-    Format,
-    Meta,
-    Standard,
-    Cardinality,
-    Conformance,
-    EntryCode,
-    Entry,
-    Unit,
-    AttributeMapping,
-    EntryCodeMapping,
-    Sensitive,
-}
-
-impl Serialize for OverlayType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let v = "2.0.0".to_string();
-        match self {
-            OverlayType::Label => serializer.serialize_str(&format!("overlay/label/{v}")),
-            OverlayType::CharacterEncoding => {
-                serializer.serialize_str(&format!("overlay/character_encoding/{v}"))
-            }
-            OverlayType::Format => serializer.serialize_str(&format!("overlay/format/{v}")),
-            OverlayType::Meta => serializer.serialize_str(&format!("overlay/meta/{v}")),
-            OverlayType::Standard => serializer.serialize_str(&format!("overlay/standard/{v}")),
-            OverlayType::Cardinality => {
-                serializer.serialize_str(&format!("overlay/cardinality/{v}"))
-            }
-            OverlayType::Conformance => {
-                serializer.serialize_str(&format!("overlay/conformance/{v}"))
-            }
-            OverlayType::EntryCode => serializer.serialize_str(&format!("overlay/entry_code/{v}")),
-            OverlayType::Entry => serializer.serialize_str(&format!("overlay/entry/{v}")),
-            OverlayType::Unit => serializer.serialize_str(&format!("overlay/unit/{v}")),
-            OverlayType::AttributeMapping => {
-                serializer.serialize_str(&format!("overlay/mapping/{v}"))
-            }
-            OverlayType::EntryCodeMapping => {
-                serializer.serialize_str(&format!("overlay/entry_code_mapping/{v}"))
-            }
-            OverlayType::Sensitive => {
-                serializer.serialize_str(&format!("overlay/sensitive/{v}"))
-            }
-        }
-    }
-}
-
-impl Serialize for ObjectKind {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("ObjectKind", 3)?;
-        match self {
-            ObjectKind::CaptureBase(content) => {
-                state.serialize_field("object_kind", "CaptureBase")?;
-                state.serialize_field("content", content)?;
-            }
-            ObjectKind::OCABundle(content) => {
-                state.serialize_field("object_kind", "OCABundle")?;
-                state.serialize_field("content", content)?;
-            }
-            ObjectKind::Overlay(overlay_type, content) => {
-                // Convert OverlayType to a string representation
-                let overlay_type_str = overlay_type.to_string();
-                state.serialize_field("object_kind", &overlay_type_str)?;
-                state.serialize_field("content", content)?;
-            }
-        }
-        state.end()
-    }
-}
-
-impl FromStr for OverlayType {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Label" => Ok(OverlayType::Label),
-            "CharacterEncoding" => Ok(OverlayType::CharacterEncoding),
-            "Format" => Ok(OverlayType::Format),
-            "Meta" => Ok(OverlayType::Meta),
-            "Standard" => Ok(OverlayType::Standard),
-            "Cardinality" => Ok(OverlayType::Cardinality),
-            "Conformance" => Ok(OverlayType::Conformance),
-            "EntryCode" => Ok(OverlayType::EntryCode),
-            "Entry" => Ok(OverlayType::Entry),
-            "Unit" => Ok(OverlayType::Unit),
-            "Mapping" => Ok(OverlayType::AttributeMapping),
-            "EntryCodeMapping" => Ok(OverlayType::EntryCodeMapping),
-            "Sensitive" => Ok(OverlayType::Sensitive),
-            _ => Err(()),
-        }
-    }
-}
-
-impl fmt::Display for OverlayType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            OverlayType::Label => write!(f, "Label"),
-            OverlayType::CharacterEncoding => write!(f, "CharacterEncoding"),
-            OverlayType::Format => write!(f, "Format"),
-            OverlayType::Meta => write!(f, "Meta"),
-            OverlayType::Standard => write!(f, "Standard"),
-            OverlayType::Cardinality => write!(f, "Cardinality"),
-            OverlayType::Conformance => write!(f, "Conformance"),
-            OverlayType::EntryCode => write!(f, "EntryCode"),
-            OverlayType::Entry => write!(f, "Entry"),
-            OverlayType::Unit => write!(f, "Unit"),
-            OverlayType::AttributeMapping => write!(f, "AttributeMapping"),
-            OverlayType::EntryCodeMapping => write!(f, "EntryCodeMapping"),
-            OverlayType::Sensitive => write!(f, "Sensitive"),
-        }
-    }
-}
-
-static OVERLAY_PATTERN: OnceLock<regex::Regex> = OnceLock::new();
-
-impl<'de> Deserialize<'de> for OverlayType {
-    fn deserialize<D>(deserializer: D) -> Result<OverlayType, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let overlay_type = String::deserialize(deserializer)?;
-        let pattern = OVERLAY_PATTERN
-            .get_or_init(|| regex::Regex::new(r"^overlay/(\w+)/(\d+\.\d+\.\d+)$").unwrap());
-
-        if let Some(captures) = pattern.captures(&overlay_type) {
-            match captures.get(1).unwrap().as_str() {
-                "label" => Ok(OverlayType::Label),
-                "format" => Ok(OverlayType::Format),
-                "character_encoding" => Ok(OverlayType::CharacterEncoding),
-                "meta" => Ok(OverlayType::Meta),
-                "standard" => Ok(OverlayType::Standard),
-                "cardinality" => Ok(OverlayType::Cardinality),
-                "conformance" => Ok(OverlayType::Conformance),
-                "entry_code" => Ok(OverlayType::EntryCode),
-                "entry" => Ok(OverlayType::Entry),
-                "unit" => Ok(OverlayType::Unit),
-                "mapping" => Ok(OverlayType::AttributeMapping),
-                "entry_code_mapping" => Ok(OverlayType::EntryCodeMapping),
-                "sensitive" => Ok(OverlayType::Sensitive),
-                _ => Err(serde::de::Error::custom("Unknown overlay type")),
-            }
-        } else {
-            Err(serde::de::Error::custom("Invalid overlay type format"))
         }
     }
 }
@@ -409,131 +349,6 @@ impl Serialize for RefValue {
     }
 }
 
-// Implement Deserialize for Command
-impl<'de> Deserialize<'de> for Command {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        enum Field {
-            Kind,
-            ObjectKind,
-        }
-
-        impl<'de> Deserialize<'de> for Field {
-            fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
-            where
-                D: Deserializer<'de>,
-            {
-                struct FieldVisitor;
-
-                impl Visitor<'_> for FieldVisitor {
-                    type Value = Field;
-
-                    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                        formatter.write_str("`type` or `object_kind`")
-                    }
-
-                    fn visit_str<E>(self, value: &str) -> Result<Field, E>
-                    where
-                        E: de::Error,
-                    {
-                        match value {
-                            "type" => Ok(Field::Kind),
-                            "object_kind" => Ok(Field::ObjectKind),
-                            _ => Err(de::Error::unknown_field(value, FIELDS)),
-                        }
-                    }
-                }
-
-                deserializer.deserialize_identifier(FieldVisitor)
-            }
-        }
-
-        struct CommandVisitor;
-
-        impl<'de> Visitor<'de> for CommandVisitor {
-            type Value = Command;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("struct Command")
-            }
-
-            fn visit_map<V>(self, mut map: V) -> Result<Command, V::Error>
-            where
-                V: MapAccess<'de>,
-            {
-                let mut kind = None;
-                let mut object_kind = None;
-
-                while let Some(key) = map.next_key()? {
-                    match key {
-                        Field::Kind => {
-                            if kind.is_some() {
-                                return Err(de::Error::duplicate_field("type"));
-                            }
-                            kind = Some(map.next_value()?);
-                        }
-                        Field::ObjectKind => {
-                            if object_kind.is_some() {
-                                return Err(de::Error::duplicate_field("object_kind"));
-                            }
-                            let object_kind_str: String = map.next_value()?;
-                            match object_kind_str.as_str() {
-                                "CaptureBase" => {
-                                    // take the key frist otherwise next value would not work
-                                    // properly
-                                    let _content_key: Option<String> = map.next_key()?;
-                                    let content: CaptureContent = map.next_value()?;
-                                    object_kind = Some(ObjectKind::CaptureBase(content));
-                                }
-                                "OCABundle" => {
-                                    // take the key frist otherwise next value would not work
-                                    // properly
-                                    let _content_key: Option<String> = map.next_key()?;
-                                    let content: BundleContent = map.next_value()?;
-                                    object_kind = Some(ObjectKind::OCABundle(content));
-                                }
-                                _ => {
-                                    // take the key frist otherwise next value would not work
-                                    // properly
-                                    let _content_key: Option<String> = map.next_key()?;
-                                    // if it is not a CaptureBase or OCABundle, it must be an Overlay
-                                    let overlay_type =
-                                        OverlayType::from_str(object_kind_str.as_str());
-                                    match overlay_type {
-                                        Ok(overlay_type) => {
-                                            let content: Content = map.next_value()?;
-                                            object_kind =
-                                                Some(ObjectKind::Overlay(overlay_type, content));
-                                        }
-                                        Err(_) => {
-                                            return Err(de::Error::unknown_field(
-                                                &object_kind_str,
-                                                VARIANTS,
-                                            ))
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                let kind = kind.ok_or_else(|| de::Error::missing_field("type"))?;
-                let object_kind =
-                    object_kind.ok_or_else(|| de::Error::missing_field("object_kind"))?;
-
-                Ok(Command { kind, object_kind })
-            }
-        }
-
-        const FIELDS: &[&str] = &["type", "object_kind", "content"];
-        const VARIANTS: &[&str] = &["CaptureBase", "OCABundle", "Overlay"];
-        deserializer.deserialize_struct("Command", FIELDS, CommandVisitor)
-    }
-}
-
 impl<'de> Deserialize<'de> for RefValue {
     fn deserialize<D>(deserializer: D) -> Result<RefValue, D::Error>
     where
@@ -576,255 +391,148 @@ impl OCAAst {
     }
 }
 
+pub fn parse_oca_ast_with_registry<'de>(
+    json: &'de str,
+    registry: &dyn OverlayRegistry,
+) -> Result<OCAAst, serde_json::Error> {
+
+    let mut map = serde_json::Map::new();
+    map.extend(
+        serde_json::from_str::<serde_json::Value>(json)?
+            .as_object()
+            .unwrap()
+            .clone(),
+    );
+
+    let version = map.remove("version").unwrap();
+    let commands = map.remove("commands").unwrap();
+    let commands_meta = map.remove("commands_meta").unwrap();
+    let meta = map.remove("meta").unwrap();
+
+    let commands = commands
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| {
+            CommandSeed { registry }
+                .deserialize(v.clone())
+                .map_err(serde_json::Error::custom)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(OCAAst {
+        version: version.as_str().unwrap().to_string(),
+        commands,
+        commands_meta: serde_json::from_value(commands_meta)?,
+        meta: serde_json::from_value(meta)?,
+    })
+}
+
+pub struct CommandWithRegistry<'a> {
+    pub command: &'a Command,
+    pub registry: &'a dyn OverlayRegistry,
+}
+
+impl<'a> Serialize for CommandWithRegistry<'a> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeMap;
+
+        let mut map = serializer.serialize_map(Some(3))?;
+        map.serialize_entry("type", &self.command.kind)?;
+
+        match &self.command.object_kind {
+            ObjectKind::CaptureBase(c) => {
+                map.serialize_entry("object_kind", "CaptureBase")?;
+                map.serialize_entry("content", c)?;
+            }
+            ObjectKind::OCABundle(c) => {
+                map.serialize_entry("object_kind", "OCABundle")?;
+                map.serialize_entry("content", c)?;
+            }
+            ObjectKind::Overlay(name, content) => {
+                if self.registry.get_by_name(None, name).is_none() {
+                    return Err(serde::ser::Error::custom(format!(
+                        "Unknown overlay during serialization: {}",
+                        name
+                    )));
+                }
+                map.serialize_entry("object_kind", name)?;
+                map.serialize_entry("content", content)?;
+            }
+        }
+
+        map.end()
+    }
+}
+
+#[derive(Deserialize)]
+struct RawCommand {
+    #[serde(rename = "type")]
+    kind: CommandType,
+    object_kind: String,
+    content: serde_json::Value,
+}
+
+#[derive(Deserialize)]
+struct OCAAstRaw {
+    version: String,
+    commands: Vec<RawCommand>,
+    commands_meta: IndexMap<usize, CommandMeta>,
+    meta: HashMap<String, String>,
+}
+pub fn deserialize_oca_ast_with_registry(
+    json: &str,
+    registry: &dyn OverlayRegistry,
+) -> Result<OCAAst, serde_json::Error> {
+    let raw: OCAAstRaw = serde_json::from_str(json)?;
+
+    let commands = raw
+        .commands
+        .into_iter()
+        .map(|raw_cmd| {
+            let object_kind = match raw_cmd.object_kind.as_str() {
+                "CaptureBase" => {
+                    ObjectKind::CaptureBase(serde_json::from_value(raw_cmd.content.clone())?)
+                }
+                "OCABundle" => {
+                    ObjectKind::OCABundle(serde_json::from_value(raw_cmd.content.clone())?)
+                }
+                overlay => {
+                    if registry.get_by_name(None, overlay).is_none() {
+                        return Err(serde_json::Error::custom(format!(
+                            "Unknown overlay: {overlay}"
+                        )));
+                    }
+                    let content = serde_json::from_value(raw_cmd.content.clone())?;
+                    ObjectKind::Overlay(overlay.to_string(), content)
+                }
+            };
+
+            Ok(Command {
+                kind: raw_cmd.kind,
+                object_kind,
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(OCAAst {
+        version: raw.version,
+        commands,
+        commands_meta: raw.commands_meta,
+        meta: raw.meta,
+    })
+}
+
 impl Default for OCAAst {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl From<u8> for ObjectKind {
-    fn from(val: u8) -> Self {
-        match val {
-            0 => ObjectKind::CaptureBase(CaptureContent {
-                attributes: None,
-                properties: None,
-            }),
-            1 => ObjectKind::OCABundle(BundleContent {
-                said: ReferenceAttrType::Reference(RefValue::Name("".to_string())),
-            }),
-            2 => ObjectKind::Overlay(
-                OverlayType::Label,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
-            5 => ObjectKind::Overlay(
-                OverlayType::CharacterEncoding,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
-            6 => ObjectKind::Overlay(
-                OverlayType::Format,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
-            7 => ObjectKind::Overlay(
-                OverlayType::Meta,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
-            8 => ObjectKind::Overlay(
-                OverlayType::Standard,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
-            9 => ObjectKind::Overlay(
-                OverlayType::Cardinality,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
-            11 => ObjectKind::Overlay(
-                OverlayType::Conformance,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
-            12 => ObjectKind::Overlay(
-                OverlayType::EntryCode,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
-            13 => ObjectKind::Overlay(
-                OverlayType::Entry,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
-            14 => ObjectKind::Overlay(
-                OverlayType::Unit,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
-            15 => ObjectKind::Overlay(
-                OverlayType::AttributeMapping,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
-            16 => ObjectKind::Overlay(
-                OverlayType::EntryCodeMapping,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
-            20 => ObjectKind::Overlay(
-                OverlayType::Sensitive,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            ),
-            _ => panic!("Unknown object type"),
-        }
-    }
-}
-
-impl From<ObjectKind> for u8 {
-    fn from(val: ObjectKind) -> Self {
-        match val {
-            ObjectKind::CaptureBase(_) => 0,
-            ObjectKind::OCABundle(_) => 1,
-            ObjectKind::Overlay(OverlayType::Label, _) => 2,
-            ObjectKind::Overlay(OverlayType::CharacterEncoding, _) => 5,
-            ObjectKind::Overlay(OverlayType::Format, _) => 6,
-            ObjectKind::Overlay(OverlayType::Meta, _) => 7,
-            ObjectKind::Overlay(OverlayType::Standard, _) => 8,
-            ObjectKind::Overlay(OverlayType::Cardinality, _) => 9,
-            ObjectKind::Overlay(OverlayType::Conformance, _) => 11,
-            ObjectKind::Overlay(OverlayType::EntryCode, _) => 12,
-            ObjectKind::Overlay(OverlayType::Entry, _) => 13,
-            ObjectKind::Overlay(OverlayType::Unit, _) => 14,
-            ObjectKind::Overlay(OverlayType::AttributeMapping, _) => 15,
-            ObjectKind::Overlay(OverlayType::EntryCodeMapping, _) => 16,
-            ObjectKind::Overlay(OverlayType::Sensitive, _) => 20,
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for ObjectKind {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        match s.as_str() {
-            "CaptureBase" => Ok(ObjectKind::CaptureBase(CaptureContent {
-                attributes: None,
-                properties: None,
-            })),
-            "OCABundle" => Ok(ObjectKind::OCABundle(BundleContent {
-                said: ReferenceAttrType::Reference(RefValue::Name("".to_string())),
-            })),
-            "Label" => Ok(ObjectKind::Overlay(
-                OverlayType::Label,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            "CharacterEncoding" => Ok(ObjectKind::Overlay(
-                OverlayType::CharacterEncoding,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            "Format" => Ok(ObjectKind::Overlay(
-                OverlayType::Format,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            "Meta" => Ok(ObjectKind::Overlay(
-                OverlayType::Meta,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            "Standard" => Ok(ObjectKind::Overlay(
-                OverlayType::Standard,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            "Cardinality" => Ok(ObjectKind::Overlay(
-                OverlayType::Cardinality,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            "Conformance" => Ok(ObjectKind::Overlay(
-                OverlayType::Conformance,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            "EntryCode" => Ok(ObjectKind::Overlay(
-                OverlayType::EntryCode,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            "Entry" => Ok(ObjectKind::Overlay(
-                OverlayType::Entry,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            "Unit" => Ok(ObjectKind::Overlay(
-                OverlayType::Unit,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            "AttributeMapping" => Ok(ObjectKind::Overlay(
-                OverlayType::AttributeMapping,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            "EntryCodeMapping" => Ok(ObjectKind::Overlay(
-                OverlayType::EntryCodeMapping,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            "Sensitive" => Ok(ObjectKind::Overlay(
-                OverlayType::Sensitive,
-                Content {
-                    attributes: None,
-                    properties: None,
-                },
-            )),
-            _ => Err(serde::de::Error::custom(format!(
-                "unknown object kind: {}",
-                s
-            ))),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use overlay_file::overlay_registry::OverlayLocalRegistry;
+
     use super::*;
 
     #[test]
@@ -848,13 +556,24 @@ mod tests {
             }),
         };
 
+        let overlay_registry = OverlayLocalRegistry::from_dir("test/").unwrap();
+        assert_eq!(overlay_registry.list_all(), vec!["overlays".to_string()]);
+
+        let overlays = overlay_registry.get_by_name(None, "Label").unwrap();
+        assert_eq!(overlays.name, "label");
+
+        let mut label_attrs = IndexMap::new();
+        let mut label_props = IndexMap::new();
+        label_props.insert("language".to_string(), NestedValue::Value("pl-PL".to_string()));
+        label_attrs.insert("allowed".to_string(), NestedValue::Value("Dopuszczony".to_string()));
+
         let lable_command = Command {
             kind: CommandType::Add,
             object_kind: ObjectKind::Overlay(
-                OverlayType::Label,
+                overlays.name.clone(),
                 Content {
-                    attributes: None,
-                    properties: None,
+                    attributes: Some(label_attrs),
+                    properties: Some(label_props),
                 },
             ),
         };
@@ -863,13 +582,35 @@ mod tests {
         ocaast.commands.push(command);
         ocaast.commands.push(lable_command);
 
-        let serialized = serde_json::to_string(&ocaast).unwrap();
+        let wrapped = OCAAstWithRegistry {
+            ast: &ocaast,
+            registry: &overlay_registry,
+        };
+
+        let serialized = serde_json::to_string(&wrapped).unwrap();
+
         assert_eq!(
             serialized,
-            r#"{"version":"2.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"},"properties":{"test":"test"}}},{"type":"Add","object_kind":"Label","content":{}}],"commands_meta":{},"meta":{}}"#
+            r#"{"version":"2.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"},"properties":{"test":"test"}}},{"type":"Add","object_kind":"label","content":{"attributes":{"allowed":"Dopuszczony"},"properties":{"language":"pl-PL"}}}],"commands_meta":{},"meta":{}}"#
         );
 
-        let deser: OCAAst = serde_json::from_str(&serialized).unwrap();
-        assert_eq!(ocaast, deser);
+        let ast = deserialize_oca_ast_with_registry(&serialized, &overlay_registry).unwrap();
+        assert_eq!(ocaast.version, ast.version);
+        assert_eq!(
+            ocaast
+                .commands
+                .last()
+                .unwrap()
+                .object_kind
+                .as_overlay(&overlay_registry)
+                .unwrap()
+                .schema
+                .name,
+            "label"
+        );
+        let content = ocaast.commands.last().unwrap().object_kind.overlay_content().unwrap();
+        assert_eq!(content.attributes.clone().unwrap().get("allowed").unwrap().clone(), NestedValue::Value("Dopuszczony".to_string()));
+
+        assert_eq!(ocaast, ast);
     }
 }

@@ -827,6 +827,7 @@ dependencies = [
  "env_logger",
  "indexmap 1.9.3",
  "log",
+ "overlay-file",
  "recursion",
  "regex",
  "said",
