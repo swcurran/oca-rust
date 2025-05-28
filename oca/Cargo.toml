@@ -25,7 +25,6 @@ isolang = "2.3.0"
 oca-ast = { version = "2.0.0-rc2", path = "../oca-ast" }
 oca-bundle = { version = "2.0.0-rc2", path = "../oca-bundle" }
 oca-dag = { version = "2.0.0-rc2", path = "../oca-dag" }
-oca-file-semantics = { version = "2.0.0-rc2", path = "../semantics/oca-file" }
 oca-file = { version = "2.0.0-rc2", path = "../oca-file" }
 transformation-file = { version = "2.0.0-rc2", path = "../transformation/transformation-file" }
 regex = "1.9.5"

@@ -15,7 +15,7 @@ pub fn resolve_overlay_def<'a>(
     name: &str,
 ) -> Result<&'a OverlayDef, InstructionError> {
     registry
-        .get_by_name(None, name)
+        .get_by_name(name).unwrap()
         .ok_or_else(|| InstructionError::UnknownOverlay(name.to_string()))
 }
 
@@ -52,6 +52,8 @@ pub fn parse_overlay_body(pair: Pair, overlay_def: OverlayDef) -> IndexMap<Strin
                     .find(|p| p.as_rule() == Rule::key_value)
                     .unwrap();
 
+                debug!("Parsed key: {:?}, value: {:?}", key, key_value);
+
                 match key_value.clone().into_inner().next().unwrap().as_rule() {
                     Rule::string => {
                         value = Some(NestedValue::Value(key_value.as_str().to_string()));
@@ -86,15 +88,11 @@ pub fn parse_overlay_body(pair: Pair, overlay_def: OverlayDef) -> IndexMap<Strin
         }
     }
     let key_name = key.clone().unwrap();
-    println!("attributes: {:?}", attr_elements);
     if attr_elements.contains(&key_name) {
         attributes.insert(key_name, value.unwrap());
     } else {
         properties.insert(key_name, value.unwrap());
     }
-    println!("Parsed overlay body: {:?}", map);
-    println!("Parsed attributes: {:?}", attributes);
-    println!("Parsed properties: {:?}", properties);
     map
 }
 

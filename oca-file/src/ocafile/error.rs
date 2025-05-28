@@ -1,5 +1,4 @@
-use oca_file_semantics::ocafile::error::ParseError as SemanticsParseError;
-use oca_file_transformation::ocafile::error::ParseError as TransformationParseError;
+use thiserror::Error;
 
 #[derive(thiserror::Error, Debug, serde::Serialize)]
 #[serde(untagged)]
@@ -18,12 +17,36 @@ pub enum ParseError {
     #[error("Error parsing meta: {0}")]
     MetaError(String),
 
-    #[error("Error parsing semantics: {0}")]
-    SemanticsError(#[from] SemanticsParseError),
-
-    #[error("Error parsing transformation: {0}")]
-    TransformationError(#[from] TransformationParseError),
+    #[error("Error parsing instruction: {0}")]
+    InstructionError(#[from] InstructionError),
 
     #[error("{0}")]
     Custom(String),
+}
+
+#[derive(Error, Debug, serde::Serialize)]
+pub enum InstructionError {
+    #[error("{0}")]
+    UnexpectedToken(String),
+
+    #[error("{0}")]
+    Parser(String),
+
+    #[error("{0}")]
+    Unknown(String),
+
+    #[error(transparent)]
+    ExtractError(#[from] ExtractingAttributeError),
+
+    #[error("{0}")]
+    UnknownOverlay(String),
+}
+
+#[derive(Error, Debug, serde::Serialize)]
+pub enum ExtractingAttributeError {
+    #[error("Said error: {0}")]
+    SaidError(#[from] said::error::Error),
+
+    #[error("Unexpected error: {0}")]
+    Unexpected(String),
 }

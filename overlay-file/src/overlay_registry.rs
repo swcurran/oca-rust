@@ -1,10 +1,14 @@
 use crate::{parse_from_string, OverlayDef};
 use std::{collections::HashMap, fs, path::{Path, PathBuf}};
 use crate::OverlayFile;
+use log::debug;
 
 pub trait OverlayRegistry {
     fn get_by_filename(&self, name: &str) -> Option<&OverlayFile>;
+    /// Get overlay by name (namespace + name)
     fn get_by_name(&self, name: &str) -> Result<Option<&OverlayDef>, &'static str>;
+    /// Get overlay by fully qualified name (namespace + name + version)
+    fn get_by_fqn(&self, name: &str) -> Result<Option<&OverlayDef>, &'static str>;
     fn list_by_namespace(&self, namespace: &str) -> Vec<&OverlayFile>;
 
     fn list_all(&self) -> Vec<String>;
@@ -51,7 +55,8 @@ impl OverlayRegistry for OverlayLocalRegistry {
         self.overlays.get(name)
     }
 
-    fn get_by_name(&self, overlay_name: &str) -> Result<Option<&OverlayDef>, &'static str> {
+    fn get_by_fqn(&self, overlay_name: &str) -> Result<Option<&OverlayDef>, &'static str> {
+        debug!("Getting overlay by name: {}", overlay_name);
         let (namespace, name) = overlay_name.split_once(':').map(|(ns, n)| (Some(ns), n)).unwrap_or((None, overlay_name));
         let (name, version) = name.split_once("/").ok_or_else(|| "Invalid overlay name format: version not found or in wrong format")?;
         let name = name.to_ascii_lowercase();
@@ -62,6 +67,17 @@ impl OverlayRegistry for OverlayLocalRegistry {
                 let o_ns = o.namespace.as_ref().map(|s| s.to_ascii_lowercase());
                 o_ns == namespace && o.name.eq_ignore_ascii_case(&name)
                 && o.version.eq_ignore_ascii_case(version)
+            })
+        });
+        Ok(overlay_def)
+    }
+
+    fn get_by_name(&self, name: &str) -> Result<Option<&OverlayDef>, &'static str> {
+        debug!("Getting overlay by name: {}", name);
+        let name = name.to_ascii_lowercase();
+        let overlay_def = self.overlays.values().find_map(|overlay_file| {
+            overlay_file.overlays_def.iter().find(|o| {
+                o.name.eq_ignore_ascii_case(&name)
             })
         });
         Ok(overlay_def)

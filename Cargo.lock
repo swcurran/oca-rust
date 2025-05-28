@@ -913,28 +913,6 @@ dependencies = [
  "env_logger",
  "indexmap 1.9.3",
  "log",
- "oca-file-semantics",
- "oca-file-transformation",
- "pest",
- "pest_derive",
- "pretty_assertions",
- "recursion",
- "said",
- "serde",
- "serde_json",
- "sled",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "oca-file-semantics"
-version = "2.0.0-rc2"
-dependencies = [
- "clap 4.5.37",
- "convert_case",
- "env_logger",
- "indexmap 1.9.3",
- "log",
  "oca-ast",
  "overlay-file",
  "pest",
@@ -980,7 +958,6 @@ dependencies = [
  "oca-bundle",
  "oca-dag",
  "oca-file",
- "oca-file-semantics",
  "regex",
  "rusqlite",
  "said",
@@ -1023,6 +1000,7 @@ name = "overlay-file"
 version = "1.0.0-rc1"
 dependencies = [
  "indexmap 1.9.3",
+ "log",
  "pest",
  "pest_derive",
  "serde",

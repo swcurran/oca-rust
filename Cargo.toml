@@ -6,7 +6,6 @@ members = [
     "oca-dag",
     "oca",
     "oca-file",
-    "semantics/oca-file",
     "transformation/ast",
     "transformation/oca-file",
     "transformation/transformation-file",
