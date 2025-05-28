@@ -54,7 +54,7 @@ TELUGU | THAANA | THAI | TIBETAN | TIFINAGH | TIRHUTA | TOTO | UGARITIC | VAI |
 VITHKUQI | WANCHO | WARANG_CITI | YEZIDI | YI | ZANABAZAR_SQUARE }
 char = { LETTER | NUMBER | "." | "-" | "_" | "/" | ":" | SCRIPTS }
 
-file = {
+fattr_key ile = {
   SOI ~
   (empty_line | meta_comment_line | comment_line | ANY)*
   ~ EOI

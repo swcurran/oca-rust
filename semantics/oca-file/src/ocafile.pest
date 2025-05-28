@@ -86,7 +86,8 @@ add = { ^"add" ~ arg_ws* ~ oca_object }
 modify = { ^"modify" ~ char+ }
 remove = { ^"remove" ~ arg_ws* ~ remove_oca_object }
 
-SCRIPTS = { ADLAM | AHOM | ANATOLIAN_HIEROGLYPHS | ARABIC | ARMENIAN | AVESTAN
+SCRIPTS = {
+ADLAM | AHOM | ANATOLIAN_HIEROGLYPHS | ARABIC | ARMENIAN | AVESTAN
 | BALINESE | BAMUM | BASSA_VAH | BATAK | BENGALI | BHAIKSUKI | BOPOMOFO |
 BRAHMI | BRAILLE | BUGINESE | BUHID | CANADIAN_ABORIGINAL | CARIAN |
 CAUCASIAN_ALBANIAN | CHAKMA | CHAM | CHEROKEE | CHORASMIAN | COPTIC |
@@ -110,59 +111,28 @@ SAMARITAN | SAURASHTRA | SHARADA | SHAVIAN | SIDDHAM | SIGNWRITING | SINHALA |
 SOGDIAN | SORA_SOMPENG | SOYOMBO | SUNDANESE | SYLOTI_NAGRI | SYRIAC | TAGALOG
 | TAGBANWA | TAI_LE | TAI_THAM | TAI_VIET | TAKRI | TAMIL | TANGSA | TANGUT |
 TELUGU | THAANA | THAI | TIBETAN | TIFINAGH | TIRHUTA | TOTO | UGARITIC | VAI |
-VITHKUQI | WANCHO | WARANG_CITI | YEZIDI | YI | ZANABAZAR_SQUARE }
-char = { LETTER | NUMBER | "." | "-" | "_" | "/" | ":" | SCRIPTS }
+VITHKUQI | WANCHO | WARANG_CITI | YEZIDI | YI | ZANABAZAR_SQUARE
+}
+char = _{ LETTER | NUMBER | "." | "-" | "_" | "/" | ":" | SCRIPTS }
 
 
 from_said = { ws* ~ char+ }
 
 oca_object = _{
   (
-    meta |
-    label |
-    attribute |
-    unit |
-    character_encoding |
-    character_encoding_props |
-    format |
-    conformance |
-    cardinality |
-    entry_code |
-    entry |
-    sensitive
+    capture_base |
+    overlay
   )
 }
 
 remove_oca_object = _{
   (
-    remove_meta |
-    remove_label |
     remove_attribute |
-    unit |
-    character_encoding |
-    character_encoding_props |
-    format |
-    conformance |
-    cardinality |
-    entry_code |
-    entry |
-    sensitive
+    remove_overlay
   )
 }
 
 attrs_key = _{ ^"attrs" ~ arg_ws}
-props_key = _{ ^"props" ~ arg_ws}
-label = { ^"label" ~ arg_ws ~ lang ~ arg_ws ~ attrs_key ~ attr_key_pairs }
-meta = { ^"meta" ~ arg_ws ~ lang ~  arg_ws ~ props_key ~ prop_key_pairs }
-character_encoding = {^"character_encoding" ~ arg_ws ~ attrs_key ~ attr_key_pairs}
-character_encoding_props = {^"character_encoding" ~ arg_ws ~ props_key ~ prop_key_pairs}
-format = {^"format" ~ arg_ws ~ attrs_key ~ attr_key_pairs}
-conformance = {^"conformance" ~ arg_ws ~ attrs_key ~ attr_key_pairs}
-cardinality = {^"cardinality" ~ arg_ws ~ attrs_key ~ attr_key_pairs}
-entry_code = {^"entry_code" ~ arg_ws ~ attrs_key ~ attr_entry_code_key_pairs}
-entry = {^"entry" ~ arg_ws ~ lang ~ arg_ws ~ attrs_key ~ attr_entry_key_pairs}
-unit = {^"unit" ~ arg_ws ~ attrs_key ~ unit_attr_key_pairs}
-sensitive = {^"sensitive" ~ arg_ws ~ attrs_key ~ attr_key ~ (arg_ws ~ attr_key)* }
 
 url = ${ string }
 json_key = ${ string }
@@ -170,51 +140,36 @@ json_value = ${ string | url | json_object }
 json_pair = ${ json_key ~ arg_ws* ~ ":" ~ (arg_ws | NEWLINE)? ~ json_value ~ (arg_ws? ~ "," ~ (arg_ws | NEWLINE)?)? }
 json_object = ${ "{" ~ ((arg_ws | NEWLINE)? ~ arg_ws* ~ json_pair ~ (arg_ws | NEWLINE)?)+ ~ arg_ws* ~ "}" }
 
-//overlay_args = { ws* ~ ANY* }
-attribute = { ^"attribute" ~ attr_pairs+ }
+capture_base = { ^"attribute" ~ attr_pairs+ }
+overlay = { overlay_header ~ overlay_body }
+overlay_header = { ^"overlay" ~ arg_ws+ ~ overlay_name ~ NEWLINE+ }
 remove_attribute = { ^"attribute" ~ (arg_ws ~ attr_key)* }
-remove_meta = { ^"meta" ~ arg_ws ~ lang ~ (arg_ws ~ props_key ~ prop_key+)? }
-remove_label = { ^"label" ~ arg_ws ~ lang ~ (arg_ws ~ attrs_key ~ attr_key+)? }
 
-attr_key = ${ (ASCII_ALPHANUMERIC | "-" | "_" | ".")+ }
-prop_key = ${ (ASCII_ALPHANUMERIC | "-" | "_")+ }
-key_value = ${ string | char+}
-key_pair = @{ attr_key ~ arg_ws? ~ "=" ~ arg_ws? ~ key_value }
-attr_key_pairs = ${ (arg_ws? ~ key_pair ~ arg_ws?)+ }
-prop_key_pairs = ${ (arg_ws? ~ key_pair ~ arg_ws?)+ }
 
-unit_char = ${ !" " ~ !NEWLINE ~ ANY }
-unit_value = ${ string | unit_char+ }
-unit_key_pair = @{ attr_key ~ arg_ws? ~ "=" ~ arg_ws? ~ unit_value }
-unit_attr_key_pairs = ${ (arg_ws? ~ unit_key_pair ~ arg_ws?)+ }
+overlay_body = { (kv_pair | nested_block)+ }
+nested_body = { (kv_pair | nested_block)+ }
 
-entry_code_list = { "[" ~ "]" | "[" ~ string ~ ("," ~ " "* ~ string)* ~ "]" }
-entry_code_object = { "{" ~ "}" | "{" ~ " "* ~ entry_code_key_value_pair ~ ("," ~ " "* ~ entry_code_key_value_pair)* ~ " "* ~ "}" }
-entry_code_group_key = ${ string }
-entry_code_key_value_pair = { entry_code_group_key ~ ":" ~ " "* ~ entry_code_list }
+kv_pair = { ws+ ~  key_pair+ ~ NEWLINE* }
+nested_block = { ws+ ~ attr_key ~ NEWLINE+ ~ nested_body+}
 
-entry_code_key_value = { key_value | entry_code_list | entry_code_object }
-entry_code_key_pair = ${ attr_key ~ "=" ~ entry_code_key_value }
-attr_entry_code_key_pairs = ${ (arg_ws? ~ entry_code_key_pair ~ arg_ws?)+ }
+remove_overlay = { ^"label" ~ arg_ws ~ lang ~ (arg_ws ~ attrs_key ~ attr_key+)? }
 
-entry_value = ${ string }
-entry_key = ${ string }
-entry_object = { "{" ~ "}" | "{" ~ " "* ~ entry_key_value_pair ~ ("," ~ " "* ~ entry_key_value_pair)* ~ " "* ~ "}" }
-entry_key_value = { key_value | entry_object }
-entry_key_value_pair = { entry_key ~ ":" ~ " "* ~ entry_value }
-entry_key_pair = ${ attr_key ~ "=" ~ entry_key_value }
-attr_entry_key_pairs = ${ (arg_ws? ~ entry_key_pair ~ arg_ws?)+ }
+overlay_name = ${ string | char+}
+attr_key = ${ string | char+}
 
-list_value = ${ (arg_ws? ~ key_value ~ arg_ws?)+ }
-unit_system = ${ (ASCII_ALPHANUMERIC | "-" | "_")+ }
+key_value = { string | array | char+}
+array       = _{ "[" ~ arg_ws? ~ list_value? ~ arg_ws? ~ "]" }
+list_value  = @{ key_value ~ (arg_ws? ~ "," ~ arg_ws? ~ key_value)* }
 
+
+key_pair = ${ attr_key ~ arg_ws? ~ "=" ~ arg_ws? ~ key_value }
 base_attr_type = @{ ("Text" |
         "Numeric" |
         "Boolean" |
         "Binary" |
         "DateTime" )}
 
-array_attr_type = ${( "Array["~ arg_ws? ~ (base_attr_type | reference_type | array_attr_type ) ~ arg_ws? ~"]" )}
+array_attr_type = ${( "["~ arg_ws? ~ (base_attr_type | reference_type | array_attr_type ) ~ arg_ws? ~"]" )}
 reference_type = _{ ref_said | ref_alias }
 alias = @{ char+ }
 said = @{ char+ }
@@ -222,10 +177,14 @@ refs = _{^"refs:"}
 refn = _{^"refn:"}
 ref_said = _{ refs ~ said}
 ref_alias = _{ refn ~ alias }
-_attr_type = ${ base_attr_type | array_attr_type | ref_said | ref_alias }
-attr_pair = @{attr_key ~ arg_ws? ~ "=" ~ arg_ws?  ~ _attr_type}
+/// Type of the attribute, can be a base type, an array of base types or a reference to another object
+attr_type = ${ base_attr_type | array_attr_type | ref_said | ref_alias }
+/// Capture base attribute key=type pair
+attr_pair = @{attr_key ~ arg_ws? ~ "=" ~ arg_ws?  ~ attr_type}
+/// List of capture base attributes
 attr_pairs = ${ (arg_ws ~ attr_pair)+}
 
+// TODO add support for lang ISO
 lang = ${ ASCII_ALPHA{2} ~ ("-" ~ ASCII_ALPHA{2})? }
 
 file = {

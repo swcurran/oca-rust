@@ -1,30 +1,18 @@
-use super::standard::Standard;
+// use super::standard::Standard;
 use isolang::Language;
 pub use oca_ast::ast::AttributeType;
-use oca_ast::ast::NestedAttrType;
+use oca_ast::ast::{NestedAttrType, NestedValue};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::state::{encoding::Encoding, entries::EntriesElement, entry_codes::EntryCodes};
+pub type OverlayName = String;
+// use crate::state::{encoding::Encoding, entries::EntriesElement, entry_codes::EntryCodes};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Attribute {
     pub name: String,
     #[serde(rename = "type")]
     pub attribute_type: Option<NestedAttrType>,
-    pub labels: Option<HashMap<Language, String>>,
-    pub entry_codes: Option<EntryCodes>,
-    pub entries: Option<HashMap<Language, EntriesElement>>,
-    pub mapping: Option<String>,
-    pub encoding: Option<Encoding>,
-    pub format: Option<String>,
-    pub unit: Option<String>,
-    pub entry_codes_mapping: Option<Vec<String>>,
-    pub dependencies: Option<Vec<String>>,
-    pub cardinality: Option<String>,
-    pub conformance: Option<String>,
-    pub standards: Option<Vec<Standard>>,
-    pub links: Option<HashMap<String, String>>,
-    pub sensitive: Option<bool>,
+    pub properties: Option<HashMap<OverlayName, NestedValue>>,
 }
 
 impl Default for Attribute {
@@ -37,26 +25,9 @@ impl Attribute {
     pub fn new(name: String) -> Attribute {
         Attribute {
             name,
-            labels: None,
             attribute_type: None,
-            mapping: None,
-            encoding: None,
-            format: None,
-            unit: None,
-            entry_codes: None,
-            entries: None,
-            entry_codes_mapping: None,
-            dependencies: None,
-            cardinality: None,
-            conformance: None,
-            standards: None,
-            links: None,
-            sensitive: None,
+            properties: None,
         }
-    }
-
-    pub fn set_sensitive(&mut self) {
-        self.sensitive = Some(true);
     }
 
     pub fn set_attribute_type(&mut self, attribute_type: NestedAttrType) {
@@ -72,76 +43,28 @@ impl Attribute {
                 self.attribute_type.clone_from(&other.attribute_type);
             }
 
-            self.merge_labels(other);
-
-            if other.mapping.is_some() {
-                self.mapping.clone_from(&other.mapping);
-            }
-
-            if other.encoding.is_some() {
-                self.encoding.clone_from(&other.encoding);
-            }
-
-            if other.format.is_some() {
-                self.format.clone_from(&other.format);
-            }
-
-            if self.unit.is_none() {
-                self.unit.clone_from(&other.unit);
-            }
-
-            if self.entry_codes.is_none() {
-                self.entry_codes.clone_from(&other.entry_codes);
-            }
-
-            self.merge_entries(other);
-
-            if self.entry_codes_mapping.is_none() {
-                self.entry_codes_mapping
-                    .clone_from(&other.entry_codes_mapping);
-            }
-
-            if other.cardinality.is_some() {
-                self.cardinality.clone_from(&other.cardinality);
-            }
-
-            if other.conformance.is_some() {
-                self.conformance.clone_from(&other.conformance);
-            }
-
-            if other.standards.is_some() {
-                self.standards.clone_from(&other.standards);
-            }
-
-            if other.links.is_some() {
-                self.links.clone_from(&other.links);
-            }
-
-            if other.sensitive.is_some() {
-                self.sensitive.clone_from(&other.sensitive);
-            }
         }
     }
 
-    fn merge_entries(&mut self, other: &Attribute) {
-        if self.entries.is_none() {
-            self.entries.clone_from(&other.entries);
-        } else if let Some(entries) = &other.entries {
-            for (lang, entry) in entries {
-                self.entries.as_mut().unwrap().insert(*lang, entry.clone());
-            }
-        }
-    }
-
-    fn merge_labels(&mut self, other: &Attribute) {
-        if self.labels.is_none() {
-            self.labels.clone_from(&other.labels)
-        } else if let Some(labels) = &other.labels {
-            for (lang, label) in labels {
-                self.labels.as_mut().unwrap().insert(*lang, label.clone());
-            }
-        }
-    }
+    // fn merge_entries(&mut self, other: &Attribute) {
+    //     if self.entries.is_none() {
+    //         self.entries.clone_from(&other.entries);
+    //     } else if let Some(entries) = &other.entries {
+    //         for (lang, entry) in entries {
+    //             self.entries.as_mut().unwrap().insert(*lang, entry.clone());
+    //         }
+    //     }
+    // }
+    //
+    // fn merge_labels(&mut self, other: &Attribute) {
+    //     if self.labels.is_none() {
+    //         self.labels.clone_from(&other.labels)
+    //     } else if let Some(labels) = &other.labels {
+    //         for (lang, label) in labels {
+    //             self.labels.as_mut().unwrap().insert(*lang, label.clone());
+    //         }
+    //     }
+    // }
 
     // pub fn add_mapping(mut self, mapping: String) -> AttributeBuilder {
     //     self.attribute.mapping = Some(mapping);

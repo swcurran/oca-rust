@@ -86,7 +86,7 @@ impl<'de, 'a> DeserializeSeed<'de> for CommandSeed<'a> {
                 serde_json::from_value(raw.content).map_err(de::Error::custom)?,
             ),
             overlay => {
-                if self.registry.get_by_name(None, overlay).is_none() {
+                if self.registry.get_by_name(overlay).unwrap().is_none() {
                     return Err(de::Error::custom(format!("Unknown overlay: {overlay}")));
                 }
                 let content = serde_json::from_value(raw.content).map_err(de::Error::custom)?;
@@ -101,7 +101,7 @@ impl<'de, 'a> DeserializeSeed<'de> for CommandSeed<'a> {
     }
 }
 
-// Temporaryr struct used only for serialization to feed registry context
+// Temporary struct used only for serialization to feed registry context
 pub struct OCAAstWithRegistry<'a> {
     pub ast: &'a OCAAst,
     pub registry: &'a dyn OverlayRegistry,
@@ -143,7 +143,7 @@ impl ObjectKind {
     ) -> Option<OverlayInstance<'a>> {
         match self {
             ObjectKind::Overlay(name, content) => registry
-                .get_by_name(None, name)
+                .get_by_name(name).unwrap()
                 .map(|schema| OverlayInstance { schema, content }),
             _ => None,
         }
@@ -243,13 +243,12 @@ pub struct CaptureContent {
     pub properties: Option<IndexMap<String, NestedValue>>,
 }
 
-// TODO remove it when moved all to BaseAttributeContent
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Eq)]
 pub struct Content {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub attributes: Option<IndexMap<String, NestedValue>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub properties: Option<IndexMap<String, NestedValue>>,
+    #[serde(skip)]
+    pub version: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Eq, Hash)]
@@ -450,7 +449,7 @@ impl<'a> Serialize for CommandWithRegistry<'a> {
                 map.serialize_entry("content", c)?;
             }
             ObjectKind::Overlay(name, content) => {
-                if self.registry.get_by_name(None, name).is_none() {
+                if self.registry.get_by_name(name).unwrap().is_none() {
                     return Err(serde::ser::Error::custom(format!(
                         "Unknown overlay during serialization: {}",
                         name
@@ -498,7 +497,7 @@ pub fn deserialize_oca_ast_with_registry(
                     ObjectKind::OCABundle(serde_json::from_value(raw_cmd.content.clone())?)
                 }
                 overlay => {
-                    if registry.get_by_name(None, overlay).is_none() {
+                    if registry.get_by_name(overlay).unwrap().is_none() {
                         return Err(serde_json::Error::custom(format!(
                             "Unknown overlay: {overlay}"
                         )));
@@ -532,6 +531,7 @@ impl Default for OCAAst {
 #[cfg(test)]
 mod tests {
     use overlay_file::overlay_registry::OverlayLocalRegistry;
+    use indexmap::indexmap;
 
     use super::*;
 
@@ -559,21 +559,22 @@ mod tests {
         let overlay_registry = OverlayLocalRegistry::from_dir("test/").unwrap();
         assert_eq!(overlay_registry.list_all(), vec!["overlays".to_string()]);
 
-        let overlays = overlay_registry.get_by_name(None, "Label").unwrap();
+        let overlays = overlay_registry.get_by_name("Label/2.0.0").unwrap().unwrap();
         assert_eq!(overlays.name, "label");
 
-        let mut label_attrs = IndexMap::new();
         let mut label_props = IndexMap::new();
         label_props.insert("language".to_string(), NestedValue::Value("pl-PL".to_string()));
-        label_attrs.insert("allowed".to_string(), NestedValue::Value("Dopuszczony".to_string()));
+        let attr_labels = indexmap! { "allowed".to_string() => NestedValue::Value("Dopuszczony".to_string())};
+        let labels = NestedValue::Object(attr_labels.clone());
+        label_props.insert("attribute_labels".to_string(), labels);
 
         let lable_command = Command {
             kind: CommandType::Add,
             object_kind: ObjectKind::Overlay(
                 overlays.name.clone(),
                 Content {
-                    attributes: Some(label_attrs),
                     properties: Some(label_props),
+                    version: None,
                 },
             ),
         };
@@ -591,7 +592,7 @@ mod tests {
 
         assert_eq!(
             serialized,
-            r#"{"version":"2.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"},"properties":{"test":"test"}}},{"type":"Add","object_kind":"label","content":{"attributes":{"allowed":"Dopuszczony"},"properties":{"language":"pl-PL"}}}],"commands_meta":{},"meta":{}}"#
+            r#"{"version":"2.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"},"properties":{"test":"test"}}},{"type":"Add","object_kind":"label","content":{"properties":{"language":"pl-PL","attribute_labels":{"allowed":"Dopuszczony"}}}}],"commands_meta":{},"meta":{}}"#
         );
 
         let ast = deserialize_oca_ast_with_registry(&serialized, &overlay_registry).unwrap();
@@ -609,7 +610,15 @@ mod tests {
             "label"
         );
         let content = ocaast.commands.last().unwrap().object_kind.overlay_content().unwrap();
-        assert_eq!(content.attributes.clone().unwrap().get("allowed").unwrap().clone(), NestedValue::Value("Dopuszczony".to_string()));
+        let props = content.properties.clone().unwrap();
+        let attr_labels = props.get("attribute_labels").unwrap();
+        let to_owned = if let NestedValue::Object(obj) = attr_labels {
+            obj.get("allowed")
+        } else {
+            None
+        };
+
+        assert_eq!(to_owned.unwrap().clone(), NestedValue::Value("Dopuszczony".to_string()));
 
         assert_eq!(ocaast, ast);
     }

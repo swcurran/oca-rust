@@ -3,7 +3,6 @@ use indexmap::IndexMap;
 use log::debug;
 use oca_ast::ast::{
     CaptureContent, Command, CommandType, Content, NestedAttrType, NestedValue, ObjectKind,
-    OverlayType,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -16,21 +15,14 @@ impl RemoveInstruction {
         debug!("Parsing remove instruction: {:?}", record);
         for object in record.into_inner() {
             match object.as_rule() {
-                Rule::remove_meta => {
+                Rule::remove_overlay => {
+                    let name = object.as_str();
+
                     object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Meta,
+                        name.to_string(),
                         Content {
                             properties: Some(extract_properties_pairs(object)),
-                            attributes: None,
-                        },
-                    ));
-                }
-                Rule::remove_label => {
-                    object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Label,
-                        Content {
-                            properties: Some(extract_properties_pairs(object.clone())),
-                            attributes: Some(extract_attribute_pairs(object)),
+                            version: None,
                         },
                     ));
                 }
@@ -61,18 +53,11 @@ impl RemoveInstruction {
     }
 }
 
+/// TODO do zaorania...
 fn extract_properties_pairs(object: Pair) -> IndexMap<String, NestedValue> {
-    let mut properties: IndexMap<String, NestedValue> = IndexMap::new();
+    let properties: IndexMap<String, NestedValue> = IndexMap::new();
     for attr_pairs in object.into_inner() {
         match attr_pairs.as_rule() {
-            Rule::prop_key => {
-                debug!("Parsed attribute: {:?}", attr_pairs);
-                // TODO find out how to parse nested objects
-                properties.insert(
-                    attr_pairs.as_str().to_string(),
-                    NestedValue::Value("".to_string()),
-                );
-            }
             _ => {
                 return properties;
             }

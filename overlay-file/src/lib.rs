@@ -10,8 +10,7 @@ struct OverlayParser;
 
 pub type Pair<'a> = pest::iterators::Pair<'a, Rule>;
 
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OverlayFile {
     pub overlays_def: Vec<OverlayDef>,
     pub meta: HashMap<String, String>,
@@ -31,22 +30,35 @@ pub struct OverlayDef {
     pub namespace: Option<String>,
     pub name: String,
     pub version: String,
-    pub attributes: Vec<KeyPairs>,
+    /// enahnce attributes from capture base with semantic information
     pub elements: Vec<OverlayElementDef>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct KeyPairs {
-    pub name: String,
-    pub kind: AttributeType,
+impl OverlayDef {
+    /// Return elements that are defined as capture base attributes
+    pub fn get_attr_elements(&self) -> Vec<String> {
+        self.elements
+            .iter()
+            .filter(|el| el.keys == KeyType::AttrNames)
+            .map(|el| el.name.clone())
+            .collect()
+    }
+    /// Return ordered list of element names as they should appear in serialization
+    pub fn get_ordered_element_names(&self) -> Vec<String> {
+        self.elements
+           .iter()
+           .map(|el| el.name.clone())
+           .collect()
+    }
+    pub fn get_full_name(&self) -> String {
+        return format!("{}/{}", self.name, self.version)
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum AttributeType {
-    Text,
-    Ref,
-    Binary,
-    Array,
+pub struct KeyPair {
+    pub name: String,
+    pub kind: ElementType,
 }
 
 #[derive(Debug, Clone)]
@@ -70,6 +82,7 @@ pub enum KeyType {
 pub enum ElementType {
     Object,
     Array(Option<Vec<ConstraintKind>>),
+    Binary,
     Text,
     /// Reference in form of SAID to another object
     Ref,
@@ -149,7 +162,6 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                 namespace: None,
                 name: "".to_string(),
                 version: "".to_string(),
-                attributes: Vec::new(),
                 elements: Vec::new(),
             };
             for attr in line.into_inner() {
@@ -167,18 +179,17 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                         overlay_def.version = attr.as_str().to_string();
                     }
                     Rule::overlay_object => {
-                        let mut overlay_element = OverlayElementDef {
-                            name: "".to_string(),
-                            keys: KeyType::AttrNames,
-                            values: ElementType::Object,
-                        };
+                        let mut name: Option<String> = None;
+                        let mut keys: Option<KeyType> = None;
+                        let mut values: Option<ElementType> = None;
+
                         for e in attr.into_inner() {
                             match e.as_rule() {
                                 Rule::overlay_object_header => {
                                     e.into_inner().for_each(|header| {
                                         match header.as_rule() {
                                             Rule::attr_name=> {
-                                                overlay_element.name = header.as_str().to_string();
+                                                name = Some(header.as_str().to_string());
                                             }
                                             _ => { panic!("Missing name for an object: {:?}", header.as_rule()) }
                                         }
@@ -191,10 +202,10 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                                                 match key.into_inner().next() {
                                                     Some(k) => match k.as_rule() {
                                                         Rule::ATTR_NAMES_TYPE => {
-                                                          overlay_element.keys = KeyType::AttrNames
+                                                          keys = Some(KeyType::AttrNames)
                                                         },
                                                         Rule::TEXT_TYPE => {
-                                                          overlay_element.keys = KeyType::Text
+                                                          keys = Some(KeyType::Text)
                                                         }
                                                         Rule::ARRAY_TYPE => todo!(),
                                                         _ => continue,
@@ -207,10 +218,18 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                                             Rule::value_type => {
                                                 match key.into_inner().next() {
                                                     Some(k) => match k.as_rule() {
-                                                        Rule::object_type=> {},
-                                                        Rule::ARRAY_TYPE => {},
-                                                        Rule::TEXT_TYPE => {},
-                                                        Rule::REF_TYPE => {},
+                                                        Rule::object_type=> {
+                                                            values = Some(ElementType::Object);
+                                                        },
+                                                        Rule::ARRAY_TYPE => {
+                                                            todo!()
+                                                        },
+                                                        Rule::TEXT_TYPE => {
+                                                            values = Some(ElementType::Text);
+                                                        },
+                                                        Rule::REF_TYPE => {
+                                                            values = Some(ElementType::Ref);
+                                                        },
                                                         _ => continue,
                                                     },
                                                     None => {
@@ -220,21 +239,25 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                                             }
                                             _ => continue,
                                         };
-                                        overlay_def.elements.push(overlay_element.clone());
                                     }
                                 }
                                 _ => {}
                             }
                         }
+                        let overlay_element = OverlayElementDef {
+                            name: name.clone().unwrap_or_default(),
+                            keys: keys.clone().unwrap_or(KeyType::Text),
+                            values: values.clone().unwrap_or(ElementType::Object),
+                        };
                         overlay_def.elements.push(overlay_element);
                     }
                     Rule::overlay_attributes => {
                         for a in attr.into_inner() {
                             match a.as_rule() {
                                 Rule::key_pair => {
-                                    let mut key_pair = KeyPairs {
+                                    let mut key_pair = KeyPair {
                                         name: "".to_string(),
-                                        kind: AttributeType::Text,
+                                        kind: ElementType::Text,
                                     };
                                     a.into_inner().for_each(|kp| {
                                         match kp.as_rule() {
@@ -243,17 +266,22 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                                             }
                                             Rule::attr_value_type => {
                                                 match kp.as_str() {
-                                                    "Text" => key_pair.kind = AttributeType::Text,
-                                                    "Ref" => key_pair.kind = AttributeType::Ref,
-                                                    "Binary" => key_pair.kind = AttributeType::Binary,
-                                                    "Array" => key_pair.kind = AttributeType::Array,
+                                                    "Text" => key_pair.kind = ElementType::Text,
+                                                    "Ref" => key_pair.kind = ElementType::Ref,
+                                                    "Binary" => key_pair.kind = ElementType::Binary,
+                                                    "Array" => key_pair.kind = ElementType::Array(None),
                                                     _ => {}
                                                 }
                                             }
                                             _ => { panic!("Incorrect key pair for attribute: {:?}", kp.as_rule()) }
                                         }
                                     });
-                                    overlay_def.attributes.push(key_pair);
+                                    let element = OverlayElementDef {
+                                        name: key_pair.name.clone(),
+                                        keys: KeyType::Text,
+                                        values: key_pair.kind.clone(),
+                                    };
+                                    overlay_def.elements.push(element);
                                 }
                                 _ => {}
                             }
@@ -283,7 +311,7 @@ mod tests {
 ADD OVERLAY ReferenceValues
   VERSION 1.0.0
   ADD OBJECT attribute_reference_values
-    WITH KEYS Text
+    WITH KEYS attr-names
     WITH VALUES Text
 "#;
         let result = parse_from_string(input.to_string()).unwrap();
@@ -295,7 +323,7 @@ ADD OVERLAY ReferenceValues
 ADD OVERLAY :ReferenceValues
   VERSION 1.0.0
   ADD OBJECT attribute_reference_values
-    WITH KEYS Text
+    WITH KEYS attr-names
     WITH VALUES Text"#;
         let result = parse_from_string(input.to_string()).unwrap();
         let overlay = result.overlays_def.first().unwrap();
@@ -306,7 +334,7 @@ ADD OVERLAY :ReferenceValues
 ADD OVERLAY hcf:ReferenceValues
   VERSION 1.0.0
   ADD OBJECT attribute_reference_values
-    WITH KEYS Text
+    WITH KEYS attr-names
     WITH VALUES Text
 "#;
         let result = parse_from_string(input.to_string()).unwrap();
@@ -317,6 +345,7 @@ ADD OVERLAY hcf:ReferenceValues
     #[test]
     fn test_parsing_overlayfile() {
         let input = r#"
+--name=HCF
 # Create new overlay
 ADD OVERLAY ReferenceValues
   VERSION 1.0.1
@@ -328,6 +357,10 @@ ADD OVERLAY ReferenceValues
 
 ADD OVERLAY hcf:Information
   VERSION 1.2.2
+  ADD ATTRIBUTES language=Text
+  ADD OBJECT attr
+    WITH KEYS Text
+    WITH VALUES Text
   ADD OBJECT attribute_information
     WITH KEYS attr-names
     WITH VALUES Text
@@ -341,6 +374,7 @@ ADD OVERLAY hcf:Meta
 
         let ref_overlay = result.overlays_def.first().unwrap();
         let information = result.overlays_def.get(1).unwrap();
+        println!("{:#?}", result);
         let meta = result.overlays_def.last().unwrap();
         assert_eq!(ref_overlay.name, "ReferenceValues");
         assert_eq!(ref_overlay.version, "1.0.1");
@@ -351,14 +385,13 @@ ADD OVERLAY hcf:Meta
         assert_eq!(ref_overlay.elements[0].values, ElementType::Object);
 
         assert_eq!(information.version, "1.2.2");
-        assert_eq!(information.elements[0].name, "attribute_information");
-        assert_eq!(information.elements.len(), 1);
+        assert_eq!(information.elements[2].name, "attribute_information");
+        assert_eq!(information.elements.len(), 3);
         assert_eq!(information.name, "Information");
 
         assert_eq!(meta.version, "1.2.2");
-        assert_eq!(meta.attributes.len(), 3);
-        assert_eq!(meta.attributes[0].name, "name");
-        assert_eq!(meta.attributes[0].kind, AttributeType::Text);
+        assert_eq!(meta.elements.len(), 3);
+        assert_eq!(meta.elements.iter().find(|e| e.name == "name").unwrap().values, ElementType::Text);
 
         assert_eq!(result.overlays_def.len(), 3);
     }

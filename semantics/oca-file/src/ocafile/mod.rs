@@ -15,6 +15,7 @@ use oca_ast::{
     },
     validator::{OCAValidator, Validator},
 };
+use overlay_file::overlay_registry::OverlayRegistry;
 use pest::Parser;
 use recursion::CollapsibleExt;
 
@@ -26,15 +27,15 @@ pub type Pair<'a> = pest::iterators::Pair<'a, Rule>;
 
 pub trait TryFromPair {
     type Error;
-    fn try_from_pair(pair: Pair<'_>) -> Result<Command, Self::Error>;
+    fn try_from_pair(pair: Pair<'_>, registry: &dyn OverlayRegistry) -> Result<Command, Self::Error>;
 }
 
 impl TryFromPair for Command {
     type Error = InstructionError;
-    fn try_from_pair(record: Pair) -> std::result::Result<Self, Self::Error> {
+    fn try_from_pair(record: Pair, registry: &dyn OverlayRegistry) -> std::result::Result<Self, Self::Error> {
         let instruction: Command = match record.as_rule() {
             Rule::from => FromInstruction::from_record(record, 0)?,
-            Rule::add => AddInstruction::from_record(record, 0)?,
+            Rule::add => AddInstruction::from_record(record, 0, registry)?,
             Rule::remove => RemoveInstruction::from_record(record, 0)?,
             _ => return Err(InstructionError::UnexpectedToken(record.to_string())),
         };
@@ -42,7 +43,7 @@ impl TryFromPair for Command {
     }
 }
 
-pub fn parse_from_string(unparsed_file: String) -> Result<OCAAst, ParseError> {
+pub fn parse_from_string(unparsed_file: String, registry: &dyn OverlayRegistry) -> Result<OCAAst, ParseError> {
     let file = OCAfileParser::parse(Rule::file, &unparsed_file)
         .map_err(|e| {
             let (line_number, column_number) = match e.line_col {
@@ -99,7 +100,7 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OCAAst, ParseError> {
             continue;
         }
 
-        match Command::try_from_pair(line.clone()) {
+        match Command::try_from_pair(line.clone(), registry) {
             Ok(command) => match validator.validate(&oca_ast, command.clone()) {
                 Ok(_) => {
                     oca_ast.commands.push(command);
@@ -153,14 +154,12 @@ fn oca_file_format(nested: NestedAttrType) -> String {
 ///
 /// # Arguments
 /// * `ast` - AST
-/// * `references` - Optional references names and thier saids for dereferencing
 ///
-/// If references are present, ast would be trevers and all refn would be replaced with refs
 pub fn generate_from_ast(ast: &OCAAst) -> String {
     let mut ocafile = String::new();
 
-    ast.commands.iter().for_each(|command| {
-        let mut line = String::new();
+     ast.commands.iter().for_each(|command| {
+         let mut line = String::new();
 
         match command.kind {
             ast::CommandType::Add => {
@@ -178,207 +177,30 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                         }
                     }
                     ast::ObjectKind::Overlay(o_type, _) => match o_type {
-                        ast::OverlayType::Meta => {
-                            line.push_str("META ");
-                            if let Some(content) = command.object_kind.overlay_content() {
-                                if let Some(ref properties) = content.properties {
-                                    let mut properties = properties.clone();
-                                    if let Some(ast::NestedValue::Value(lang)) =
-                                        properties.remove("lang")
-                                    {
-                                        line.push_str(format!("{} ", lang).as_str());
-                                    }
-                                    if !properties.is_empty() {
-                                        line.push_str("PROPS ");
-                                        properties.iter().for_each(|(key, value)| {
-                                            if let ast::NestedValue::Value(value) = value {
-                                                line.push_str(
-                                                    format!(" {}=\"{}\"", key, value).as_str(),
-                                                );
-                                            }
-                                        });
-                                    }
-                                }
-                            };
-                        }
-                        ast::OverlayType::Unit => {
-                            line.push_str("UNIT ");
-                            if let Some(content) = command.object_kind.overlay_content() {
-                                if let Some(ref attributes) = content.attributes {
-                                    line.push_str("ATTRS");
-                                    attributes.iter().for_each(|(key, value)| {
-                                        if let ast::NestedValue::Value(value) = value {
-                                            line.push_str(
-                                                format!(" {}=\"{}\"", key, value).as_str(),
-                                            );
-                                        }
-                                    });
-                                }
-                            };
-                        }
-                        ast::OverlayType::EntryCode => {
-                            line.push_str("ENTRY_CODE ");
-                            if let Some(content) = command.object_kind.overlay_content() {
-                                if let Some(ref properties) = content.properties {
-                                    if !properties.is_empty() {
-                                        line.push_str("PROPS ");
-                                        properties.iter().for_each(|(key, value)| {
-                                            if let ast::NestedValue::Value(value) = value {
-                                                line.push_str(
-                                                    format!(" {}={}", key, value).as_str(),
-                                                );
-                                            }
-                                        });
-                                    }
-                                }
-                                if let Some(ref attributes) = content.attributes {
-                                    line.push_str("ATTRS");
-                                    attributes.iter().for_each(|(key, value)| {
-                                        if let ast::NestedValue::Array(values) = value {
-                                            let codes = values
-                                                .iter()
-                                                .filter_map(|value| {
-                                                    if let ast::NestedValue::Value(value) = value {
-                                                        Some(format!("\"{}\"", value))
-                                                    } else {
-                                                        None
-                                                    }
-                                                })
-                                                .collect::<Vec<String>>()
-                                                .join(", ");
-                                            line.push_str(format!(" {}=[{}]", key, codes).as_str());
-                                        } else if let ast::NestedValue::Object(values) = value {
-                                            let group_codes = values
-                                                .iter()
-                                                .filter_map(|(group, value)| {
-                                                    if let ast::NestedValue::Array(value) = value {
-                                                        let codes = value
-                                                            .iter()
-                                                            .filter_map(|value| {
-                                                                if let ast::NestedValue::Value(
-                                                                    value,
-                                                                ) = value
-                                                                {
-                                                                    Some(format!("\"{}\"", value))
-                                                                } else {
-                                                                    None
-                                                                }
-                                                            })
-                                                            .collect::<Vec<String>>()
-                                                            .join(", ");
-                                                        Some(format!("\"{}\": [{}]", group, codes))
-                                                    } else {
-                                                        None
-                                                    }
-                                                })
-                                                .collect::<Vec<String>>()
-                                                .join(", ");
-                                            line.push_str(
-                                                format!(" {}={{{}}}", key, group_codes).as_str(),
-                                            );
-                                        } else if let ast::NestedValue::Value(said) = value {
-                                            line.push_str(
-                                                format!(" {}=\"{}\"", key, said).as_str(),
-                                            );
-                                        }
-                                    });
-                                }
-                            };
-                        }
-                        ast::OverlayType::Entry => {
-                            line.push_str("ENTRY ");
-                            if let Some(content) = command.object_kind.overlay_content() {
-                                if let Some(ref properties) = content.properties {
-                                    let mut properties = properties.clone();
-                                    if let Some(ast::NestedValue::Value(lang)) =
-                                        properties.remove("lang")
-                                    {
-                                        line.push_str(format!("{} ", lang).as_str());
-                                    }
-                                    if !properties.is_empty() {
-                                        line.push_str("PROPS ");
-                                        properties.iter().for_each(|(key, value)| {
-                                            if let ast::NestedValue::Value(value) = value {
-                                                line.push_str(
-                                                    format!(" {}={}", key, value).as_str(),
-                                                );
-                                            }
-                                        });
-                                    }
-                                    if let Some(ref attributes) = content.attributes {
-                                        line.push_str("ATTRS ");
-                                        attributes.iter().for_each(|(key, value)| {
-                                            // TODO there is no need for NestedValue here
-                                            if let ast::NestedValue::Object(values) = value {
-                                                let codes = values
-                                                    .iter()
-                                                    .filter_map(|(code, label)| {
-                                                        // TODO there is no need for NestedValue here
-                                                        if let ast::NestedValue::Value(label) =
-                                                            label
-                                                        {
-                                                            Some(format!(
-                                                                "\"{}\": \"{}\"",
-                                                                code, label
-                                                            ))
-                                                        } else {
-                                                            None
-                                                        }
-                                                    })
-                                                    .collect::<Vec<String>>()
-                                                    .join(", ");
-                                                line.push_str(
-                                                    format!("{}={{{}}}", key, codes).as_str(),
-                                                );
-                                            } else if let ast::NestedValue::Value(value) = value {
-                                                line.push_str(
-                                                    format!(" {}=\"{}\"", key, value).as_str(),
-                                                );
-                                            }
-                                        });
-                                    }
-                                }
-                            };
-                        }
                         _ => {
-                            line.push_str(
-                                format!("{} ", o_type.to_string().to_case(Case::UpperSnake))
-                                    .as_str(),
-                            );
-
+                            line.push_str("Overlay ");
+                            line.push_str(o_type.to_string().to_case(Case::UpperSnake).as_str());
                             if let Some(content) = command.object_kind.overlay_content() {
                                 if let Some(ref properties) = content.properties {
-                                    let mut properties = properties.clone();
-                                    if let Some(ast::NestedValue::Value(lang)) =
-                                        properties.remove("lang")
-                                    {
-                                        line.push_str(format!("{} ", lang).as_str());
-                                    }
+                                    println!("TODO Overlay properties: {:?}", properties);
+                                    let properties = properties.clone();
                                     if !properties.is_empty() {
-                                        line.push_str("PROPS ");
+                                        line.push_str("\n ");
                                         properties.iter().for_each(|(key, value)| {
                                             if let ast::NestedValue::Value(value) = value {
                                                 line.push_str(
-                                                    format!(" {}=\"{}\"", key, value).as_str(),
+                                                    format!(" {}={}\n ", key, value).as_str(),
                                                 );
                                             }
                                         });
                                     }
                                 }
-                                if let Some(ref attributes) = content.attributes {
-                                    line.push_str("ATTRS");
-                                    attributes.iter().for_each(|(key, value)| {
-                                        if let ast::NestedValue::Value(value) = value {
-                                            line.push_str(
-                                                format!(" {}=\"{}\"", key, value).as_str(),
-                                            );
-                                        }
-                                    });
-                                }
                             };
                         }
-                    },
-                    _ => {}
+                    }
+                    _ => {
+                        return;
+                    }
                 }
             }
             ast::CommandType::Remove => match &command.object_kind {
@@ -411,63 +233,136 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
 #[cfg(test)]
 mod tests {
     use oca_ast::ast::AttributeType;
+    use overlay_file::overlay_registry::OverlayLocalRegistry;
     use said::derivation::{HashFunction, HashFunctionCode};
 
     use super::{error::ExtractingAttributeError, *};
 
+
     #[test]
     fn parse_from_string_valid() {
         let _ = env_logger::builder().is_test(true).try_init();
+        let registry = OverlayLocalRegistry::from_dir("../../overlay-file/core_overlays").unwrap();
 
         let unparsed_file = r#"
--- version=0.0.1
+-- version=2.0.0
 -- name=プラスウルトラ
 ADD ATTRIBUTE remove=Text
-ADD ATTRIBUTE name=Text age=Numeric car=Array[refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu]
+ADD ATTRIBUTE name=Text age=Numeric car=[refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu]
 REMOVE ATTRIBUTE remove
-ADD ATTRIBUTE incidentals_spare_parts=Array[Array[refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu]]
+ADD ATTRIBUTE incidentals_spare_parts=[[refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu]]
 ADD ATTRIBUTE d=Text i=Text passed=Boolean
-ADD META en PROPS description="Entrance credential" name="Entrance credential"
-ADD CHARACTER_ENCODING ATTRS d="utf-8" i="utf-8" passed="utf-8"
-ADD CONFORMANCE ATTRS d="M" i="M" passed="M"
-ADD LABEL en ATTRS d="Schema digest" i="Credential Issuee" passed="Passed"
-ADD FORMAT ATTRS d="image/jpeg"
-ADD UNIT ATTRS i=m^2 d=°
-ADD ATTRIBUTE list=Array[Text] el=Text
-ADD CARDINALITY ATTRS list="1-2"
-ADD ENTRY_CODE ATTRS list="entry_code_said" el=["o1", "o2", "o3"]
-ADD ENTRY en ATTRS list="entry_said" el={"o1": "o1_label", "o2": "o2_label", "o3": "o3_label"}
+ADD Overlay META
+  language="en"
+  description="Entrance credential"
+  name="Entrance credential"
+ADD Overlay CHARACTER_ENCODING
+  attribute_character_encoding
+    d="utf-8"
+    i="utf-8"
+    passed="utf-8"
+ADD Overlay CONFORMANCE
+  attribute_conformance
+    d="M"
+    i="M"
+    passed="M"
+ADD Overlay LABEL
+  attr_labels
+    language="en"
+    d="Schema digest"
+    i="Credential Issuee"
+    passed="Passed"
+ADD Overlay FORMAT
+  attribute_formats
+    d="image/jpeg"
+ADD Overlay UNIT
+  attribute_units
+    i="m^2"
+    d="°"
+ADD ATTRIBUTE list=[Text] el=Text
+ADD Overlay CARDINALITY
+  attr_cardinality
+    list="1-2"
+ADD Overlay ENTRY_CODE
+  attribute_entry_codes
+    list="entry_code_said"
+    el=["o1", "o2", "o3"]
+ADD Overlay ENTRY
+  attribute_entrires
+    language="en"
+    list="entry_said"
+    el
+     o1="o1_label"
+     o2="o2_label"
+     o3="o3_label"
 "#;
-        let oca_ast = parse_from_string(unparsed_file.to_string()).unwrap();
-        assert_eq!(oca_ast.meta.get("version").unwrap(), "0.0.1");
+        let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
+        assert_eq!(oca_ast.meta.get("version").unwrap(), "2.0.0");
         assert_eq!(oca_ast.meta.get("name").unwrap(), "プラスウルトラ");
+        assert_eq!(oca_ast.commands.len(), 15);
+        let character_encoding_overlay = oca_ast.commands[6].object_kind.overlay_content().unwrap();
+        assert_eq!(character_encoding_overlay.version, Some("Character_Encoding/2.0.0".to_string()));
+
     }
 
     #[test]
     fn parse_meta_from_string_valid() {
+        let _ = env_logger::builder().is_test(true).try_init();
         let unparsed_file = r#"
 -- version=0.0.1
 -- name=Objekt
 ADD attribute name=Text age=Numeric
 "#;
 
-        let oca_ast = parse_from_string(unparsed_file.to_string()).unwrap();
+        let registry = OverlayLocalRegistry::from_dir("../../overlay-file/core_overlays").unwrap();
+        let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
         assert_eq!(oca_ast.meta.get("version").unwrap(), "0.0.1");
         assert_eq!(oca_ast.meta.get("name").unwrap(), "Objekt");
     }
 
     #[test]
     fn test_deserialization_ast_to_ocafile() {
+        let _ = env_logger::builder().is_test(true).try_init();
+        let registry = OverlayLocalRegistry::from_dir("../../overlay-file/core_overlays").unwrap();
         let unparsed_file = r#"ADD ATTRIBUTE name=Text age=Numeric radio=Text list=Text
-ADD LABEL eo ATTRS name="Nomo" age="aĝo" radio="radio"
-ADD CHARACTER_ENCODING ATTRS name="utf-8" age="utf-8"
-ADD ENTRY_CODE ATTRS radio=["o1", "o2", "o3"]
-ADD ENTRY eo ATTRS radio={"o1": "etikedo1", "o2": "etikedo2", "o3": "etikiedo3"}
-ADD ENTRY pl ATTRS radio={"o1": "etykieta1", "o2": "etykieta2", "o3": "etykieta3"}
-ADD ENTRY_CODE ATTRS list={"g1": ["el1"], "g2": ["el2", "el3"]}
-ADD ENTRY pl ATTRS list={"el1": "element1", "el2": "element2", "el3": "element3", "g1": "grupa1", "g2": "grupa2"}
+ADD Overlay LABEL
+  language="eo"
+  name="Nomo"
+  age="aĝo"
+  radio="radio"
+ADD Overlay CHARACTER_ENCODING
+  name="utf-8"
+  age="utf-8"
+ADD Overlay ENTRY_CODE
+  radio=["o1", "o2", "o3"]
+ADD Overlay ENTRY
+  language="eo"
+  radio
+    o1="etikedo1"
+    o2="etikedo2"
+    "o3"="etikiedo3"
+ADD Overlay ENTRY
+  language="pl"
+  radio
+    "o1"="etykieta1"
+    "o2"="etykieta2"
+    "o3"="etykieta3"
+ADD Overlay ENTRY_CODE
+  list
+    "g1"=["el1"]
+    "g2"=["el2", "el3"]
+ADD Overlay ENTRY
+  language="pl"
+  list
+    "el1"="element1"
+    "el2"="element2"
+    "el3"="element3"
+    "g1"="grupa1"
+    "g2"="grupa2"
 "#;
-        let oca_ast = parse_from_string(unparsed_file.to_string()).unwrap();
+        let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
+
+        println!("OCA AST: {:?}", oca_ast);
 
         let ocafile = generate_from_ast(&oca_ast);
         assert_eq!(
@@ -479,9 +374,11 @@ ADD ENTRY pl ATTRS list={"el1": "element1", "el2": "element2", "el3": "element3"
 
     #[test]
     fn test_attributes_with_special_names() {
+        let _ = env_logger::builder().is_test(true).try_init();
+        let registry = OverlayLocalRegistry::from_dir("../../overlay-file/core_overlays").unwrap();
         let unparsed_file = r#"ADD ATTRIBUTE person.name=Text Experiment...Range..original.values.=Array[Text]
 "#;
-        let oca_ast = parse_from_string(unparsed_file.to_string()).unwrap();
+        let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
 
         let ocafile = generate_from_ast(&oca_ast);
         assert_eq!(
@@ -493,10 +390,12 @@ ADD ENTRY pl ATTRS list={"el1": "element1", "el2": "element2", "el3": "element3"
 
     #[test]
     fn test_attributes_from_ast_to_ocafile() {
+        let _ = env_logger::builder().is_test(true).try_init();
+        let registry = OverlayLocalRegistry::from_dir("../../overlay-file/core_overlays").unwrap();
         let unparsed_file = r#"ADD ATTRIBUTE name=Text age=Numeric
 ADD ATTRIBUTE list=Array[Text] el=Text
 "#;
-        let oca_ast = parse_from_string(unparsed_file.to_string()).unwrap();
+        let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
 
         let ocafile = generate_from_ast(&oca_ast);
         assert_eq!(
@@ -508,10 +407,12 @@ ADD ATTRIBUTE list=Array[Text] el=Text
 
     #[test]
     fn test_nested_attributes_from_ocafile_to_ast() {
+        let _ = env_logger::builder().is_test(true).try_init();
+        let registry = OverlayLocalRegistry::from_dir("../../overlay-file/core_overlays").unwrap();
         let unparsed_file = r#"ADD ATTRIBUTE name=Text age=Numeric car=Array[Array[Text]]
 ADD ATTRIBUTE incidentals_spare_parts=Array[refs:EJVVlVSZJqVNnuAMLHLkeSQgwfxYLWTKBELi9e8j1PW0]
 "#;
-        let oca_ast = parse_from_string(unparsed_file.to_string()).unwrap();
+        let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
 
         let ocafile = generate_from_ast(&oca_ast);
         assert_eq!(
@@ -523,8 +424,10 @@ ADD ATTRIBUTE incidentals_spare_parts=Array[refs:EJVVlVSZJqVNnuAMLHLkeSQgwfxYLWT
 
     #[test]
     fn test_wrong_said() {
+        let _ = env_logger::builder().is_test(true).try_init();
+        let registry = OverlayLocalRegistry::from_dir("../../overlay-file/core_overlays").unwrap();
         let unparsed_file = r#"ADD ATTRIBUTE said=refs:digest"#;
-        let oca_ast = parse_from_string(unparsed_file.to_string());
+        let oca_ast = parse_from_string(unparsed_file.to_string(), &registry);
         match oca_ast.unwrap_err() {
             ParseError::InstructionError(InstructionError::ExtractError(
                 ExtractingAttributeError::SaidError(e),
@@ -537,6 +440,7 @@ ADD ATTRIBUTE incidentals_spare_parts=Array[refs:EJVVlVSZJqVNnuAMLHLkeSQgwfxYLWT
 
     #[test]
     fn test_oca_file_format() {
+        let _ = env_logger::builder().is_test(true).try_init();
         let text_type = NestedAttrType::Value(AttributeType::Text);
         assert_eq!(oca_file_format(text_type), "Text");
 

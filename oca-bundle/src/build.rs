@@ -1,21 +1,8 @@
-use crate::state::oca::overlay::cardinality::Cardinalitys;
-use crate::state::oca::overlay::character_encoding::CharacterEncodings;
-use crate::state::oca::overlay::conformance::Conformances;
-use crate::state::oca::overlay::entry::Entries;
-use crate::state::oca::overlay::entry_code::EntryCodes;
-use crate::state::oca::overlay::format::Formats;
-use crate::state::oca::overlay::label::Labels;
-use crate::state::oca::overlay::meta::Metas;
-use crate::state::oca::overlay::unit::Units;
 use crate::state::oca::OCABundle;
 use crate::state::{
-    attribute::Attribute, encoding::Encoding, entries::EntriesElement,
-    entry_codes::EntryCodes as EntryCodesValue, oca::OCABox,
+    attribute::Attribute, oca::OCABox,
 };
-use indexmap::IndexMap;
 use oca_ast::ast;
-use std::collections::HashMap;
-use std::str::FromStr;
 
 #[derive(Debug)]
 pub struct OCABuild {
@@ -76,6 +63,7 @@ pub fn from_ast(
             .commands_meta
             .get(&command_index)
             .unwrap_or(&default_command_meta);
+
         match apply_command(base.clone(), command.clone()) {
             Ok(oca_box) => {
                 let mut oca_box_mut = oca_box.clone();
@@ -139,271 +127,7 @@ pub fn apply_command(base: Option<OCABox>, op: ast::Command) -> Result<OCABox, V
             }
         }
         (ast::CommandType::Add, ast::ObjectKind::Overlay(overlay_type, content)) => {
-            match overlay_type {
-                ast::OverlayType::Meta => {
-                    if let Some(ref properties) = content.properties {
-                        let mut mut_properties = properties.clone();
-                        let lang = mut_properties.remove("lang");
-                        let mut lang_iso = None;
-                        if let Some(ast::NestedValue::Value(lang_str)) = lang {
-                            lang_iso = isolang::Language::from_639_1(lang_str.as_str());
-                        }
-
-                        for (prop_name, prop_value) in mut_properties {
-                            if let ast::NestedValue::Value(value) = prop_value {
-                                oca.add_meta(lang_iso.unwrap(), prop_name.clone(), value.clone());
-                            }
-                        }
-                    }
-                }
-                ast::OverlayType::Label => {
-                    let mut lang_iso = None;
-                    if let Some(ref properties) = content.properties {
-                        let mut mut_properties = properties.clone();
-                        let lang = mut_properties.remove("lang");
-                        if let Some(ast::NestedValue::Value(lang_str)) = lang {
-                            lang_iso = isolang::Language::from_639_1(lang_str.as_str());
-                        }
-                    }
-                    if let Some(ref attributes) = content.attributes {
-                        for (attr_name, attr_type_value) in attributes {
-                            let mut attribute = oca
-                                .attributes
-                                .get(attr_name)
-                                .ok_or_else(|| {
-                                    errors.push(format!("Undefined attribute: {attr_name}"));
-                                    errors.clone()
-                                })?
-                                .clone();
-                            if let ast::NestedValue::Value(attr_label) = attr_type_value {
-                                attribute.set_label(lang_iso.unwrap(), attr_label.clone());
-                            }
-                            oca.add_attribute(attribute);
-                        }
-                    }
-                }
-                ast::OverlayType::CharacterEncoding => {
-                    if let Some(ref attributes) = content.attributes {
-                        for (attr_name, attr_type_value) in attributes {
-                            let mut attribute = oca
-                                .attributes
-                                .get(attr_name)
-                                .ok_or_else(|| {
-                                    errors.push(format!("Undefined attribute: {attr_name}"));
-                                    errors.clone()
-                                })?
-                                .clone();
-                            if let ast::NestedValue::Value(attr_encoding) = attr_type_value {
-                                attribute.set_encoding(Encoding::from_str(attr_encoding).map_err(
-                                    |_| {
-                                        errors.push(format!("Unknown encoding: {attr_encoding}"));
-                                        errors.clone()
-                                    },
-                                )?);
-                            }
-                            oca.add_attribute(attribute);
-                        }
-                    }
-                }
-                ast::OverlayType::Conformance => {
-                    if let Some(ref attributes) = content.attributes {
-                        for (attr_name, attr_type_value) in attributes {
-                            let mut attribute = oca
-                                .attributes
-                                .get(attr_name)
-                                .ok_or_else(|| {
-                                    errors.push(format!("Undefined attribute: {attr_name}"));
-                                    errors.clone()
-                                })?
-                                .clone();
-
-                            if let ast::NestedValue::Value(attr_conformance) = attr_type_value {
-                                attribute.set_conformance(attr_conformance.clone());
-                            }
-                            oca.add_attribute(attribute);
-                        }
-                    }
-                }
-                ast::OverlayType::Format => {
-                    if let Some(ref attributes) = content.attributes {
-                        for (attr_name, attr_type_value) in attributes {
-                            let mut attribute = oca
-                                .attributes
-                                .get(attr_name)
-                                .ok_or_else(|| {
-                                    errors.push(format!("Undefined attribute: {attr_name}"));
-                                    errors.clone()
-                                })?
-                                .clone();
-                            if let ast::NestedValue::Value(attr_format) = attr_type_value {
-                                attribute.set_format(attr_format.clone());
-                            }
-                            oca.add_attribute(attribute);
-                        }
-                    }
-                }
-                ast::OverlayType::Unit => {
-                    if let Some(ref attributes) = content.attributes {
-                        for (attr_name, attr_type_value) in attributes {
-                            let mut attribute = oca
-                                .attributes
-                                .get(attr_name)
-                                .ok_or_else(|| {
-                                    errors.push(format!("Undefined attribute: {attr_name}"));
-                                    errors.clone()
-                                })?
-                                .clone();
-                            if let ast::NestedValue::Value(attr_unit) = attr_type_value {
-                                attribute.set_unit(attr_unit.clone());
-                            }
-                            oca.add_attribute(attribute);
-                        }
-                    }
-                }
-                ast::OverlayType::Cardinality => {
-                    if let Some(ref attributes) = content.attributes {
-                        for (attr_name, attr_type_value) in attributes {
-                            let mut attribute = oca
-                                .attributes
-                                .get(attr_name)
-                                .ok_or_else(|| {
-                                    errors.push(format!("Undefined attribute: {attr_name}"));
-                                    errors.clone()
-                                })?
-                                .clone();
-                            if let ast::NestedValue::Value(attr_cardinality) = attr_type_value {
-                                attribute.set_cardinality(attr_cardinality.clone());
-                            }
-                            oca.add_attribute(attribute);
-                        }
-                    }
-                }
-                ast::OverlayType::EntryCode => {
-                    if let Some(ref attributes) = content.attributes {
-                        for (attr_name, attr_type_value) in attributes {
-                            let mut attribute = oca
-                                .attributes
-                                .get(attr_name)
-                                .ok_or_else(|| {
-                                    errors.push(format!("Undefined attribute: {attr_name}"));
-                                    errors.clone()
-                                })?
-                                .clone();
-                            match attr_type_value {
-                                ast::NestedValue::Value(attr_entry_codes_sai) => {
-                                    attribute.set_entry_codes(EntryCodesValue::Sai(
-                                        attr_entry_codes_sai.clone(),
-                                    ));
-                                }
-                                ast::NestedValue::Array(attr_entry_codes) => {
-                                    let mut entry_codes: Vec<String> = vec![];
-                                    for attr_entry_code in attr_entry_codes {
-                                        if let ast::NestedValue::Value(entry_code) = attr_entry_code
-                                        {
-                                            entry_codes.push(entry_code.clone());
-                                        }
-                                    }
-                                    attribute.set_entry_codes(EntryCodesValue::Array(entry_codes));
-                                }
-                                ast::NestedValue::Object(attr_grouped_entry_codes) => {
-                                    let mut grouped_entry_codes = IndexMap::new();
-                                    for (group, attr_entry_codes) in attr_grouped_entry_codes {
-                                        if let ast::NestedValue::Array(entry_codes) =
-                                            attr_entry_codes
-                                        {
-                                            let codes: Vec<String> = entry_codes
-                                                .iter()
-                                                .filter_map(|entry_code| {
-                                                    if let ast::NestedValue::Value(entry_code) =
-                                                        entry_code
-                                                    {
-                                                        Some(entry_code.clone())
-                                                    } else {
-                                                        None
-                                                    }
-                                                })
-                                                .collect();
-                                            grouped_entry_codes
-                                                .insert(group.clone(), codes.clone());
-                                        }
-                                    }
-                                    attribute.set_entry_codes(EntryCodesValue::Object(
-                                        grouped_entry_codes,
-                                    ));
-                                }
-                                _ => (),
-                            }
-                            oca.add_attribute(attribute);
-                        }
-                    }
-                }
-                ast::OverlayType::Entry => {
-                    let mut lang_iso = None;
-                    if let Some(ref properties) = content.properties {
-                        let mut mut_properties = properties.clone();
-                        let lang = mut_properties.remove("lang");
-                        if let Some(ast::NestedValue::Value(lang_str)) = lang {
-                            lang_iso = isolang::Language::from_639_1(lang_str.as_str());
-                        }
-                    }
-                    if let Some(ref attributes) = content.attributes {
-                        for (attr_name, attr_type_value) in attributes {
-                            let mut attribute = oca
-                                .attributes
-                                .get(attr_name)
-                                .ok_or_else(|| {
-                                    errors.push(format!("Undefined attribute: {attr_name}"));
-                                    errors.clone()
-                                })?
-                                .clone();
-                            match attr_type_value {
-                                ast::NestedValue::Value(attr_entries) => {
-                                    attribute.set_entry(
-                                        lang_iso.unwrap(),
-                                        EntriesElement::Sai(attr_entries.clone()),
-                                    );
-                                }
-                                ast::NestedValue::Object(attr_entries) => {
-                                    let mut entries = HashMap::new();
-                                    for (attr_entry_key, attr_entry_value) in attr_entries {
-                                        if let ast::NestedValue::Value(entry_value) =
-                                            attr_entry_value
-                                        {
-                                            entries.insert(
-                                                attr_entry_key.clone(),
-                                                entry_value.clone(),
-                                            );
-                                        }
-                                    }
-                                    attribute.set_entry(
-                                        lang_iso.unwrap(),
-                                        EntriesElement::Object(entries),
-                                    );
-                                }
-                                _ => (),
-                            }
-                            oca.add_attribute(attribute);
-                        }
-                    }
-                }
-                ast::OverlayType::Sensitive => {
-                    if let Some(ref attributes) = content.attributes {
-                        for (attr_name, _) in attributes {
-                            let mut attribute = oca
-                                .attributes
-                                .get(attr_name)
-                                .ok_or_else(|| {
-                                    errors.push(format!("Undefined attribute: {attr_name}"));
-                                    errors.clone()
-                                })?
-                                .clone();
-                            attribute.set_sensitive();
-                            oca.add_attribute(attribute);
-                        }
-                    }
-                }
-                _ => (),
-            }
+            oca.add_overlay(overlay_type.clone(), Some(content.clone()));
         }
         (ast::CommandType::Add, ast::ObjectKind::OCABundle(_)) => todo!(),
         (ast::CommandType::Remove, ast::ObjectKind::CaptureBase(content)) => {
@@ -429,14 +153,22 @@ pub fn apply_command(base: Option<OCABox>, op: ast::Command) -> Result<OCABox, V
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
+    use crate::state::oca::overlay::set_global_registry;
+
     use super::*;
     use indexmap::IndexMap;
     use oca_ast::ast::{AttributeType, CaptureContent};
+    use overlay_file::overlay_registry::OverlayLocalRegistry;
     use said::{derivation::HashFunctionCode, sad::SerializationFormats, version::Encode};
 
     #[test]
-    fn test_add_step() {
+    fn test_add_step() -> Result<(), Box<dyn std::error::Error>> {
         let mut commands = vec![];
+
+        let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/")?;
+        set_global_registry(registry);
 
         let mut attributes = IndexMap::new();
         attributes.insert(
@@ -475,39 +207,43 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Meta,
+                "Meta/2.0.0".to_string(),
                 ast::Content {
-                    attributes: None,
                     properties: Some(properties),
+                    version: None,
                 },
             ),
         });
 
-        let mut attributes = IndexMap::new();
-        attributes.insert(
+        let mut properties = IndexMap::new();
+        properties.insert(
             "d".to_string(),
             ast::NestedValue::Value("Schema digest".to_string()),
         );
-        attributes.insert(
+        properties.insert(
             "i".to_string(),
             ast::NestedValue::Value("Credential Issuee".to_string()),
         );
-        attributes.insert(
+        properties.insert(
             "passed".to_string(),
             ast::NestedValue::Value("Passed".to_string()),
         );
-        let mut properties = IndexMap::new();
-        properties.insert(
+        let mut attr_labels = IndexMap::new();
+        attr_labels.insert(
             "lang".to_string(),
             ast::NestedValue::Value("en".to_string()),
+        );
+        attr_labels.insert(
+            "attribute_labels".to_string(),
+            ast::NestedValue::Object(properties.clone()),
         );
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Label,
+                "Label/2.0.0".to_string(),
                 ast::Content {
-                    attributes: Some(attributes),
-                    properties: Some(properties),
+                    properties: Some(attr_labels),
+                    version: None,
                 },
             ),
         });
@@ -531,44 +267,44 @@ mod tests {
             ast::NestedValue::Value("en".to_string()),
         );
 
-        let mut attributes = IndexMap::new();
-        attributes.insert(
+        let mut properties = IndexMap::new();
+        properties.insert(
             "d".to_string(),
             ast::NestedValue::Value("utf-8".to_string()),
         );
-        attributes.insert(
+        properties.insert(
             "i".to_string(),
             ast::NestedValue::Value("utf-8".to_string()),
         );
-        attributes.insert(
+        properties.insert(
             "passed".to_string(),
             ast::NestedValue::Value("utf-8".to_string()),
         );
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::CharacterEncoding,
+                "Character_Encoding/2.0.0".to_string(),
                 ast::Content {
-                    attributes: Some(attributes),
-                    properties: None,
+                    properties: Some(properties),
+                    version: None,
                 },
             ),
         });
 
-        let mut attributes = IndexMap::new();
-        attributes.insert("d".to_string(), ast::NestedValue::Value("M".to_string()));
-        attributes.insert("i".to_string(), ast::NestedValue::Value("M".to_string()));
-        attributes.insert(
+        let mut properties = IndexMap::new();
+        properties.insert("d".to_string(), ast::NestedValue::Value("M".to_string()));
+        properties.insert("i".to_string(), ast::NestedValue::Value("M".to_string()));
+        properties.insert(
             "passed".to_string(),
             ast::NestedValue::Value("M".to_string()),
         );
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Conformance,
+                "Conformance/2.0.0".to_string(),
                 ast::Content {
-                    attributes: Some(attributes),
-                    properties: None,
+                    properties: Some(properties),
+                    version: None,
                 },
             ),
         });
@@ -579,20 +315,32 @@ mod tests {
             match apply_command(base.clone(), command.clone()) {
                 Ok(oca) => {
                     base = Some(oca);
+                    let bundle = base.clone().unwrap().generate_bundle();
+                    println!("Bundle: {}", serde_json::to_string_pretty(&bundle)?);
                 }
                 Err(errors) => {
-                    println!("{:?}", errors);
+                    println!("Error applying command: {:?}", errors);
+                    return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", errors))));
                 }
             }
-            // let mut oca = apply_command(base, command);
-            // println!("{}", serde_json::to_string_pretty(&oca.generate_bundle()).unwrap());
-            // base = Some(oca);
         }
+        assert_eq!(
+            base.as_ref().unwrap().attributes.len(),
+            3,
+            "Expected 5 attributes in the base after applying commands"
+        );
+        // TODO check if overlays are created correctly
+        // let mut oca = apply_command(base, command);
+        // base = Some(oca);
+        Ok(())
     }
 
     #[test]
     fn build_from_ast() {
         let mut commands = vec![];
+
+        let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
+        set_global_registry(registry);
 
         let mut attributes = IndexMap::new();
         attributes.insert(
@@ -636,82 +384,74 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Meta,
+                "Meta/2.0.0".to_string(),
                 ast::Content {
-                    attributes: None,
                     properties: Some(properties),
+                    version: None,
                 },
             ),
         });
 
-        let mut attributes = IndexMap::new();
-        attributes.insert(
+        let mut attr_labels = IndexMap::new();
+        let mut properties = IndexMap::new();
+        properties.insert(
             "d".to_string(),
             ast::NestedValue::Value("Schema digest".to_string()),
         );
-        attributes.insert(
+        properties.insert(
             "i".to_string(),
             ast::NestedValue::Value("Credential Issuee".to_string()),
         );
-        attributes.insert(
+        properties.insert(
             "passed".to_string(),
             ast::NestedValue::Value("Passed".to_string()),
         );
-        let mut properties = IndexMap::new();
-        properties.insert(
+        attr_labels.insert(
             "lang".to_string(),
             ast::NestedValue::Value("en".to_string()),
         );
+        attr_labels.insert("attribute_labels".to_string(), ast::NestedValue::Object(properties.clone()));
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Label,
+                "Label/2.0.0".to_string(),
                 ast::Content {
-                    attributes: Some(attributes),
-                    properties: Some(properties),
+                    properties: Some(attr_labels),
+                    version: None,
                 },
             ),
         });
 
-        let mut attributes = IndexMap::new();
-        attributes.insert(
-            "d".to_string(),
-            ast::NestedValue::Value("Schema digest".to_string()),
-        );
-        attributes.insert(
-            "i".to_string(),
-            ast::NestedValue::Value("Credential Issuee".to_string()),
-        );
-        attributes.insert(
-            "passed".to_string(),
-            ast::NestedValue::Value("Enables or disables passing".to_string()),
-        );
+
         let mut properties = IndexMap::new();
         properties.insert(
+            "d".to_string(),
+            ast::NestedValue::Value("utf-8".to_string()),
+        );
+        properties.insert(
+            "i".to_string(),
+            ast::NestedValue::Value("utf-8".to_string()),
+        );
+        properties.insert(
+            "passed".to_string(),
+            ast::NestedValue::Value("utf-8".to_string()),
+        );
+        let mut attribute_character_encoding =  IndexMap::new();
+        attribute_character_encoding.insert(
             "lang".to_string(),
             ast::NestedValue::Value("en".to_string()),
         );
-
-        let mut attributes = IndexMap::new();
-        attributes.insert(
-            "d".to_string(),
-            ast::NestedValue::Value("utf-8".to_string()),
-        );
-        attributes.insert(
-            "i".to_string(),
-            ast::NestedValue::Value("utf-8".to_string()),
-        );
-        attributes.insert(
-            "passed".to_string(),
-            ast::NestedValue::Value("utf-8".to_string()),
+        attribute_character_encoding.insert(
+            "attribute_character_encoding".to_string(),
+            ast::NestedValue::Object(properties.clone()),
         );
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::CharacterEncoding,
+                "Character_Encoding/2.0.0".to_string(),
                 ast::Content {
-                    attributes: Some(attributes),
-                    properties: None,
+                    properties: Some(attribute_character_encoding),
+                    version: None,
                 },
             ),
         });
@@ -726,10 +466,10 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Conformance,
+                "Conformance/2.0.0".to_string(),
                 ast::Content {
-                    attributes: Some(attributes),
-                    properties: None,
+                    properties: Some(attributes),
+                    version: None,
                 },
             ),
         });
@@ -754,24 +494,10 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::EntryCode,
+                "Entry_Code/2.0.0".to_string(),
                 ast::Content {
-                    attributes: Some(attributes),
-                    properties: None,
-                },
-            ),
-        });
-        let mut sensitive_attrs = IndexMap::new();
-        sensitive_attrs.insert("d".to_string(), ast::NestedValue::Value("".to_string()));
-        sensitive_attrs.insert("i".to_string(), ast::NestedValue::Value("".to_string()));
-
-        commands.push(ast::Command {
-            kind: ast::CommandType::Add,
-            object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Sensitive,
-                ast::Content {
-                    attributes: Some(sensitive_attrs),
-                    properties: None,
+                    properties: Some(attributes),
+                    version: None,
                 },
             ),
         });
@@ -786,7 +512,7 @@ mod tests {
         let build_result = from_ast(None, &oca_ast);
         match build_result {
             Ok(oca_build) => {
-                assert_eq!(oca_build.oca_bundle.overlays.len(), 6);
+                assert_eq!(oca_build.oca_bundle.overlays.len(), 5);
                 assert_eq!(oca_build.oca_bundle.capture_base.attributes.len(), 4);
                 let code = HashFunctionCode::Blake3_256;
                 let format = SerializationFormats::JSON;

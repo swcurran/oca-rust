@@ -5,7 +5,7 @@ use indexmap::IndexMap;
 use log::debug;
 use oca_ast::ast::{
     recursive_attributes::{AttributeTypeResult, NestedAttrTypeFrame},
-    AttributeType, Content, NestedAttrType, NestedValue, RefValue,
+    AttributeType, NestedAttrType, NestedValue, RefValue,
 };
 use recursion::ExpandableExt;
 use said::SelfAddressingIdentifier;
@@ -57,7 +57,7 @@ pub fn extract_attribute(
                 debug!("Extracting attribute key {:?}", attr_name);
                 attr_name = item.as_str().to_string();
             }
-            Rule::_attr_type => {
+            Rule::attr_type => {
                 debug!("Attribute type to parse: {:?}", item);
                 let item_field_label = item.as_span().as_str();
                 let mut inner = item.into_inner();
@@ -93,7 +93,7 @@ pub fn extract_attribute_key_pairs(attr_pair: Pair) -> Option<(String, NestedVal
                 key = item.as_str().to_string();
                 debug!("Extracting attribute key {:?}", key);
             }
-            Rule::key_value | Rule::unit_value => {
+            Rule::key_value => {
                 if let Some(nested_item) = item.clone().into_inner().next() {
                     match nested_item.as_rule() {
                         Rule::string => {
@@ -110,175 +110,6 @@ pub fn extract_attribute_key_pairs(attr_pair: Pair) -> Option<(String, NestedVal
                         }
                         _ => {
                             value = NestedValue::Value(item.as_str().to_string());
-                        }
-                    }
-                }
-            }
-            Rule::entry_code_key_value => {
-                if let Some(entry_code_item) = item.clone().into_inner().next() {
-                    match entry_code_item.as_rule() {
-                        Rule::key_value => {
-                            if let Some(nested_item) = entry_code_item.clone().into_inner().next() {
-                                match nested_item.as_rule() {
-                                    Rule::string => {
-                                        value = NestedValue::Value(
-                                            nested_item
-                                                .clone()
-                                                .into_inner()
-                                                .next_back()
-                                                .unwrap()
-                                                .as_span()
-                                                .as_str()
-                                                .to_string(),
-                                        );
-                                    }
-                                    _ => {
-                                        value = NestedValue::Value(item.as_str().to_string());
-                                    }
-                                }
-                            }
-                        }
-                        Rule::entry_code_list => {
-                            let mut entry_codes = Vec::new();
-                            for el in entry_code_item.clone().into_inner() {
-                                match el.as_rule() {
-                                    Rule::string => {
-                                        entry_codes.push(NestedValue::Value(
-                                            el.clone()
-                                                .into_inner()
-                                                .next_back()
-                                                .unwrap()
-                                                .as_span()
-                                                .as_str()
-                                                .to_string(),
-                                        ));
-                                    }
-                                    _ => {
-                                        panic!("Invalid entry code value in {:?}", el.as_rule());
-                                    }
-                                }
-                            }
-                            value = NestedValue::Array(entry_codes);
-                        }
-                        Rule::entry_code_object => {
-                            let mut entry_codes_grouped = IndexMap::new();
-                            for el in entry_code_item.clone().into_inner() {
-                                let (entry_key, entry_value) =
-                                    extract_attribute_key_pairs(el).unwrap();
-                                entry_codes_grouped.insert(entry_key, entry_value);
-                            }
-                            value = NestedValue::Object(entry_codes_grouped);
-                        }
-                        _ => {
-                            panic!(
-                                "Invalid entry code value in {:?}",
-                                entry_code_item.as_rule()
-                            );
-                        }
-                    }
-                }
-            }
-            Rule::entry_code_group_key => {
-                if let Some(nested_item) = item.clone().into_inner().next() {
-                    if let Rule::string = nested_item.as_rule() {
-                        key = nested_item
-                            .clone()
-                            .into_inner()
-                            .next_back()
-                            .unwrap()
-                            .as_span()
-                            .as_str()
-                            .to_string();
-                    }
-                }
-            }
-            Rule::entry_code_list => {
-                let mut entry_codes = Vec::new();
-                for el in item.clone().into_inner() {
-                    match el.as_rule() {
-                        Rule::string => {
-                            entry_codes.push(NestedValue::Value(
-                                el.clone()
-                                    .into_inner()
-                                    .next_back()
-                                    .unwrap()
-                                    .as_span()
-                                    .as_str()
-                                    .to_string(),
-                            ));
-                        }
-                        _ => {
-                            panic!("Invalid entry code value in {:?}", el.as_rule());
-                        }
-                    }
-                }
-                value = NestedValue::Array(entry_codes);
-            }
-            Rule::entry_key => {
-                if let Some(nested_item) = item.clone().into_inner().next() {
-                    if let Rule::string = nested_item.as_rule() {
-                        key = nested_item
-                            .clone()
-                            .into_inner()
-                            .next_back()
-                            .unwrap()
-                            .as_span()
-                            .as_str()
-                            .to_string();
-                    }
-                }
-            }
-            Rule::entry_value => {
-                if let Some(nested_item) = item.clone().into_inner().next() {
-                    if let Rule::string = nested_item.as_rule() {
-                        value = NestedValue::Value(
-                            nested_item
-                                .clone()
-                                .into_inner()
-                                .next_back()
-                                .unwrap()
-                                .as_span()
-                                .as_str()
-                                .to_string(),
-                        );
-                    }
-                }
-            }
-            Rule::entry_key_value => {
-                if let Some(entry_item) = item.clone().into_inner().next() {
-                    match entry_item.as_rule() {
-                        Rule::key_value => {
-                            if let Some(nested_item) = entry_item.clone().into_inner().next() {
-                                match nested_item.as_rule() {
-                                    Rule::string => {
-                                        value = NestedValue::Value(
-                                            nested_item
-                                                .clone()
-                                                .into_inner()
-                                                .next_back()
-                                                .unwrap()
-                                                .as_span()
-                                                .as_str()
-                                                .to_string(),
-                                        );
-                                    }
-                                    _ => {
-                                        value = NestedValue::Value(item.as_str().to_string());
-                                    }
-                                }
-                            }
-                        }
-                        Rule::entry_object => {
-                            let mut entries = IndexMap::new();
-                            for el in entry_item.clone().into_inner() {
-                                let (entry_key, entry_value) =
-                                    extract_attribute_key_pairs(el).unwrap();
-                                entries.insert(entry_key, entry_value);
-                            }
-                            value = NestedValue::Object(entries);
-                        }
-                        _ => {
-                            panic!("Invalid entry value in {:?}", entry_item.as_rule());
                         }
                     }
                 }
@@ -355,6 +186,7 @@ pub fn extract_json_object(object: Pair) -> NestedValue {
     NestedValue::Object(json_object)
 }
 
+// TODO remove it
 pub fn extract_attributes_key_paris(object: Pair) -> Option<IndexMap<String, NestedValue>> {
     let mut attributes: IndexMap<String, NestedValue> = IndexMap::new();
 
@@ -362,21 +194,18 @@ pub fn extract_attributes_key_paris(object: Pair) -> Option<IndexMap<String, Nes
     for attr in object.into_inner() {
         debug!("Inside the object: {:?}", attr);
         match attr.as_rule() {
-            Rule::attr_key_pairs
-            | Rule::attr_entry_code_key_pairs
-            | Rule::attr_entry_key_pairs
-            | Rule::unit_attr_key_pairs => {
-                for attr in attr.into_inner() {
-                    debug!("Parsing attribute {:?}", attr);
-                    if let Some((key, value)) = extract_attribute_key_pairs(attr) {
-                        debug!("Parsed attribute: {:?} = {:?}", key, value);
-                        // TODO find out how to parse nested objects
-                        attributes.insert(key, value);
-                    } else {
-                        debug!("Skipping attribute");
-                    }
-                }
-            }
+            // Rule::attr_key_pairs => {
+            //     for attr in attr.into_inner() {
+            //         debug!("Parsing attribute {:?}", attr);
+            //         if let Some((key, value)) = extract_attribute_key_pairs(attr) {
+            //             debug!("Parsed attribute: {:?} = {:?}", key, value);
+            //             // TODO find out how to parse nested objects
+            //             attributes.insert(key, value);
+            //         } else {
+            //             debug!("Skipping attribute");
+            //         }
+            //     }
+            // }
             Rule::attr_key => {
                 debug!("Parsing attribute key {:?}", attr);
                 let attr_key = attr.as_str().to_string();
@@ -395,6 +224,7 @@ pub fn extract_attributes_key_paris(object: Pair) -> Option<IndexMap<String, Nes
     Some(attributes)
 }
 
+// TODO remove it
 /// Extract properties key pairs for any command
 pub fn extract_properites_key_pairs(object: Pair) -> Option<IndexMap<String, NestedValue>> {
     let mut properties: IndexMap<String, NestedValue> = IndexMap::new();
@@ -403,17 +233,17 @@ pub fn extract_properites_key_pairs(object: Pair) -> Option<IndexMap<String, Nes
     for attr in object.into_inner() {
         debug!("Inside the object: {:?}", attr);
         match attr.as_rule() {
-            Rule::prop_key_pairs => {
-                for prop in attr.into_inner() {
-                    debug!("Parsing property {:?}", prop);
-                    if let Some((key, value)) = extract_attribute_key_pairs(prop) {
-                        debug!("Parsed property: {:?} = {:?}", key, value);
-                        properties.insert(key, value);
-                    } else {
-                        debug!("Skipping property");
-                    }
-                }
-            }
+            // Rule::prop_key_pairs => {
+            //     for prop in attr.into_inner() {
+            //         debug!("Parsing property {:?}", prop);
+            //         if let Some((key, value)) = extract_attribute_key_pairs(prop) {
+            //             debug!("Parsed property: {:?} = {:?}", key, value);
+            //             properties.insert(key, value);
+            //         } else {
+            //             debug!("Skipping property");
+            //         }
+            //     }
+            // }
             Rule::lang => {
                 debug!("Parsing language: {:?}", attr.as_str());
                 properties.insert(
@@ -437,13 +267,6 @@ pub fn extract_properites_key_pairs(object: Pair) -> Option<IndexMap<String, Nes
                     );
                 }
             }
-            Rule::unit_system => {
-                debug!("Parsing unit system: {:?}", attr.as_str());
-                properties.insert(
-                    "unit_system".to_string(),
-                    NestedValue::Value(attr.as_str().to_string()),
-                );
-            }
             _ => {
                 debug!(
                     "Unexpected token: Invalid attribute in instruction {:?}",
@@ -455,15 +278,14 @@ pub fn extract_properites_key_pairs(object: Pair) -> Option<IndexMap<String, Nes
     Some(properties)
 }
 
-/// Extract content from any instruction related to any overlay
-pub fn extract_content(object: Pair) -> Content {
-    let properties: Option<IndexMap<String, NestedValue>> =
-        extract_properites_key_pairs(object.clone());
-    let attributes: Option<IndexMap<String, NestedValue>> =
-        extract_attributes_key_paris(object.clone());
-
-    Content {
-        properties,
-        attributes,
-    }
-}
+// TODO Remove it
+// Extract content from any instruction related to any overlay
+// pub fn extract_content(object: Pair) -> Content {
+//     let properties: Option<IndexMap<String, NestedValue>> =
+//         extract_properites_key_pairs(object.clone());
+//
+//     Content {
+//         properties,
+//         version: None,
+//     }
+// }

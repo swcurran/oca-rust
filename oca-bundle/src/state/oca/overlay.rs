@@ -1,153 +1,168 @@
-pub mod attribute_mapping;
-pub mod cardinality;
-pub mod character_encoding;
-pub mod conformance;
-pub mod entry;
-pub mod entry_code;
-pub mod entry_code_mapping;
-pub mod format;
-pub mod label;
-pub mod meta;
-pub mod standard;
-pub mod unit;
-pub mod sensitive;
-
-pub use self::attribute_mapping::AttributeMappingOverlay as AttributeMapping;
-pub use self::cardinality::CardinalityOverlay as Cardinality;
-pub use self::character_encoding::CharacterEncodingOverlay as CharacterEncoding;
-pub use self::conformance::ConformanceOverlay as Conformance;
-pub use self::entry::EntryOverlay as Entry;
-pub use self::entry_code::EntryCodeOverlay as EntryCode;
-pub use self::entry_code_mapping::EntryCodeMappingOverlay as EntryCodeMapping;
-pub use self::format::FormatOverlay as Format;
-pub use self::label::LabelOverlay as Label;
-pub use self::meta::MetaOverlay as Meta;
-pub use self::standard::StandardOverlay as Standard;
-pub use self::sensitive::SensitiveOverlay as Sensitive;
-
-pub use oca_ast::ast::OverlayType;
+use indexmap::IndexMap;
+use oca_ast::ast::NestedValue;
+use overlay_file::overlay_registry::{OverlayLocalRegistry, OverlayRegistry};
 use said::derivation::HashFunctionCode;
-
-pub use self::unit::UnitOverlay as Unit;
-use crate::state::attribute::Attribute;
-use isolang::Language;
+use serde::{Deserialize, Serialize, Serializer};
+use serde::ser::Error as SerdeError;
 use said::sad::{SerializationFormats, SAD};
-use std::any::Any;
-erased_serde::serialize_trait_object!(Overlay);
+use said::version::SerializationInfo;
+use thiserror::Error;
+use std::cmp::Ordering;
+use std::io::Cursor;
+use log::{debug, info};
 
-use dyn_clonable::*;
+pub type OverlayName = String;
 
-#[clonable]
-pub trait Overlay: erased_serde::Serialize + Clone + SAD {
-    fn as_any(&self) -> &dyn Any;
-    fn capture_base(&self) -> &Option<said::SelfAddressingIdentifier>;
-    fn set_capture_base(&mut self, said: &said::SelfAddressingIdentifier);
-    fn said(&self) -> &Option<said::SelfAddressingIdentifier>;
-    fn overlay_type(&self) -> &OverlayType;
-    fn language(&self) -> Option<&Language> {
-        None
+use std::cell::RefCell;
+
+thread_local! {
+    static GLOBAL_REGISTRY: RefCell<Option<OverlayLocalRegistry>> = RefCell::new(None);
+}
+
+pub fn set_global_registry(registry: OverlayLocalRegistry) {
+    GLOBAL_REGISTRY.with(|r| *r.borrow_mut() = Some(registry));
+}
+
+pub fn get_global_registry() -> Option<OverlayLocalRegistry> {
+    GLOBAL_REGISTRY.with(|r| r.borrow().clone())
+}
+
+
+#[derive(SAD, Deserialize, Debug, Clone)]
+#[version(protocol = "OCAS", major = 2, minor = 0)]
+pub struct Overlay {
+    #[said]
+    pub digest: Option<said::SelfAddressingIdentifier>,
+    pub capture_base: Option<said::SelfAddressingIdentifier>,
+    #[serde(rename = "type")]
+    pub name: OverlayName,
+    /// List of unique keys for this overlay to differentiate instances. Only one unique instance
+    /// allowed per bundle.
+    #[serde(skip)]
+    pub unique_keys: Option<Vec<String>>,
+    #[serde(flatten)]
+    pub properties: Option<IndexMap<String, NestedValue>>,
+}
+
+impl Serialize for Overlay {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        use serde::ser::SerializeMap;
+
+        let mut map = serializer.serialize_map(None)?;
+
+        // Serialize attributes in the specified order
+        map.serialize_entry("digest", &self.digest)?;
+        map.serialize_entry("capture_base", &self.capture_base)?;
+        map.serialize_entry("type", &self.name)?;
+
+        // Use the global registry to serialize the content
+        let registry = get_global_registry().ok_or_else(|| {
+            serde::ser::Error::custom("Global registry not set")
+        })?;
+        // Fetch OverlayDef from registry
+        match registry.get_by_name(&self.name).unwrap() {
+            Some(overlay_def) => {
+                if let Some(properties) = &self.properties {
+                    for element in &overlay_def.elements {
+                        if let Some(value) = properties.get(&element.name) {
+                            map.serialize_entry(&element.name, value)?;
+                        }
+                    }
+                }
+            },
+            None => {
+                debug!("Overlay '{}' not found in registry. This may indicate a mismatch between the overlay definition and the current registry state.", self.name);
+                return Err(S::Error::custom(format!(
+                    "Overlay '{}' not found in registry. This may indicate a mismatch between the overlay definition and the current registry state.",
+                    self.name
+                )));
+            }
+        }
+
+        // Serialize remaining properties in lexicographical order
+        if let Some(properties) = &self.properties {
+            let mut sorted_properties: Vec<_> = properties.iter().collect();
+            sorted_properties.sort_by(|(a, _), (b, _)| a.cmp(b));
+            for (key, value) in sorted_properties {
+                map.serialize_entry(key, value)?;
+            }
+        }
+
+        map.end()
+    }
+}
+
+impl Overlay {
+    pub fn new(name: OverlayName) -> Self {
+        Self {
+            digest: None,
+            name,
+            unique_keys: None,
+            capture_base: None,
+            properties: None,
+        }
     }
 
-    fn attributes(&self) -> Vec<&String>;
+    pub fn set_capture_base(&mut self, said: &said::SelfAddressingIdentifier) {
+        self.capture_base = Some(said.clone());
+    }
 
-    fn add(&mut self, attribute: &Attribute);
+    // Serialization before we send it to SAD to catch errors as SAD macro does not handle it
+    // TODO try to fix it in SAD to properly handle Result from compute digest
+    fn check_serialization(&mut self) {
+        // Serialize to a temporary buffer
+        let mut buffer = Cursor::new(Vec::new());
+        match serde_json::to_writer(&mut buffer, self) {
+            Ok(_) => {
 
-    fn fill_said(&mut self) {
+            },
+            Err(e) => {
+                println!("Error serializing overlay '{}': {}", self.name, e)
+            }
+        }
+    }
+
+    pub fn fill_said(&mut self) {
         let code = HashFunctionCode::Blake3_256;
         let format = SerializationFormats::JSON;
+        self.check_serialization();
         self.compute_digest(&code, &format);
     }
 
-    fn calculate_said(&mut self, capture_base_sai: &said::SelfAddressingIdentifier) {
+    pub fn calculate_said(&mut self, capture_base_sai: &said::SelfAddressingIdentifier) {
         self.set_capture_base(capture_base_sai);
         self.fill_said();
     }
 }
 
-macro_rules! overlay {
-    ($name:ident, $field1:ident, $field2:ident: $field2_type:ty) => {
-        paste::paste! {
-            pub trait [<$name s>] {
-                fn [<set_ $field2>](&mut self, $field2: $field2_type);
+
+
+fn sort_nested_value(value: &mut NestedValue) {
+    match value {
+        NestedValue::Object(map) => {
+            for (_, v) in map.iter_mut() {
+                sort_nested_value(v);
             }
-
-            impl [<$name s>] for crate::state::attribute::Attribute {
-                fn [<set_ $field2>](&mut self, $field2: $field2_type) {
-                    self.$field2 = Some($field2);
-                }
-            }
-
-            pub fn serialize_attributes<S>(attributes: &std::collections::HashMap<String, $field2_type>, s: S) -> Result<S::Ok, S::Error>
-            where
-                S: serde::Serializer,
-            {
-                use std::collections::BTreeMap;
-
-                let mut ser = s.serialize_map(Some(attributes.len()))?;
-                let sorted_attributes: BTreeMap<_, _> = attributes.iter().collect();
-                for (k, v) in sorted_attributes {
-                    ser.serialize_entry(k, v)?;
-                }
-                ser.end()
-            }
-
-            #[derive(serde::Deserialize, serde::Serialize, SAD, Debug, Clone)]
-            pub struct [<$name Overlay>] {
-                #[said]
-                #[serde(rename = "digest")]
-                said: Option<said::SelfAddressingIdentifier>,
-                capture_base: Option<said::SelfAddressingIdentifier>,
-                #[serde(rename = "type")]
-                overlay_type: oca_ast::ast::OverlayType,
-                #[serde(serialize_with = "serialize_attributes")]
-                pub $field1: std::collections::HashMap<String, $field2_type>
-            }
-
-            impl crate::state::oca::overlay::Overlay for [<$name Overlay>] {
-                fn as_any(&self) -> &dyn std::any::Any {
-                    self
-                }
-                fn overlay_type(&self) -> &oca_ast::ast::OverlayType {
-                    &self.overlay_type
-                }
-                fn capture_base(&self) -> &Option<said::SelfAddressingIdentifier> {
-                    &self.capture_base
-                }
-                fn set_capture_base(&mut self, said: &said::SelfAddressingIdentifier) {
-                    self.capture_base = Some(said.clone());
-                }
-                fn said(&self) -> &Option<said::SelfAddressingIdentifier> {
-                    &self.said
-                }
-                fn attributes(&self) -> Vec<&String> {
-                    self.$field1.keys().collect::<Vec<&String>>()
-                }
-
-                fn add(&mut self, attribute: &crate::state::attribute::Attribute) {
-                    if attribute.$field2.is_some() {
-                        self.$field1.insert(attribute.name.clone(), attribute.$field2.clone().unwrap());
-                    }
-                }
-            }
-
-            impl Default for [<$name Overlay>] {
-                fn default() -> Self {
-                    Self::new()
-                }
-            }
-
-            impl [<$name Overlay>] {
-                pub fn new() -> Self {
-                    Self {
-                        capture_base: None,
-                        said: None,
-                        overlay_type: oca_ast::ast::OverlayType::$name,
-                        $field1: std::collections::HashMap::new(),
-
-                    }
-                }
-            }
+            map.sort_keys();
         }
+        NestedValue::Array(arr) => {
+            for v in arr.iter_mut() {
+                sort_nested_value(v);
+            }
+            arr.sort_by(|a, b| match (a, b) {
+                (NestedValue::Value(a), NestedValue::Value(b)) => a.cmp(b),
+                _ => Ordering::Equal,
+            });
+        }
+        _ => {}
     }
 }
-pub(crate) use overlay;
+
+#[derive(Error, Debug)]
+pub enum OverlaySerializationError {
+    #[error("No overlay definition found for overlay type: {0}")]
+    MissingOverlayDef(String),
+}

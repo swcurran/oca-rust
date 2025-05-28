@@ -4,13 +4,13 @@ use crate::OverlayFile;
 
 pub trait OverlayRegistry {
     fn get_by_filename(&self, name: &str) -> Option<&OverlayFile>;
-    fn get_by_name(&self, namespace: Option<&str>, name: &str,) -> Option<&OverlayDef>;
+    fn get_by_name(&self, name: &str) -> Result<Option<&OverlayDef>, &'static str>;
     fn list_by_namespace(&self, namespace: &str) -> Vec<&OverlayFile>;
 
     fn list_all(&self) -> Vec<String>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// File based registry for overlays
 pub struct OverlayLocalRegistry {
     overlays: HashMap<String, OverlayFile>,
@@ -51,16 +51,20 @@ impl OverlayRegistry for OverlayLocalRegistry {
         self.overlays.get(name)
     }
 
-    fn get_by_name(&self, namespace: Option<&str>, name: &str) -> Option<&OverlayDef> {
+    fn get_by_name(&self, overlay_name: &str) -> Result<Option<&OverlayDef>, &'static str> {
+        let (namespace, name) = overlay_name.split_once(':').map(|(ns, n)| (Some(ns), n)).unwrap_or((None, overlay_name));
+        let (name, version) = name.split_once("/").ok_or_else(|| "Invalid overlay name format: version not found or in wrong format")?;
         let name = name.to_ascii_lowercase();
         let namespace = namespace.map(|ns| ns.to_ascii_lowercase());
 
-        self.overlays.values().find_map(|overlay_file| {
+        let overlay_def = self.overlays.values().find_map(|overlay_file| {
             overlay_file.overlays_def.iter().find(|o| {
                 let o_ns = o.namespace.as_ref().map(|s| s.to_ascii_lowercase());
                 o_ns == namespace && o.name.eq_ignore_ascii_case(&name)
+                && o.version.eq_ignore_ascii_case(version)
             })
-        })
+        });
+        Ok(overlay_def)
     }
 
 
@@ -84,11 +88,11 @@ mod tests {
         let registry = OverlayLocalRegistry::from_dir("core_overlays").unwrap();
         assert_eq!(registry.list_all().len(), 1);
         assert_eq!(registry.get_by_filename("semantic").is_some(), true);
-        assert_eq!(registry.get_by_name(None, "label").unwrap().overlays_def.first().unwrap().name, "label");
+        assert_eq!(registry.get_by_name("label/2.0.0").unwrap().unwrap().name, "label");
 
         // TODO file can include more then one overlay
         let semantic_overlay_file = registry.get_by_filename("semantic").unwrap();
-        assert_eq!(semantic_overlay_file.overlays_def.len(), 1);
+        assert_eq!(semantic_overlay_file.overlays_def.len(), 9);
         let label_overlay = semantic_overlay_file.overlays_def.get(0).unwrap();
         assert_eq!(label_overlay.name, "label");
 

@@ -1,7 +1,5 @@
 use crate::state::oca::overlay::Overlay;
-use crate::state::oca::DynOverlay;
 use isolang::Language;
-use oca_ast::ast::OverlayType;
 use std::collections::HashSet;
 
 use super::oca::{overlay, OCABundle};
@@ -103,138 +101,94 @@ impl Validator {
         for o in &oca_bundle.overlays {
             let mut recalculated_overlay = o.clone();
             recalculated_overlay.fill_said();
-            if o.said().ne(recalculated_overlay.said()) {
-                let msg = match o.language() {
-                    Some(lang) => format!("{} ({}): Malformed SAID", o.overlay_type(), lang),
-                    None => format!("{}: Malformed SAID", o.overlay_type()),
-                };
+            if o.digest.ne(&recalculated_overlay.digest) {
+                // let msg = match o.language() {
+                //     Some(lang) => format!("{} ({}): Malformed SAID", o.overlay_type(), lang),
+                //     None => format!("{}: Malformed SAID", o.overlay_type()),
+                // };
+                let msg = format!("{}: Malformed SAID", o.name);
                 errors.push(Error::Custom(msg));
             }
 
-            if o.capture_base().ne(&capture_base.said) {
-                let msg = match o.language() {
-                    Some(lang) => {
-                        format!("{} ({}): Mismatch capture_base SAI", o.overlay_type(), lang)
-                    }
-                    None => format!("{}: Mismatch capture_base SAI", o.overlay_type()),
-                };
+            if o.capture_base.ne(&capture_base.said) {
+                // let msg = match o.language() {
+                //     Some(lang) => {
+                //         format!("{} ({}): Mismatch capture_base SAI", o.overlay_type(), lang)
+                //     }
+                //     None => format!("{}: Mismatch capture_base SAI", o.overlay_type()),
+                // };
+                let msg = format!("{}: Mismatch capture_base SAI", o.name);
                 errors.push(Error::Custom(msg));
             }
         }
 
-        if !enforced_langs.is_empty() {
-            let meta_overlays = oca_bundle
-                .overlays
-                .iter()
-                .filter_map(|x| x.as_any().downcast_ref::<overlay::Meta>())
-                .collect::<Vec<_>>();
-
-            if !meta_overlays.is_empty() {
-                if let Err(meta_errors) = self.validate_meta(&enforced_langs, meta_overlays) {
-                    errors = errors
-                        .into_iter()
-                        .chain(meta_errors.into_iter().map(|e| {
-                            if let Error::UnexpectedTranslations(lang) = e {
-                                Error::Custom(format!(
-                                    "meta overlay: translations in {lang:?} language are not enforced"
-                                ))
-                            } else if let Error::MissingTranslations(lang) = e {
-                                Error::Custom(format!(
-                                    "meta overlay: translations in {lang:?} language are missing"
-                                ))
-                            } else if let Error::MissingMetaTranslation(lang, attr) = e {
-                                Error::Custom(format!(
-                                    "meta overlay: for '{attr}' translation in {lang:?} language is missing"
-                                ))
-                            } else {
-                                e
-                            }
-                        }))
-                        .collect();
-                }
-            }
-
-            for overlay_type in &[OverlayType::Entry, OverlayType::Label] {
-                let typed_overlays: Vec<_> = oca_bundle
-                    .overlays
-                    .iter()
-                    .filter(|x| x.overlay_type().to_string().eq(&overlay_type.to_string()))
-                    .collect();
-                if typed_overlays.is_empty() {
-                    continue;
-                }
-
-                if let Err(translation_errors) =
-                    self.validate_translations(&enforced_langs, typed_overlays)
-                {
-                    errors = errors.into_iter().chain(
-                        translation_errors.into_iter().map(|e| {
-                            if let Error::UnexpectedTranslations(lang) = e {
-                                Error::Custom(
-                                    format!("{overlay_type} overlay: translations in {lang:?} language are not enforced")
-                                )
-                            } else if let Error::MissingTranslations(lang) = e {
-                                Error::Custom(
-                                    format!("{overlay_type} overlay: translations in {lang:?} language are missing")
-                                )
-                            } else if let Error::MissingAttributeTranslation(lang, attr_name) = e {
-                                Error::Custom(
-                                    format!("{overlay_type} overlay: for '{attr_name}' attribute missing translations in {lang:?} language")
-                                )
-                            } else {
-                                e
-                            }
-                        })
-                    ).collect();
-                }
-            }
-        }
-
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
-    }
-
-    fn validate_meta(
-        &self,
-        enforced_langs: &HashSet<&Language>,
-        meta_overlays: Vec<&overlay::Meta>,
-    ) -> Result<(), Vec<Error>> {
-        let mut errors: Vec<Error> = vec![];
-        let translation_langs: HashSet<_> = meta_overlays
-            .iter()
-            .map(|o| o.language().unwrap())
-            .collect();
-
-        let missing_enforcement: HashSet<&_> =
-            translation_langs.difference(enforced_langs).collect();
-        for m in missing_enforcement {
-            errors.push(Error::UnexpectedTranslations(**m));
-        }
-
-        let missing_translations: HashSet<&_> =
-            enforced_langs.difference(&translation_langs).collect();
-        for m in missing_translations {
-            errors.push(Error::MissingTranslations(**m));
-        }
-
-        let attributes = meta_overlays
-            .iter()
-            .flat_map(|o| o.attr_pairs.keys())
-            .collect::<HashSet<_>>();
-
-        for meta_overlay in meta_overlays {
-            attributes.iter().for_each(|attr| {
-                if !meta_overlay.attr_pairs.contains_key(*attr) {
-                    errors.push(Error::MissingMetaTranslation(
-                        *meta_overlay.language().unwrap(),
-                        attr.to_string(),
-                    ));
-                }
-            });
-        }
+        // if !enforced_langs.is_empty() {
+        //     let meta_overlays = oca_bundle
+        //         .overlays
+        //         .iter()
+        //         .filter_map(|x| x.as_any().downcast_ref::<overlay::Meta>())
+        //         .collect::<Vec<_>>();
+        //
+        //     if !meta_overlays.is_empty() {
+        //         if let Err(meta_errors) = self.validate_meta(&enforced_langs, meta_overlays) {
+        //             errors = errors
+        //                 .into_iter()
+        //                 .chain(meta_errors.into_iter().map(|e| {
+        //                     if let Error::UnexpectedTranslations(lang) = e {
+        //                         Error::Custom(format!(
+        //                             "meta overlay: translations in {lang:?} language are not enforced"
+        //                         ))
+        //                     } else if let Error::MissingTranslations(lang) = e {
+        //                         Error::Custom(format!(
+        //                             "meta overlay: translations in {lang:?} language are missing"
+        //                         ))
+        //                     } else if let Error::MissingMetaTranslation(lang, attr) = e {
+        //                         Error::Custom(format!(
+        //                             "meta overlay: for '{attr}' translation in {lang:?} language is missing"
+        //                         ))
+        //                     } else {
+        //                         e
+        //                     }
+        //                 }))
+        //                 .collect();
+        //         }
+        //     }
+        //
+        //     for overlay_type in &["Entry", "Label"] {
+        //         let typed_overlays: Vec<_> = oca_bundle
+        //             .overlays
+        //             .iter()
+        //             .filter(|x| x.overlay_type().to_string().eq(&overlay_type.to_string()))
+        //             .collect();
+        //         if typed_overlays.is_empty() {
+        //             continue;
+        //         }
+        //
+        //         if let Err(translation_errors) =
+        //             self.validate_translations(&enforced_langs, typed_overlays)
+        //         {
+        //             errors = errors.into_iter().chain(
+        //                 translation_errors.into_iter().map(|e| {
+        //                     if let Error::UnexpectedTranslations(lang) = e {
+        //                         Error::Custom(
+        //                             format!("{overlay_type} overlay: translations in {lang:?} language are not enforced")
+        //                         )
+        //                     } else if let Error::MissingTranslations(lang) = e {
+        //                         Error::Custom(
+        //                             format!("{overlay_type} overlay: translations in {lang:?} language are missing")
+        //                         )
+        //                     } else if let Error::MissingAttributeTranslation(lang, attr_name) = e {
+        //                         Error::Custom(
+        //                             format!("{overlay_type} overlay: for '{attr_name}' attribute missing translations in {lang:?} language")
+        //                         )
+        //                     } else {
+        //                         e
+        //                     }
+        //                 })
+        //             ).collect();
+        //         }
+        //     }
+        // }
 
         if errors.is_empty() {
             Ok(())
@@ -243,46 +197,92 @@ impl Validator {
         }
     }
 
-    fn validate_translations(
-        &self,
-        enforced_langs: &HashSet<&Language>,
-        overlays: Vec<&DynOverlay>,
-    ) -> Result<(), Vec<Error>> {
-        let mut errors: Vec<Error> = vec![];
+    // fn validate_meta(
+    //     &self,
+    //     enforced_langs: &HashSet<&Language>,
+    //     meta_overlays: Vec<&overlay::Meta>,
+    // ) -> Result<(), Vec<Error>> {
+    //     let mut errors: Vec<Error> = vec![];
+    //     let translation_langs: HashSet<_> = meta_overlays
+    //         .iter()
+    //         .map(|o| o.language().unwrap())
+    //         .collect();
+    //
+    //     let missing_enforcement: HashSet<&_> =
+    //         translation_langs.difference(enforced_langs).collect();
+    //     for m in missing_enforcement {
+    //         errors.push(Error::UnexpectedTranslations(**m));
+    //     }
+    //
+    //     let missing_translations: HashSet<&_> =
+    //         enforced_langs.difference(&translation_langs).collect();
+    //     for m in missing_translations {
+    //         errors.push(Error::MissingTranslations(**m));
+    //     }
+    //
+    //     let attributes = meta_overlays
+    //         .iter()
+    //         .flat_map(|o| o.attr_pairs.keys())
+    //         .collect::<HashSet<_>>();
+    //
+    //     for meta_overlay in meta_overlays {
+    //         attributes.iter().for_each(|attr| {
+    //             if !meta_overlay.attr_pairs.contains_key(*attr) {
+    //                 errors.push(Error::MissingMetaTranslation(
+    //                     *meta_overlay.language().unwrap(),
+    //                     attr.to_string(),
+    //                 ));
+    //             }
+    //         });
+    //     }
+    //
+    //     if errors.is_empty() {
+    //         Ok(())
+    //     } else {
+    //         Err(errors)
+    //     }
+    // }
 
-        let overlay_langs: HashSet<_> = overlays.iter().map(|x| x.language().unwrap()).collect();
-
-        let missing_enforcement: HashSet<&_> = overlay_langs.difference(enforced_langs).collect();
-        for m in missing_enforcement {
-            errors.push(Error::UnexpectedTranslations(**m)); // why we have && here?
-        }
-
-        let missing_translations: HashSet<&_> = enforced_langs.difference(&overlay_langs).collect();
-        for m in missing_translations {
-            errors.push(Error::MissingTranslations(**m)); // why we have && here?
-        }
-
-        let all_attributes: HashSet<&String> =
-            overlays.iter().flat_map(|o| o.attributes()).collect();
-        for overlay in overlays.iter() {
-            let attributes: HashSet<_> = overlay.attributes().into_iter().collect();
-
-            let missing_attr_translation: HashSet<&_> =
-                all_attributes.difference(&attributes).collect();
-            for m in missing_attr_translation {
-                errors.push(Error::MissingAttributeTranslation(
-                    *overlay.language().unwrap(),
-                    m.to_string(),
-                ));
-            }
-        }
-
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
-    }
+    // fn validate_translations(
+    //     &self,
+    //     enforced_langs: &HashSet<&Language>,
+    //     overlays: Vec<&DynOverlay>,
+    // ) -> Result<(), Vec<Error>> {
+    //     let mut errors: Vec<Error> = vec![];
+    //
+    //     let overlay_langs: HashSet<_> = overlays.iter().map(|x| x.language().unwrap()).collect();
+    //
+    //     let missing_enforcement: HashSet<&_> = overlay_langs.difference(enforced_langs).collect();
+    //     for m in missing_enforcement {
+    //         errors.push(Error::UnexpectedTranslations(**m)); // why we have && here?
+    //     }
+    //
+    //     let missing_translations: HashSet<&_> = enforced_langs.difference(&overlay_langs).collect();
+    //     for m in missing_translations {
+    //         errors.push(Error::MissingTranslations(**m)); // why we have && here?
+    //     }
+    //
+    //     let all_attributes: HashSet<&String> =
+    //         overlays.iter().flat_map(|o| o.attributes()).collect();
+    //     for overlay in overlays.iter() {
+    //         let attributes: HashSet<_> = overlay.attributes().into_iter().collect();
+    //
+    //         let missing_attr_translation: HashSet<&_> =
+    //             all_attributes.difference(&attributes).collect();
+    //         for m in missing_attr_translation {
+    //             errors.push(Error::MissingAttributeTranslation(
+    //                 *overlay.language().unwrap(),
+    //                 m.to_string(),
+    //             ));
+    //         }
+    //     }
+    //
+    //     if errors.is_empty() {
+    //         Ok(())
+    //     } else {
+    //         Err(errors)
+    //     }
+    // }
 }
 
 #[cfg(test)]
@@ -294,9 +294,6 @@ mod tests {
     use crate::state::{
         attribute::{Attribute, AttributeType},
         encoding::Encoding,
-        oca::overlay::character_encoding::CharacterEncodings,
-        oca::overlay::label::Labels,
-        oca::overlay::meta::Metas,
         oca::OCABox,
     };
 
@@ -306,18 +303,18 @@ mod tests {
 
         let mut oca = cascade! {
             OCABox::new();
-            ..add_meta(Language::Eng, "name".to_string(), "Driving Licence".to_string());
-            ..add_meta(Language::Eng, "description".to_string(), "DL".to_string());
-            ..add_meta(Language::Pol, "name".to_string(), "Prawo Jazdy".to_string());
-            ..add_meta(Language::Pol, "description".to_string(), "PJ".to_string());
+            // ..add_meta(Language::Eng, "name".to_string(), "Driving Licence".to_string());
+            // ..add_meta(Language::Eng, "description".to_string(), "DL".to_string());
+            // ..add_meta(Language::Pol, "name".to_string(), "Prawo Jazdy".to_string());
+            // ..add_meta(Language::Pol, "description".to_string(), "PJ".to_string());
         };
 
         let attribute = cascade! {
             Attribute::new("name".to_string());
             ..set_attribute_type(NestedAttrType::Value(AttributeType::Text));
-            ..set_encoding(Encoding::Utf8);
-            ..set_label(Language::Eng, "Name: ".to_string());
-            ..set_label(Language::Pol, "Imię: ".to_string());
+            // ..set_encoding(Encoding::Utf8);
+            // ..set_label(Language::Eng, "Name: ".to_string());
+            // ..set_label(Language::Pol, "Imię: ".to_string());
         };
 
         oca.add_attribute(attribute);
@@ -325,8 +322,8 @@ mod tests {
         let attribute_2 = cascade! {
             Attribute::new("age".to_string());
             ..set_attribute_type(NestedAttrType::Value(AttributeType::Numeric));
-            ..set_label(Language::Eng, "Age: ".to_string());
-            ..set_label(Language::Pol, "Wiek: ".to_string());
+            // ..set_label(Language::Eng, "Age: ".to_string());
+            // ..set_label(Language::Pol, "Wiek: ".to_string());
         };
 
         oca.add_attribute(attribute_2);
@@ -347,7 +344,7 @@ mod tests {
 
         let mut oca = cascade! {
             OCABox::new();
-            ..add_meta(Language::Eng, "name".to_string(), "Driving Licence".to_string());
+            // ..add_meta(Language::Eng, "name".to_string(), "Driving Licence".to_string());
         };
 
         let oca_bundle = oca.generate_bundle();

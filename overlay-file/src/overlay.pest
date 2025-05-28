@@ -199,43 +199,54 @@ overlay_block     =  { overlay_header ~ overlay_body }
 overlay_header    =  _{ ^"ADD OVERLAY" ~ ws+ ~ overlay_name ~ ws* ~ NEWLINE }
 /// Overlay name including namespace
 overlay_name      = @{ (ASCII_ALPHANUMERIC | ":" | "_")+ }
-overlay_body      =  _{ overlay_version ~ overlay_entry+ }
+overlay_body      =  _{ overlay_version ~ unique_keys_command? ~ overlay_entry+ }
 overlay_entry      =  _{ ( overlay_object | overlay_attributes)+ }
 /// The version of the overlay
-overlay_version   =  _{ iws ~ "VERSION" ~ ws+ ~ version ~ ws* ~ NEWLINE }
+overlay_version   =  _{ iws ~ ^"VERSION" ~ ws+ ~ version ~ ws* ~ NEWLINE }
 
+unique_keys_command = _{ iws ~ ^"unique" ~ arg_ws? ~ ^"keys" ~ arg_ws? ~ (unique_key | unique_keys) ~ NEWLINE* }
+/// List of attributes which are uniquely identifing overlay
+unique_key = { attr_name }
+unique_keys = { "[" ~ (arg_ws? ~ unique_key ~ arg_ws?)+ ~ "]" }
 
 overlay_object = { overlay_object_header ~ overlay_object_body }
 
-overlay_object_header = { iws ~ "ADD OBJECT" ~ ws+ ~ attr_name ~ ws* ~ NEWLINE* }
+overlay_object_header = { iws ~ ^"ADD OBJECT" ~ ws+ ~ attr_name ~ ws* ~ NEWLINE* }
 
 overlay_object_body = {
-    iws+ ~ "WITH KEYS" ~ ws+ ~ key_type ~ ws* ~ NEWLINE
-    ~ iws+ ~ "WITH VALUES" ~ ws+ ~ value_type ~ ws* ~ NEWLINE*
+    iws+ ~ ^"WITH KEYS" ~ ws+ ~ key_type ~ ws* ~ NEWLINE
+    ~ iws+ ~ ^"WITH VALUES" ~ ws+ ~ value_type ~ ws* ~ NEWLINE*
 }
 
-overlay_attributes = { iws ~ "ADD ATTRIBUTES" ~ ws* ~ key_pair+}
+overlay_attributes = { iws ~ ^"ADD ATTRIBUTES" ~ ws* ~ (key_pair+ | (ARRAY_TYPE ~ NEWLINE+ ~ keys_with_values)) }
+keys_with_values = { iws* ~ ^"WITH VALUES" ~ ws* ~ value_type ~ ws* ~ NEWLINE* }
 key_pair = { ws* ~ attr_name ~ ws* ~ "=" ~ ws* ~ attr_value_type ~ ws* ~ NEWLINE* }
-attr_value_type = { "Text" | "Binary" | "Number" | "Boolean" | "DateTime" | "Array" }
+attr_value_type = { "Text" | "Binary" | "Number" | "Boolean" | "DateTime" | "Array" | LANG_TYPE | ANY_TYPE }
+
 attr_name = ${ (ASCII_ALPHANUMERIC | "-" | "_" | ".")+ }
 version = @{ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+ }
+
 
 
 /// Type of the keys allowed for given object,
 /// - "attr-names" - attribute from capture base,
 /// - "Text" - any string,
 /// - "array" - array of strings either fixed or with ellipsis allowing additional strings
-key_type   = _{ ATTR_NAMES_TYPE | TEXT_TYPE | ARRAY_TYPE }
-ATTR_NAMES_TYPE = { ^"attr-names" }
-TEXT_TYPE      = { ^"Text" }
-REF_TYPE       = { ^"REF" }
-ARRAY_TYPE      = { "[" ~ ws* ~ key_item ~ ("," ~ ws* ~ key_item)* ~ trailing_ellipsis? ~ ws* ~ "]" }
+key_type   = { ATTR_NAMES_TYPE | TEXT_TYPE | ARRAY_TYPE }
+ATTR_NAMES_TYPE = @{ ^"attr-names" }
+TEXT_TYPE      = @{ ^"Text" }
+REF_TYPE       = @{ ^"REF" }
+/// Don't validate value of the key, just allow any type
+ANY_TYPE       = @{ ^"Any" }
+/// ISO 639-3 language code
+LANG_TYPE      = @{ ^"Lang" }
+ARRAY_TYPE      = { "[" ~ arg_ws* ~ key_item ~ ("," ~ ws* ~ key_item)* ~ trailing_ellipsis? ~ ws* ~ "]" }
 key_item      = { attr_name }
 trailing_ellipsis = { "," ~ ws* ~ "..." }
 
-value_type = _{ TEXT_TYPE | ARRAY_TYPE | object_type | REF_TYPE | complex_value_type }
+value_type = { ANY_TYPE | LANG_TYPE | TEXT_TYPE | ARRAY_TYPE | object_type | REF_TYPE | complex_value_type }
 object_type = _ { "OBJECT" ~ NEWLINE ~ overlay_object_body }
 
 complex_value_type = {
-    (("ARRAY" | "OBJECT" | "REF") ~ "|" ~ ("ARRAY" | "OBJECT" | "REF" | "Text"))+
+    ((^"ARRAY" | ^"OBJECT" | ^"REF" | ^"Text" ) ~ "|" ~ (^"ARRAY" | ^"OBJECT" | ^"REF" | ^"Text"))+
 }

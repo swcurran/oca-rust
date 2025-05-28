@@ -51,19 +51,6 @@ impl CaptureBase {
     }
 
     pub fn add(&mut self, attribute: &Attribute) {
-        /* let mut attr_type_str: AttributeType =
-            serde_json::from_value(serde_json::to_value(attribute.attribute_type).unwrap())
-                .unwrap();
-        if let Some(AttributeType::Reference) = attribute.attribute_type {
-            attr_type_str.push(':');
-            attr_type_str.push_str(attribute.reference_sai.as_ref().unwrap_or(&"".to_string()));
-        }
-        if let Some(AttributeType::ArrayReference) = attribute.attribute_type {
-            attr_type_str.pop();
-            attr_type_str.push(':');
-            attr_type_str.push_str(attribute.reference_sai.as_ref().unwrap_or(&"".to_string()));
-            attr_type_str.push(']');
-        }*/
         self.attributes.insert(
             attribute.name.clone(),
             attribute.attribute_type.clone().unwrap(),

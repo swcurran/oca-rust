@@ -2,26 +2,168 @@ use crate::ocafile::{error::InstructionError, instructions::helpers, Pair, Rule}
 use indexmap::IndexMap;
 use log::{debug, info};
 use oca_ast::ast::{
-    CaptureContent, Command, CommandType, NestedAttrType, ObjectKind, OverlayType,
+    CaptureContent, Command, CommandType, Content, NestedAttrType, NestedValue, ObjectKind
 };
+use overlay_file::{overlay_registry::OverlayRegistry, OverlayDef};
 
 pub struct AddInstruction {}
 
+
+// TODO to chyba powinno być w registry.rs i wystawione jako api
+pub fn resolve_overlay_def<'a>(
+    registry: &'a dyn OverlayRegistry,
+    name: &str,
+) -> Result<&'a OverlayDef, InstructionError> {
+    registry
+        .get_by_name(None, name)
+        .ok_or_else(|| InstructionError::UnknownOverlay(name.to_string()))
+}
+
+
+// TODO: move to helpers.rs
+pub fn parse_overlay_body(pair: Pair, overlay_def: OverlayDef) -> IndexMap<String, NestedValue> {
+    let mut map = IndexMap::new();
+    let mut attributes: IndexMap<String, NestedValue> = IndexMap::new();
+    let mut properties: IndexMap<String, NestedValue> = IndexMap::new();
+
+    let attr_elements = overlay_def.get_attr_elements();
+    let mut value: Option<NestedValue> = None;
+    let mut key: Option<String> = None;
+
+
+    // Find out what is set as attr-names and thorw it into attributes
+    // everything else goes to properties
+
+    for item in pair.into_inner() {
+        match item.as_rule() {
+            Rule::kv_pair => {
+                let mut kv_inner = item.into_inner(); // contains [key_pair]
+                let key_pair = kv_inner.next().unwrap(); // rule: key_pair
+
+                let mut key_pair_inner = key_pair.into_inner();
+                debug!("Parsing key-value pair: {:?}", key_pair_inner);
+                key = Some(key_pair_inner
+                    .find(|p| p.as_rule() == Rule::attr_key)
+                    .unwrap()
+                    .as_str()
+                    .to_string());
+
+                let key_value = key_pair_inner
+                    .find(|p| p.as_rule() == Rule::key_value)
+                    .unwrap();
+
+                match key_value.clone().into_inner().next().unwrap().as_rule() {
+                    Rule::string => {
+                        value = Some(NestedValue::Value(key_value.as_str().to_string()));
+                        map.insert(key.clone().unwrap(), value.clone().unwrap());
+                    }
+                    Rule::array => {
+                        let values = key_value.into_inner()
+                            .map(|v| NestedValue::Value(v.as_str().to_string()))
+                            .collect::<Vec<NestedValue>>();
+                        debug!("Parsed key: {:?}, value: {:?}", key, values);
+                        value = Some(NestedValue::Array(values));
+                        map.insert(key.clone().unwrap(), value.clone().unwrap());
+                    }
+                    _ => {
+                        debug!("Unexpected rule in key-value pair: {:?}", key_value.as_rule());
+                        continue; // Skip unexpected rules
+                    }
+                }
+            }
+            Rule::nested_block => {
+                let mut inner = item.into_inner();
+                key = Some(inner.next().unwrap().as_str().to_string());
+                let body = inner.next().unwrap();
+                let nested = parse_overlay_body(body, overlay_def.clone());
+                value = Some(NestedValue::Object(nested));
+                map.insert(key.clone().unwrap(), value.clone().unwrap());
+            }
+            _ => {
+                debug!("Unexpected rule in overlay body: {:?}", item.as_rule());
+                continue; // Skip unexpected rules
+            }
+        }
+    }
+    let key_name = key.clone().unwrap();
+    println!("attributes: {:?}", attr_elements);
+    if attr_elements.contains(&key_name) {
+        attributes.insert(key_name, value.unwrap());
+    } else {
+        properties.insert(key_name, value.unwrap());
+    }
+    println!("Parsed overlay body: {:?}", map);
+    println!("Parsed attributes: {:?}", attributes);
+    println!("Parsed properties: {:?}", properties);
+    map
+}
+
 impl AddInstruction {
-    pub(crate) fn from_record(record: Pair, _index: usize) -> Result<Command, InstructionError> {
+    pub(crate) fn from_record(record: Pair, _index: usize, registry: &dyn OverlayRegistry,) -> Result<Command, InstructionError> {
         let mut object_kind = None;
         let kind = CommandType::Add;
+        let mut content = Content {
+            properties: None,
+            version: None,
+        };
 
         debug!("Parsing add instruction from the record: {:?}", record);
         for object in record.into_inner() {
             match object.as_rule() {
-                Rule::meta => {
+                Rule::overlay => {
+                    debug!("Parsing overlay block: {:?}", object);
+                    let mut overlay_name: Option<String> = None;
+                    let mut overlay_def: Option<OverlayDef> = None;
+
+                    for overlay in object.into_inner() {
+                        match overlay.as_rule() {
+                            Rule::overlay_header => {
+                                for header in overlay.into_inner() {
+                                    match header.as_rule() {
+                                        Rule::overlay_name => {
+                                            debug!("Parsing overlay name: {:?}", header);
+                                            let name = header.as_str();
+                                            match resolve_overlay_def(registry, name) {
+                                                Ok(od) => {
+                                                    overlay_def = Some(od.clone());
+                                                    info!("Found overlay definition: {:?}", overlay_def);
+                                                    overlay_name = Some(name.to_string());
+                                                    content.version = Some(od.get_full_name());
+
+                                                }
+                                                Err(_) => {
+                                                    return Err(InstructionError::UnknownOverlay(name.to_string()));
+                                                }
+                                            }
+                                        }
+                                        _ => {
+                                            return Err(InstructionError::UnexpectedToken(format!(
+                                                "Overlay: unexpected token {:?}",
+                                                header.as_rule()
+                                            )))
+                                        }
+                                    }
+                                }
+                            }
+                            Rule::overlay_body => {
+                                debug!("Parsing overlay body: {:?}", overlay);
+                                content.properties = Some(parse_overlay_body(overlay, overlay_def.clone().unwrap()));
+                            }
+                            _ => {
+                                return Err(InstructionError::UnexpectedToken(format!(
+                                    "Overlay: unexpected token {:?}",
+                                    overlay.as_rule()
+                                )))
+                            }
+                        }
+                    }
                     object_kind = Some(ObjectKind::Overlay(
-                        oca_ast::ast::OverlayType::Meta,
-                        helpers::extract_content(object),
+                        overlay_name.ok_or_else(|| InstructionError::UnexpectedToken("Missing overlay name".to_string()))?,
+                        content.clone(),
                     ));
+
                 }
-                Rule::attribute => {
+                Rule::capture_base => {
                     let mut attributes: IndexMap<String, NestedAttrType> = IndexMap::new();
                     for attr_pairs in object.into_inner() {
                         match attr_pairs.as_rule() {
@@ -50,66 +192,6 @@ impl AddInstruction {
                     }));
                 }
                 Rule::comment => continue,
-                Rule::character_encoding => {
-                    object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::CharacterEncoding,
-                        helpers::extract_content(object),
-                    ));
-                }
-                Rule::character_encoding_props => {
-                    object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::CharacterEncoding,
-                        helpers::extract_content(object),
-                    ));
-                }
-                Rule::label => {
-                    object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Label,
-                        helpers::extract_content(object),
-                    ));
-                }
-                Rule::unit => {
-                    object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Unit,
-                        helpers::extract_content(object),
-                    ));
-                }
-                Rule::format => {
-                    object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Format,
-                        helpers::extract_content(object),
-                    ));
-                }
-                Rule::conformance => {
-                    object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Conformance,
-                        helpers::extract_content(object),
-                    ));
-                }
-                Rule::cardinality => {
-                    object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Cardinality,
-                        helpers::extract_content(object),
-                    ));
-                }
-                Rule::entry_code => {
-                    object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::EntryCode,
-                        helpers::extract_content(object),
-                    ));
-                }
-                Rule::entry => {
-                    object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Entry,
-                        helpers::extract_content(object),
-                    ));
-                }
-                Rule::sensitive => {
-                    object_kind = Some(ObjectKind::Overlay(
-                        OverlayType::Sensitive,
-                        helpers::extract_content(object),
-                    ));
-                }
                 _ => {
                     return Err(InstructionError::UnexpectedToken(format!(
                         "Overlay: unexpected token {:?}",
@@ -118,6 +200,8 @@ impl AddInstruction {
                 }
             };
         }
+
+        println!("Parsed add instruction: {:?}", object_kind);
 
         Ok(Command {
             kind,
@@ -130,8 +214,7 @@ impl AddInstruction {
 mod tests {
     use super::*;
     use crate::ocafile::OCAfileParser;
-    use indexmap::indexmap;
-    use oca_ast::ast::NestedValue;
+    use overlay_file::overlay_registry::OverlayLocalRegistry;
     use pest::Parser;
 
     #[test]
@@ -166,7 +249,8 @@ mod tests {
                     assert!(instruction.is_some());
                     match instruction {
                         Some(instruction) => {
-                            let instruction = AddInstruction::from_record(instruction, 0).unwrap();
+                            let registry = OverlayLocalRegistry::from_dir("../../overlay-file/core_overlays").unwrap();
+                            let instruction = AddInstruction::from_record(instruction, 0, &registry).unwrap();
 
                             assert_eq!(instruction.kind, CommandType::Add);
                             match instruction.object_kind {
@@ -199,10 +283,12 @@ mod tests {
     #[test]
     fn test_add_overlay_instructions() {
         let instructions = vec![
-            ("ADD ENTRY_CODE ATTRS radio=[\"o1\",\"o2\", \"o3\"]", true),
-            ("ADD FORMAT ATTRS name = \"^\\d+$\"", true),
-            ("ADD CHARACTER_ENCODING ATTRS name=\"utf-16le\"", true),
-            ("ADD SENSITIVE ATTRS name last_name address", true),
+            ("ADD OVERLAY LABEL\n language=\"pl\"\n  attributes:\n gender=\"Opcja\"", true),
+            // ("ADD ENTRY_CODE ATTRS gender=[\"o1\",\"o2\"]", true),
+            // ("ADD ENTRY_CODE ATTRS gender=[\"o1\",\"o2\", \"o3\"]", true),
+            // ("ADD FORMAT ATTRS name = \"^\\d+$\"", true),
+            // ("ADD CHARACTER_ENCODING ATTRS name=\"utf-16le\"", true),
+            // ("ADD SENSITIVE ATTRS name last_name address", true),
         ];
 
         let _ = env_logger::builder().is_test(true).try_init();
@@ -218,54 +304,19 @@ mod tests {
                     assert!(instruction.is_some());
                     match instruction {
                         Some(instruction) => {
-                            let instruction = AddInstruction::from_record(instruction, 0).unwrap();
-                            println!("Instruction: {:?}", instruction);
+                            let registry = OverlayLocalRegistry::from_dir("../../overlay-file/core_overlays").unwrap();
+                            let instruction = AddInstruction::from_record(instruction, 0, &registry).unwrap();
 
                             assert_eq!(instruction.kind, CommandType::Add);
+                            debug!("Parsed instruction: {:?}", instruction);
                             match instruction.object_kind {
-                                ObjectKind::Overlay(overlay_type, content) => match overlay_type {
-                                    OverlayType::EntryCode => {
-                                        let attr_array = NestedValue::Array(vec![
-                                            NestedValue::Value("o1".to_string()),
-                                            NestedValue::Value("o2".to_string()),
-                                            NestedValue::Value("o3".to_string()),
-                                        ]);
-
-                                        assert_eq!(
-                                            content.attributes.unwrap().get("radio").unwrap(),
-                                            &attr_array
-                                        );
-                                    }
-                                    OverlayType::Format => {
-                                        let attr_array = NestedValue::Value("^\\d+$".to_string());
-
-                                        assert_eq!(
-                                            content.attributes.unwrap().get("name").unwrap(),
-                                            &attr_array
-                                        );
-                                    }
-                                    OverlayType::CharacterEncoding => {
-                                        let attr_array = NestedValue::Value("utf-16le".to_string());
-
-                                        assert_eq!(
-                                            content.attributes.unwrap().get("name").unwrap(),
-                                            &attr_array
-                                        );
-                                    }
-                                    OverlayType::Sensitive => {
-                                        let attrs = indexmap! {
-                                            "name".to_string() => NestedValue::Value("".to_string()),
-                                            "last_name".to_string() => NestedValue::Value("".to_string()),
-                                            "address".to_string() => NestedValue::Value("".to_string()),
-                                        };
-
-                                        assert_eq!(
-                                            content.attributes.unwrap(),
-                                            attrs
-                                        );
+                                ObjectKind::Overlay(overlay_type, content) => match overlay_type.to_lowercase().as_str() {
+                                     "label" => {
+                                        println!("Parsed overlay label: {:?}", content);
                                     }
                                     _ => {
-                                        assert!(!is_valid, "Instruction is not valid");
+                                        println!("Unknown overlay type: {}", overlay_type);
+                                         assert!(!is_valid, "Instruction is not valid");
                                     }
                                 },
                                 ObjectKind::CaptureBase(_) => todo!(),

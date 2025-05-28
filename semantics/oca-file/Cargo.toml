@@ -2,7 +2,7 @@
 name = "oca-file-semantics"
 version = "2.0.0-rc2"
 edition = "2021"
-authors = ["Marcin Olichwiruk <marcin.olichwiruk@opensoftware.pl>", "Robert Mitwicki <robert.mitwicki@opensoftware.pl>", "Michał Pietrus <michal.pietrus@opensoftware.pl>"]
+authors = ["The Human Colossus Community <contact@humancolossus.org>"]
 license = "EUPL-1.2"
 readme = "README.md"
 description = "Rust implementation of OCAFile"
@@ -19,6 +19,7 @@ pest_derive = "2.5.1"
 pretty_assertions = "1.3.0"
 thiserror = "1.0.38"
 oca-ast = { version = "2.0.0-rc2", path = "../../oca-ast" }
+overlay-file = { version = "1.0.0-rc1", path = "../../overlay-file/" }
 said = { version = "0.4.1", features = ["macros"] }
 log = "0.4.20"
 env_logger = "0.10.0"

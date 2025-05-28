@@ -37,6 +37,9 @@ pub enum InstructionError {
 
     #[error(transparent)]
     ExtractError(#[from] ExtractingAttributeError),
+
+    #[error("{0}")]
+    UnknownOverlay(String),
 }
 
 #[derive(Error, Debug, serde::Serialize)]
