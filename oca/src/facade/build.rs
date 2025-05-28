@@ -16,6 +16,8 @@ use oca_bundle::build::{OCABuild, OCABuildStep};
 use oca_bundle::state::oca::OCABundle;
 use oca_bundle::Encode;
 use oca_dag::build_core_db_model;
+use oca_file::ocafile;
+use overlay_file::overlay_registry::OverlayLocalRegistry;
 use said::derivation::HashFunctionCode;
 use said::sad::SerializationFormats;
 
@@ -65,33 +67,28 @@ impl References for Box<dyn DataStorage> {
     }
 }
 
-pub fn build_from_ocafile(ocafile: String) -> Result<OCABundle, Error> {
-    let ast = oca_file::ocafile::parse_from_string(ocafile.clone())
+pub fn build_from_ocafile(ocafile: String, registry: OverlayLocalRegistry) -> Result<OCABundle, Error> {
+    let ast = ocafile::parse_from_string(ocafile.clone(), &registry)
         .map_err(|e| Error::ValidationError(vec![ValidationError::OCAFileParse(e)]))?;
-    match ast {
-        oca_file::ocafile::OCAAst::TransformationAst(_) => Err(Error::Deprecated),
-        oca_file::ocafile::OCAAst::SemanticsAst(ast) => {
-            let oca_build = oca_bundle::build::from_ast(None, &ast)
-                .map_err(|e| {
-                    e.iter()
-                        .map(|e| ValidationError::OCABundleBuild(e.clone()))
-                        .collect::<Vec<_>>()
-                })
-                .map_err(Error::ValidationError)?;
+    let oca_build = oca_bundle::build::from_ast(None, &ast)
+        .map_err(|e| {
+            e.iter()
+                .map(|e| ValidationError::OCABundleBuild(e.clone()))
+                .collect::<Vec<_>>()
+        })
+        .map_err(Error::ValidationError)?;
 
-            Ok(oca_build.oca_bundle)
-        }
-    }
+    Ok(oca_build.oca_bundle)
 }
 
 pub fn parse_oca_bundle_to_ocafile(bundle: &OCABundle) -> String {
-    oca_file_semantics::ocafile::generate_from_ast(&bundle.to_ast())
+    ocafile::generate_from_ast(&bundle.to_ast())
 }
 
 impl Facade {
     #[cfg(not(feature = "local-references"))]
-    pub fn validate_ocafile(&self, ocafile: String) -> Result<OCABuild, Vec<ValidationError>> {
-        let (base, oca_ast) = Self::parse_and_check_base(self.storage(), ocafile)?;
+    pub fn validate_ocafile(&self, ocafile: String, registry: OverlayLocalRegistry) -> Result<OCABuild, Vec<ValidationError>> {
+        let (base, oca_ast) = Self::parse_and_check_base(self.storage(), ocafile, registry)?;
         oca_bundle::build::from_ast(base, &oca_ast).map_err(|e| {
             e.iter()
                 .map(|e| ValidationError::OCABundleBuild(e.clone()))
@@ -107,8 +104,9 @@ impl Facade {
         &self,
         ocafile: String,
         references: &mut R,
+        registry: OverlayLocalRegistry,
     ) -> Result<OCABuild, Vec<ValidationError>> {
-        let (base, oca_ast) = Self::parse_and_check_base(self.storage(), ocafile)?;
+        let (base, oca_ast) = Self::parse_and_check_base(self.storage(), ocafile, registry)?;
         Self::oca_ast_to_oca_build_with_references(base, oca_ast, references)
     }
 
@@ -116,15 +114,13 @@ impl Facade {
     /// Mapping between `refn` -> `said` is saved in facades database, so it can
     /// be dereferenced in other ocafiles later.
     #[cfg(feature = "local-references")]
-    pub fn validate_ocafile(&mut self, ocafile: String) -> Result<OCABuild, Vec<ValidationError>> {
-        let (base, oca_ast) = Self::parse_and_check_base(self.storage(), ocafile)?;
+    pub fn validate_ocafile(&mut self, ocafile: String, registry: OverlayLocalRegistry) -> Result<OCABuild, Vec<ValidationError>> {
+        let (base, oca_ast) = Self::parse_and_check_base(self.storage(), ocafile, registry)?;
         Self::oca_ast_to_oca_build_with_references(base, oca_ast, &mut self.db)
     }
 
     pub fn build(&mut self, oca_build: &OCABuild) -> Result<OCABundle, Error> {
         self.build_cache(&oca_build.oca_bundle);
-
-        self.build_meta(&oca_build.oca_bundle);
 
         oca_build
             .steps
@@ -138,29 +134,23 @@ impl Facade {
         Ok(oca_build.oca_bundle.clone())
     }
 
-    pub fn build_from_ocafile(&mut self, ocafile: String) -> Result<OCABundle, Error> {
-        let ast = oca_file::ocafile::parse_from_string(ocafile.clone())
-            .map_err(|e| Error::ValidationError(vec![ValidationError::OCAFileParse(e)]))?;
-        match ast {
-            oca_file::ocafile::OCAAst::TransformationAst(_) => Err(Error::Deprecated),
-            oca_file::ocafile::OCAAst::SemanticsAst(_ast) => {
-                let oca_build = self
-                    .validate_ocafile(ocafile)
-                    .map_err(Error::ValidationError)?;
+    pub fn build_from_ocafile(&mut self, ocafile: String, registry: OverlayLocalRegistry) -> Result<OCABundle, Error> {
+        let oca_build = self
+            .validate_ocafile(ocafile, registry)
+            .map_err(Error::ValidationError)?;
 
-                self.build(&oca_build)
-            }
-        }
+        self.build(&oca_build)
     }
 
     fn parse_and_check_base(
         storage: &dyn DataStorage,
         ocafile: String,
+        registry: OverlayLocalRegistry,
     ) -> Result<(Option<OCABundle>, OCAAst), Vec<ValidationError>> {
         let mut errors: Vec<ValidationError> = vec![];
-        let mut oca_ast = oca_file_semantics::ocafile::parse_from_string(ocafile).map_err(|e| {
+        let mut oca_ast = ocafile::parse_from_string(ocafile, &registry).map_err(|e| {
             vec![ValidationError::OCAFileParse(
-                oca_file::ocafile::error::ParseError::SemanticsError(e),
+                oca_file::ocafile::error::ParseError::Custom(e.to_string()),
             )]
         })?;
 
@@ -252,38 +242,6 @@ impl Facade {
         capture_base_cache_repo.insert(capture_base_cache_record);
     }
 
-    fn build_meta(&self, oca_bundle: &OCABundle) {
-        let meta_overlays = oca_bundle
-            .overlays
-            .iter()
-            .filter_map(|x| {
-                x.as_any()
-                    .downcast_ref::<oca_bundle::state::oca::overlay::Meta>()
-            })
-            .collect::<Vec<_>>();
-        if !meta_overlays.is_empty() {
-            let oca_bundle_fts_repo = OCABundleFTSRepo::new(self.connection());
-            for meta_overlay in meta_overlays {
-                let oca_bundle_fts_record = OCABundleFTSRecord::new(
-                    oca_bundle.said.clone().unwrap().to_string(),
-                    meta_overlay
-                        .attr_pairs
-                        .get("name")
-                        .unwrap_or(&"".to_string())
-                        .clone(),
-                    meta_overlay
-                        .attr_pairs
-                        .get("description")
-                        .unwrap_or(&"".to_string())
-                        .clone(),
-                    meta_overlay.language,
-                );
-
-                oca_bundle_fts_repo.insert(oca_bundle_fts_record);
-            }
-        }
-    }
-
     fn build_step(&mut self, step: &OCABuildStep) {
         let mut input: Vec<u8> = vec![];
         match &step.parent_said {
@@ -329,7 +287,7 @@ impl Facade {
             self.db_cache
                 .insert(
                     Namespace::OCAObjectsJSON,
-                    &overlay.said().clone().unwrap().to_string(),
+                    &overlay.digest.clone().unwrap().to_string(),
                     &serde_json::to_string(&overlay).unwrap().into_bytes(),
                 )
                 .unwrap();

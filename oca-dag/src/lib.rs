@@ -124,19 +124,20 @@ fn apply_step(
             }
 
             let overlay = step.result.overlays.iter().find(|overlay| {
-                overlay.overlay_type().eq(overlay_type) && overlay.language() == lang.as_ref()
+                overlay.name.eq(overlay_type) // TODO fetch UNIQUE ATTR AND use here && overlay.language() == lang.as_ref()
             });
 
             if let Some(overlay) = overlay {
-                let overlay_key = match overlay.language() {
-                    Some(lang) => {
-                        format!("{}-{}", &overlay.overlay_type(), lang.to_639_1().unwrap())
-                    }
-                    None => format!("{}", overlay.overlay_type()),
-                };
+                // let overlay_key = match overlay.language() {
+                //     Some(lang) => {
+                //         format!("{}-{}", &overlay.overlay_type(), lang.to_639_1().unwrap())
+                //     }
+                //     None => format!("{}", overlay.overlay_type()),
+                // };
+                let overlay_key = overlay.name.to_string(); // TODO fetch UNIQUE ATTR AND use here
                 let parent_overlay = state.overlays.get(&overlay_key);
                 let overlay_model = OverlayModel {
-                    overlay_said: overlay.said().clone().unwrap(),
+                    overlay_said: overlay.digest.clone().unwrap(),
                     parent: parent_overlay.cloned(),
                     command_digest: command_model.digest,
                 };
@@ -159,7 +160,7 @@ fn apply_step(
             .result
             .overlays
             .iter()
-            .map(|overlay| overlay.said().clone().unwrap())
+            .map(|overlay| overlay.digest.clone().unwrap())
             .collect(),
     };
     result.oca_bundle = Some(oca_bundle_model.clone());
@@ -193,13 +194,12 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Label,
+                "Label/2.0.0".to_string(),
                 Content {
-                    attributes: Some(indexmap! {
-                        "abc".to_string() => ast::NestedValue::Value("ble".to_string())
-                    }),
+                    version: Some("2.0.0".to_string()),
                     properties: Some(indexmap! {
-                        "lang".to_string() => ast::NestedValue::Value("en".to_string())
+                        "lang".to_string() => ast::NestedValue::Value("en".to_string()),
+                        "abc".to_string() => ast::NestedValue::Value("ble".to_string())
                     }),
                 },
             ),
@@ -220,13 +220,12 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Label,
+                "Label/2.0.0".to_string(),
                 Content {
-                    attributes: Some(indexmap! {
-                        "abc".to_string() => ast::NestedValue::Value("ble".to_string())
-                    }),
+                    version: Some("2.0.0".to_string()),
                     properties: Some(indexmap! {
-                        "lang".to_string() => ast::NestedValue::Value("fr".to_string())
+                        "lang".to_string() => ast::NestedValue::Value("fr".to_string()),
+                        "abc".to_string() => ast::NestedValue::Value("ble".to_string())
                     }),
                 },
             ),

@@ -7,8 +7,9 @@ use crate::{
     repositories::{OCABundleCacheRepo, OCABundleFTSRepo},
 };
 use oca_ast::ast::{self, OCAAst, ObjectKind, RefValue};
-use oca_bundle::build::OCABuildStep;
-use oca_bundle::state::oca::{capture_base::CaptureBase, DynOverlay, OCABundle};
+use oca_bundle::{build::OCABuildStep, state::oca::overlay::Overlay};
+use oca_bundle::state::oca::{capture_base::CaptureBase, OCABundle};
+use oca_file::ocafile;
 use said::{
     derivation::HashFunctionCode,
     sad::{SerializationFormats, SAD},
@@ -26,7 +27,7 @@ use std::str::FromStr;
 #[serde(untagged)]
 pub enum OCAObject {
     CaptureBase(CaptureBase),
-    Overlay(DynOverlay),
+    Overlay(Overlay),
 }
 
 #[derive(Debug, Serialize)]
@@ -242,7 +243,7 @@ impl Facade {
                 )),
                 ObjectKind::Overlay(_, _) => {
                     let oca_overlay = OCAObject::Overlay(
-                        serde_json::from_str::<DynOverlay>(&object_str).map_err(|e| {
+                        serde_json::from_str::<Overlay>(&object_str).map_err(|e| {
                             errors.push(format!("Failed to parse OCA object: {}", e));
                             errors.clone()
                         })?,
@@ -340,7 +341,7 @@ impl Facade {
                 .map_err(|e| vec![e.to_string()])?;
         }
 
-        Ok(oca_file_semantics::ocafile::generate_from_ast(&oca_ast))
+        Ok(ocafile::generate_from_ast(&oca_ast))
     }
 
     /// Retrive steps (AST representation) for a given said
@@ -359,7 +360,7 @@ impl Facade {
 
     pub fn parse_oca_bundle_to_ocafile(&self, bundle: &OCABundle) -> Result<String, Vec<String>> {
         let oca_ast = bundle.to_ast();
-        Ok(oca_file_semantics::ocafile::generate_from_ast(&oca_ast))
+        Ok(ocafile::generate_from_ast(&oca_ast))
     }
 }
 
@@ -427,6 +428,8 @@ fn retrive_all_references(bundle: OCABundle) -> Vec<SelfAddressingIdentifier> {
 
 #[cfg(test)]
 mod test {
+    use overlay_file::overlay_registry::OverlayLocalRegistry;
+
     use super::*;
     use crate::data_storage::InMemoryDataStorage;
     use crate::repositories::SQLiteConfig;
@@ -450,10 +453,12 @@ ADD CARDINALITY ATTRS list="1-2"
 ADD ENTRY_CODE ATTRS list="entry_code_said" el=["o1", "o2", "o3"]
 ADD ENTRY en ATTRS list="refs:ENrf7niTCnz7HD-Ci88rlxHlxkpQ2NIZNNv08fQnXANI" el={"o1": "o1_label", "o2": "o2_label", "o3": "o3_label"}
 "#.to_string();
-        let oca_bundle = facade.build_from_ocafile(ocafile_input);
+
+        let registry = OverlayLocalRegistry::from_dir("../../../overlay-file/core_overlays").unwrap();
+        let oca_bundle = facade.build_from_ocafile(ocafile_input, registry.clone());
         let oca_bundle = oca_bundle.unwrap();
         let ocafile = facade.parse_oca_bundle_to_ocafile(&oca_bundle)?;
-        let new_bundle = facade.build_from_ocafile(ocafile);
+        let new_bundle = facade.build_from_ocafile(ocafile, registry);
         match new_bundle {
             Ok(new_bundle) => {
                 assert_eq!(oca_bundle.said, new_bundle.said);

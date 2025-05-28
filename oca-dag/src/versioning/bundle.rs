@@ -20,7 +20,7 @@ impl From<OCABundleDTO> for Vec<u8> {
         }
 
         val.bundle.overlays.iter().for_each(|overlay| {
-            if let Some(ref said) = overlay.said() {
+            if let Some(ref said) = overlay.digest {
                 digests.push(said.to_string().len().try_into().unwrap());
                 // digests.push(overlay.overlay_type().into());
                 digests.extend(said.to_string().as_bytes());

@@ -26,34 +26,31 @@ impl Facade {
         self.db.insert(
             Namespace::OCARelations,
             &format!("{}.metadata", oca_bundle.said.clone().unwrap()),
-            &[ObjectKind::OCABundle(BundleContent {
+            &[u8::from(ObjectKind::OCABundle(BundleContent {
                 said: oca_ast::ast::ReferenceAttrType::Reference(RefValue::Name(
                     "".to_string(),
                 )),
-            })
-            .into()],
+            }))],
         )?;
         self.db.insert(
             Namespace::OCARelations,
             &format!("{}.metadata", oca_bundle.capture_base.said.clone().unwrap()),
-            &[ObjectKind::CaptureBase(CaptureContent {
+            &[u8::from(ObjectKind::CaptureBase(CaptureContent {
                 attributes: None,
                 properties: None,
-            })
-            .into()],
+            }))],
         )?;
         oca_bundle.overlays.iter().for_each(|overlay| {
             let _ = self.db.insert(
                 Namespace::OCARelations,
-                &format!("{}.metadata", overlay.said().clone().unwrap()),
-                &[ObjectKind::Overlay(
-                    overlay.overlay_type().clone(),
+                &format!("{}.metadata", overlay.digest.clone().unwrap()),
+                &[u8::from(ObjectKind::Overlay(
+                    overlay.name.clone(),
                     Content {
-                        attributes: None,
+                        version: Some(String::from("2.0.0")),
                         properties: None,
                     },
-                )
-                .into()],
+                ))],
             );
         });
 
@@ -83,7 +80,7 @@ impl Facade {
         capture_base_rel.add_relation(OCAObject::new(self, oca_bundle_said.clone()));
 
         for overlay in oca_bundle.overlays {
-            let overlay_said = overlay.said().clone().unwrap().to_string();
+            let overlay_said = overlay.digest.clone().unwrap().to_string();
 
             oca_bundle_rel.add_relation(OCAObject::new(self, overlay_said.clone()));
             capture_base_rel.add_relation(OCAObject::new(self, overlay_said.clone()));
@@ -128,7 +125,7 @@ impl Facade {
             .get(Namespace::OCARelations, &format!("{}.metadata", said))
             .unwrap();
 
-        (*object_type.unwrap().first().unwrap()).into()
+        ObjectKind::from(object_type.unwrap()[0])
     }
 }
 
@@ -190,12 +187,12 @@ impl From<Vec<u8>> for Relationship {
 
 impl From<Vec<u8>> for OCAObject {
     fn from(val: Vec<u8>) -> Self {
-        let object_type = val[0];
+        let object_type = ObjectKind::from(val[0]);
         let said_len = val[1];
         let said = String::from_utf8(val[2..2 + said_len as usize].to_vec()).unwrap();
         Self {
             said,
-            object_type: object_type.into(),
+            object_type: object_type,
         }
     }
 }

@@ -958,6 +958,7 @@ dependencies = [
  "oca-bundle",
  "oca-dag",
  "oca-file",
+ "overlay-file",
  "regex",
  "rusqlite",
  "said",

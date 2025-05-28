@@ -26,7 +26,7 @@ pub struct OCAAst {
     pub meta: HashMap<String, String>,
 }
 
-#[derive(Debug, PartialEq, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Command {
     #[serde(rename = "type")]
     pub kind: CommandType,
@@ -59,6 +59,27 @@ pub enum ObjectKind {
     CaptureBase(CaptureContent),
     OCABundle(BundleContent),
     Overlay(String, Content),
+}
+
+impl From<u8> for ObjectKind {
+    fn from(val: u8) -> Self {
+        match val {
+            0 => ObjectKind::OCABundle(BundleContent { said: ReferenceAttrType::Reference(RefValue::Name("".to_string())) }),
+            1 => ObjectKind::CaptureBase(CaptureContent { attributes: None, properties: None }),
+            2 => ObjectKind::Overlay("".to_string(), Content { version: None, properties: None }),
+            _ => panic!("Invalid ObjectKind value"),
+        }
+    }
+}
+
+impl From<ObjectKind> for u8 {
+    fn from(val: ObjectKind) -> Self {
+        match val {
+            ObjectKind::OCABundle(_) => 0,
+            ObjectKind::CaptureBase(_) => 1,
+            ObjectKind::Overlay(_, _) => 2,
+        }
+    }
 }
 
 impl<'de, 'a> DeserializeSeed<'de> for CommandSeed<'a> {
