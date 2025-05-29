@@ -1,13 +1,13 @@
 use crate::data_storage::DataStorage;
 use oca_ast::ast::{self, RefValue};
-use oca_bundle::state::oca::{OCABox, OCABundle};
+use oca_bundle::state::oca::{OCABundle};
 use said::{derivation::HashFunctionCode, sad::SerializationFormats, version::Encode};
 
 pub fn build_oca(
     db: Box<dyn DataStorage>,
     commands: Vec<ast::Command>,
 ) -> Result<OCABundle, String> {
-    let mut base: Option<OCABox> = None;
+    let mut base: Option<OCABundle> = None;
     for command in commands {
         if let ast::CommandType::From = command.kind {
             let said = match command.clone().object_kind.oca_bundle_content() {
@@ -23,51 +23,48 @@ pub fn build_oca(
                 Some(oca_bundle_str) => String::from_utf8(oca_bundle_str).unwrap(),
                 None => return Err("OCA not found".to_string()),
             };
-            let oca_b = serde_json::from_str::<OCABundle>(&oca_bundle_str).unwrap();
-            base = Some(oca_b.into());
+            base = Some(serde_json::from_str::<OCABundle>(&oca_bundle_str).unwrap());
         } else {
-            let result = oca_bundle::build::apply_command(base.clone(), command.clone());
-            let mut oca_box: OCABox = OCABox::new();
+            let mut current_base = base.take().unwrap_or_default();
+            let result = oca_bundle::build::apply_command(&mut current_base, command.clone());
+
             match result {
-                Ok(oca) => {
-                    oca_box = oca;
+                Ok(oca_bundle) => {
+                    let command_str = serde_json::to_string(&command).unwrap();
+
+                    let mut input: Vec<u8> = vec![];
+                    match base.clone() {
+                        Some(base) => {
+                            let base_said = base.said.as_ref().unwrap().to_string();
+                            input.push(base_said.len().try_into().unwrap());
+                            input.extend(base_said.as_bytes());
+                        }
+                        None => {
+                            input.push(0);
+                        }
+                    }
+                    input.push(command_str.len().try_into().unwrap());
+                    input.extend(command_str.as_bytes());
+                    db.insert(
+                        &format!("oca.{}.operation", oca_bundle.clone().said.unwrap()),
+                        &input,
+                    )?;
+                    let code = HashFunctionCode::Blake3_256;
+                    let format = SerializationFormats::JSON;
+                    db.insert(
+                        &format!("oca.{}", oca_bundle.clone().said.unwrap()),
+                        &oca_bundle.encode(&code, &format).unwrap(),
+                    )?;
                 }
                 Err(errors) => {
                     println!("{:?}", errors);
                 }
             };
-            let oca_bundle = oca_box.generate_bundle();
-            let command_str = serde_json::to_string(&command).unwrap();
-
-            let mut input: Vec<u8> = vec![];
-            match base {
-                Some(ref mut base) => {
-                    let base_said = base.generate_bundle().said.unwrap().to_string();
-                    input.push(base_said.len().try_into().unwrap());
-                    input.extend(base_said.as_bytes());
-                }
-                None => {
-                    input.push(0);
-                }
-            }
-            input.push(command_str.len().try_into().unwrap());
-            input.extend(command_str.as_bytes());
-            db.insert(
-                &format!("oca.{}.operation", oca_bundle.clone().said.unwrap()),
-                &input,
-            )?;
-            let code = HashFunctionCode::Blake3_256;
-            let format = SerializationFormats::JSON;
-            db.insert(
-                &format!("oca.{}", oca_bundle.clone().said.unwrap()),
-                &oca_bundle.encode(&code, &format).unwrap(),
-            )?;
-
-            base = Some(oca_box);
         }
     }
 
-    Ok(base.unwrap().generate_bundle())
+    base.ok_or_else(|| "No OCA bundle created".to_string())
+
 }
 
 #[cfg(test)]
@@ -77,7 +74,7 @@ mod tests {
     use super::*;
     use crate::data_storage::{DataStorage, SledDataStorage};
     use indexmap::IndexMap;
-    use oca_ast::ast::{BundleContent, CaptureContent, Content};
+    use oca_ast::ast::{BundleContent, CaptureContent, OverlayContent};
     use said::SelfAddressingIdentifier;
 
     #[test]
@@ -122,9 +119,9 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                "Meta/2.0.0".to_string(),
-                Content {
+                OverlayContent {
                     properties: Some(properties),
+                    overlay_name: "Meta/2.0.0".to_string(),
                 },
             ),
         });
@@ -150,9 +147,9 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                "Label/2.0.0".to_string(),
-                Content {
+                OverlayContent {
                     properties: Some(properties),
+                    overlay_name: "Label/2.0.0".to_string(),
                 },
             ),
         });
@@ -192,9 +189,9 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                "Character_Encoding/2.0.0".to_string(),
-                Content {
+                OverlayContent {
                     properties: None,
+                    overlay_name: "Character_Encoding/2.0.0".to_string(),
                 },
             ),
         });
@@ -209,9 +206,9 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                "Conformance/2.0.0".to_string(),
-                Content {
+                OverlayContent {
                     properties: None,
+                    overlay_name: "Conformance/2.0.0".to_string(),
                 },
             ),
         });

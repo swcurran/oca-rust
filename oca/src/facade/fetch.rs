@@ -241,7 +241,7 @@ impl Facade {
                         errors.clone()
                     })?,
                 )),
-                ObjectKind::Overlay(_, _) => {
+                ObjectKind::Overlay(_) => {
                     let oca_overlay = OCAObject::Overlay(
                         serde_json::from_str::<Overlay>(&object_str).map_err(|e| {
                             errors.push(format!("Failed to parse OCA object: {}", e));

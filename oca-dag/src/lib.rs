@@ -114,7 +114,7 @@ fn apply_step(
             result.capture_base = Some(capture_base_model.clone());
             current_state.capture_base = Some(capture_base_model.capture_base_said.clone());
         }
-        ast::ObjectKind::Overlay(overlay_type, content) => {
+        ast::ObjectKind::Overlay(content) => {
             let mut lang = None;
             // match &content.properties {
             if let Some(properties) = &content.properties {
@@ -124,7 +124,7 @@ fn apply_step(
             }
 
             let overlay = step.result.overlays.iter().find(|overlay| {
-                overlay.name.eq(overlay_type) // TODO fetch UNIQUE ATTR AND use here && overlay.language() == lang.as_ref()
+                overlay.name.eq(&content.overlay_name) // TODO fetch UNIQUE ATTR AND use here && overlay.language() == lang.as_ref()
             });
 
             if let Some(overlay) = overlay {
@@ -173,7 +173,7 @@ fn apply_step(
 mod tests {
     use super::*;
     use indexmap::{indexmap, IndexMap};
-    use oca_ast::ast::Content;
+    use oca_ast::ast::OverlayContent;
 
     #[test]
     fn test_build_core_db_model() -> Result<(), Vec<String>> {
@@ -194,12 +194,12 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                "Label/2.0.0".to_string(),
-                Content {
+                OverlayContent {
                     properties: Some(indexmap! {
                         "lang".to_string() => ast::NestedValue::Value("en".to_string()),
                         "abc".to_string() => ast::NestedValue::Value("ble".to_string())
                     }),
+                    overlay_name: "Label/2.0.0".to_string(),
                 },
             ),
         });
@@ -219,12 +219,12 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                "Label/2.0.0".to_string(),
-                Content {
+                OverlayContent {
                     properties: Some(indexmap! {
                         "lang".to_string() => ast::NestedValue::Value("fr".to_string()),
                         "abc".to_string() => ast::NestedValue::Value("ble".to_string())
                     }),
+                    overlay_name: "Label/2.0.0".to_string(),
                 },
             ),
         });

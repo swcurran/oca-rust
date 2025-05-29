@@ -922,6 +922,7 @@ dependencies = [
  "log",
  "maplit",
  "oca-ast",
+ "oca-file",
  "once_cell",
  "overlay-file",
  "paste",

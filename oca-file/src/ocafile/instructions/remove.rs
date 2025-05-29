@@ -2,7 +2,7 @@ use crate::ocafile::{error::InstructionError, Pair, Rule};
 use indexmap::IndexMap;
 use log::debug;
 use oca_ast::ast::{
-    CaptureContent, Command, CommandType, Content, NestedAttrType, NestedValue, ObjectKind,
+    CaptureContent, Command, CommandType, OverlayContent, NestedAttrType, NestedValue, ObjectKind,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -19,9 +19,9 @@ impl RemoveInstruction {
                     let name = object.as_str();
 
                     object_kind = Some(ObjectKind::Overlay(
-                        name.to_string(),
-                        Content {
+                        OverlayContent {
                             properties: Some(extract_properties_pairs(object)),
+                            overlay_name: name.to_string(),
                         },
                     ));
                 }
@@ -55,13 +55,6 @@ impl RemoveInstruction {
 /// TODO do zaorania...
 fn extract_properties_pairs(object: Pair) -> IndexMap<String, NestedValue> {
     let properties: IndexMap<String, NestedValue> = IndexMap::new();
-    for attr_pairs in object.into_inner() {
-        match attr_pairs.as_rule() {
-            _ => {
-                return properties;
-            }
-        }
-    }
     properties
 }
 

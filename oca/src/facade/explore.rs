@@ -1,5 +1,5 @@
 use crate::data_storage::Namespace;
-use oca_ast::ast::{BundleContent, CaptureContent, Content, ObjectKind, RefValue};
+use oca_ast::ast::{BundleContent, CaptureContent, OverlayContent, ObjectKind, RefValue};
 use oca_bundle::state::oca::OCABundle;
 use serde::{ser::SerializeStruct, Serialize};
 use std::collections::HashSet;
@@ -45,9 +45,9 @@ impl Facade {
                 Namespace::OCARelations,
                 &format!("{}.metadata", overlay.digest.clone().unwrap()),
                 &[u8::from(ObjectKind::Overlay(
-                    overlay.name.clone(),
-                    Content {
+                    OverlayContent {
                         properties: None,
+                        overlay_name: overlay.name.clone(),
                     },
                 ))],
             );
@@ -191,7 +191,7 @@ impl From<Vec<u8>> for OCAObject {
         let said = String::from_utf8(val[2..2 + said_len as usize].to_vec()).unwrap();
         Self {
             said,
-            object_type: object_type,
+            object_type,
         }
     }
 }
@@ -218,7 +218,7 @@ impl Serialize for OCAObject {
             ObjectKind::OCABundle(_) | ObjectKind::CaptureBase(_) => {
                 state.serialize_field("object_type", &self.object_type)?
             }
-            ObjectKind::Overlay(_, _) => {
+            ObjectKind::Overlay(_) => {
                 state.serialize_field("object_type", "Overlay")?;
                 let overlay_metadata = OverlayMetadata {
                     kind: self.object_type.clone(),

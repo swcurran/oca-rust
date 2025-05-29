@@ -1,6 +1,7 @@
+use crate::state::oca::overlay::Overlay;
 use crate::state::oca::OCABundle;
 use crate::state::{
-    attribute::Attribute, oca::OCABox,
+    attribute::Attribute,
 };
 use oca_ast::ast;
 use log::{debug, info};
@@ -40,35 +41,34 @@ pub enum Error {
 }
 
 pub fn from_ast(
-    from_oca: Option<OCABundle>,
+    from_bundle: Option<OCABundle>,
     oca_ast: &ast::OCAAst,
 ) -> Result<OCABuild, Vec<Error>> {
     let mut errors = vec![];
     let mut steps = vec![];
-    let mut parent_said: Option<said::SelfAddressingIdentifier> = match &from_oca {
+    let mut parent_said: Option<said::SelfAddressingIdentifier> = match &from_bundle {
         Some(oca_bundle) => oca_bundle.said.clone(),
         None => None,
     };
-    let mut base: Option<OCABox> = from_oca.clone().map(OCABox::from);
+    let has_from_bundle = from_bundle.is_some();
+
+    let mut oca_bundle = from_bundle.unwrap_or_else(|| OCABundle::default());
+
     let default_command_meta = ast::CommandMeta {
         line_number: 0,
         raw_line: "unknown".to_string(),
     };
     for (i, command) in oca_ast.commands.iter().enumerate() {
-        let command_index = match &from_oca {
-            Some(_) => i + 1,
-            None => i,
-        };
+        let command_index = if has_from_bundle { i + 1 } else { i };
+
         // todo pass the references
         let command_meta = oca_ast
             .commands_meta
             .get(&command_index)
             .unwrap_or(&default_command_meta);
 
-        match apply_command(base.clone(), command.clone()) {
-            Ok(oca_box) => {
-                let mut oca_box_mut = oca_box.clone();
-                let oca_bundle = oca_box_mut.generate_bundle();
+        match apply_command(&mut oca_bundle, command.clone()) {
+            Ok(oca_bundle) => {
                 /* if oca_bundle.said == parent_said {
                     errors.push(Error::FromASTError {
                         line_number: command_meta.line_number,
@@ -82,8 +82,6 @@ pub fn from_ast(
                     result: oca_bundle.clone(),
                 });
                 parent_said.clone_from(&oca_bundle.said);
-                base = Some(oca_box);
-                //}
             }
             Err(mut err) => {
                 errors.extend(err.iter_mut().map(|e| Error::FromASTError {
@@ -96,7 +94,7 @@ pub fn from_ast(
     }
     if errors.is_empty() {
         Ok(OCABuild {
-            oca_bundle: base.unwrap().generate_bundle(),
+            oca_bundle,
             steps,
         })
     } else {
@@ -104,12 +102,8 @@ pub fn from_ast(
     }
 }
 
-pub fn apply_command(base: Option<OCABox>, op: ast::Command) -> Result<OCABox, Vec<String>> {
+pub fn apply_command(base: &mut OCABundle, op: ast::Command) -> Result<&OCABundle, Vec<String>> {
     let mut errors = vec![];
-    let mut oca: OCABox = match base {
-        Some(oca) => oca,
-        None => OCABox::new(),
-    };
 
     match (op.kind, op.object_kind) {
         (ast::CommandType::From, _) => {
@@ -120,33 +114,35 @@ pub fn apply_command(base: Option<OCABox>, op: ast::Command) -> Result<OCABox, V
         }
         (ast::CommandType::Add, ast::ObjectKind::CaptureBase(content)) => {
             if let Some(ref attributes) = content.attributes {
-                for (attr_name, attr_type) in attributes {
-                    let mut attribute = Attribute::new(attr_name.clone());
-                    attribute.set_attribute_type(attr_type.clone());
-                    oca.add_attribute(attribute);
+                base.capture_base.attributes.extend(attributes.clone());
+                for (attr_name, _) in attributes {
+                    let attribute = Attribute::new(attr_name.clone());
+                    base.attributes.insert(attr_name.to_string(), attribute);
                 }
             }
         }
-        (ast::CommandType::Add, ast::ObjectKind::Overlay(overlay_type, content)) => {
-            oca.add_overlay(overlay_type.clone(), Some(content.clone()));
+        (ast::CommandType::Add, ast::ObjectKind::Overlay(content)) => {
+            let mut overlay = Overlay::new(content.clone());
+            overlay.context = Some(base.context.clone());
+            base.overlays.push(overlay);
         }
         (ast::CommandType::Add, ast::ObjectKind::OCABundle(_)) => todo!(),
         (ast::CommandType::Remove, ast::ObjectKind::CaptureBase(content)) => {
             if let Some(ref attributes) = content.attributes {
                 for (attr_name, _) in attributes {
-                    oca.remove_attribute(attr_name);
+                    base.remove_attribute(attr_name);
                 }
             }
         }
         (ast::CommandType::Remove, ast::ObjectKind::OCABundle(_)) => todo!(),
-        (ast::CommandType::Remove, ast::ObjectKind::Overlay(_, _)) => todo!(),
+        (ast::CommandType::Remove, ast::ObjectKind::Overlay(_)) => todo!(),
         (ast::CommandType::Modify, ast::ObjectKind::CaptureBase(_)) => todo!(),
         (ast::CommandType::Modify, ast::ObjectKind::OCABundle(_)) => todo!(),
-        (ast::CommandType::Modify, ast::ObjectKind::Overlay(_, _)) => todo!(),
+        (ast::CommandType::Modify, ast::ObjectKind::Overlay(_)) => todo!(),
     }
 
     if errors.is_empty() {
-        Ok(oca)
+        Ok(base)
     } else {
         Err(errors)
     }
@@ -154,9 +150,9 @@ pub fn apply_command(base: Option<OCABox>, op: ast::Command) -> Result<OCABox, V
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, sync::Arc};
 
-    use crate::state::oca::overlay::set_global_registry;
+    use crate::state::oca::OCAContext;
 
     use super::*;
     use indexmap::IndexMap;
@@ -170,7 +166,6 @@ mod tests {
         let mut commands = vec![];
 
         let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/")?;
-        set_global_registry(registry);
 
         let mut attributes = IndexMap::new();
         attributes.insert(
@@ -209,9 +204,9 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                "Meta/2.0.0".to_string(),
-                ast::Content {
+                ast::OverlayContent {
                     properties: Some(properties),
+                    overlay_name: "Label/2.0.0".to_string(),
                 },
             ),
         });
@@ -241,9 +236,9 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                "Label/2.0.0".to_string(),
-                ast::Content {
+                ast::OverlayContent {
                     properties: Some(attr_labels),
+                    overlay_name: "Label/2.0.0".to_string(),
                 },
             ),
         });
@@ -283,9 +278,9 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                "Character_Encoding/2.0.0".to_string(),
-                ast::Content {
+                ast::OverlayContent {
                     properties: Some(properties),
+                    overlay_name: "Character_Encoding/2.0.0".to_string(),
                 },
             ),
         });
@@ -300,21 +295,21 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                "Conformance/2.0.0".to_string(),
-                ast::Content {
+                ast::OverlayContent {
                     properties: Some(properties),
+                    overlay_name: "Conformance/2.0.0".to_string(),
                 },
             ),
         });
 
         // todo test if references with name are working
-        let mut base: Option<OCABox> = None;
+        let mut base = OCABundle::default();
+        base.set_context(Arc::new(OCAContext::new(registry)));
+
         for command in commands {
-            match apply_command(base.clone(), command.clone()) {
+            match apply_command(&mut base, command.clone()) {
                 Ok(oca) => {
-                    base = Some(oca);
-                    let bundle = base.clone().unwrap().generate_bundle();
-                    println!("Bundle: {}", serde_json::to_string_pretty(&bundle)?);
+                    println!("Bundle: {}", serde_json::to_string_pretty(oca)?);
                 }
                 Err(errors) => {
                     println!("Error applying command: {:?}", errors);
@@ -323,7 +318,7 @@ mod tests {
             }
         }
         assert_eq!(
-            base.as_ref().unwrap().attributes.len(),
+            base.attributes.len(),
             3,
             "Expected 5 attributes in the base after applying commands"
         );
@@ -338,7 +333,6 @@ mod tests {
         let mut commands = vec![];
 
         let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
-        set_global_registry(registry);
 
         let mut attributes = IndexMap::new();
         attributes.insert(
@@ -382,9 +376,9 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                "Meta/2.0.0".to_string(),
-                ast::Content {
+                ast::OverlayContent {
                     properties: Some(properties),
+                    overlay_name: "Meta/2.0.0".to_string(),
                 },
             ),
         });
@@ -411,9 +405,9 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                "Label/2.0.0".to_string(),
-                ast::Content {
+                ast::OverlayContent {
                     properties: Some(attr_labels),
+                    overlay_name: "Label/2.0.0".to_string(),
                 },
             ),
         });
@@ -444,9 +438,9 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                "Character_Encoding/2.0.0".to_string(),
-                ast::Content {
+                ast::OverlayContent {
                     properties: Some(attribute_character_encoding),
+                    overlay_name: "Character_Encoding/2.0.0".to_string(),
                 },
             ),
         });
@@ -461,9 +455,9 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                "Conformance/2.0.0".to_string(),
-                ast::Content {
+                ast::OverlayContent {
                     properties: Some(attributes),
+                    overlay_name: "Conformance/2.0.0".to_string(),
                 },
             ),
         });
@@ -488,21 +482,24 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                "Entry_Code/2.0.0".to_string(),
-                ast::Content {
+                ast::OverlayContent {
                     properties: Some(attributes),
+                    overlay_name: "Entry_Code/2.0.0".to_string(),
                 },
             ),
         });
 
-        let oca_ast = ast::OCAAst {
+        let ast = ast::OCAAst {
             version: "2.0.0".to_string(),
             commands,
             commands_meta: IndexMap::new(),
             meta: HashMap::new(),
         };
 
-        let build_result = from_ast(None, &oca_ast);
+        let mut oca_bundle = OCABundle::default();
+        oca_bundle.set_context(Arc::new(OCAContext::new(registry)));
+
+        let build_result = from_ast(Some(oca_bundle), &ast);
         match build_result {
             Ok(oca_build) => {
                 assert_eq!(oca_build.oca_bundle.overlays.len(), 5);

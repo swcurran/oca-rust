@@ -1,5 +1,5 @@
 use indexmap::IndexMap;
-use oca_ast::ast::NestedValue;
+use oca_ast::ast::{NestedValue, OverlayContent};
 use overlay_file::overlay_registry::{OverlayLocalRegistry, OverlayRegistry};
 use said::derivation::HashFunctionCode;
 use serde::{Deserialize, Serialize, Serializer};
@@ -9,11 +9,14 @@ use said::version::SerializationInfo;
 use thiserror::Error;
 use std::cmp::Ordering;
 use std::io::Cursor;
+use std::sync::Arc;
 use log::{debug, info};
 
 pub type OverlayName = String;
 
 use std::cell::RefCell;
+
+use super::OCAContext;
 
 thread_local! {
     static GLOBAL_REGISTRY: RefCell<Option<OverlayLocalRegistry>> = RefCell::new(None);
@@ -42,6 +45,8 @@ pub struct Overlay {
     pub unique_keys: Option<Vec<String>>,
     #[serde(flatten)]
     pub properties: Option<IndexMap<String, NestedValue>>,
+    #[serde(skip)]
+    pub context: Option<Arc<OCAContext>>,
 }
 
 impl Serialize for Overlay {
@@ -58,28 +63,16 @@ impl Serialize for Overlay {
         map.serialize_entry("capture_base", &self.capture_base)?;
         map.serialize_entry("type", &self.name)?;
 
-        // Use the global registry to serialize the content
-        let registry = get_global_registry().ok_or_else(|| {
-            serde::ser::Error::custom("Global registry not set")
-        })?;
-        // Fetch OverlayDef from registry
-        match registry.get_by_name(&self.name).unwrap() {
-            Some(overlay_def) => {
-                if let Some(properties) = &self.properties {
-                    for element in &overlay_def.elements {
-                        if let Some(value) = properties.get(&element.name) {
-                            map.serialize_entry(&element.name, value)?;
-                        }
-                    }
+        if let Some(context) = &self.context {
+            // If registry is set, use it to serialize the overlay elements
+            for element in context.registry.get_by_fqn(&self.name).unwrap().unwrap().elements.iter() {
+                if let Some(value) = self.properties.as_ref().and_then(|props| props.get(&element.name)) {
+                    map.serialize_entry(&element.name, value)?;
                 }
-            },
-            None => {
-                debug!("Overlay '{}' not found in registry. This may indicate a mismatch between the overlay definition and the current registry state.", self.name);
-                return Err(S::Error::custom(format!(
-                    "Overlay '{}' not found in registry. This may indicate a mismatch between the overlay definition and the current registry state.",
-                    self.name
-                )));
             }
+        } else {
+            // If no registry is set, we cannot serialize the overlay elements
+            return Err(S::Error::custom("No registry set for overlay serialization"));
         }
 
         // Serialize remaining properties in lexicographical order
@@ -96,13 +89,14 @@ impl Serialize for Overlay {
 }
 
 impl Overlay {
-    pub fn new(name: OverlayName) -> Self {
+    pub fn new(content: OverlayContent) -> Self {
         Self {
             digest: None,
-            name,
+            name: content.overlay_name,
             unique_keys: None,
             capture_base: None,
-            properties: None,
+            properties: content.properties,
+            context: None,
         }
     }
 

@@ -1,6 +1,5 @@
 pub mod error;
 
-use std::collections::HashMap;
 pub use oca_ast::ast::OCAAst;
 mod instructions;
 
@@ -147,7 +146,7 @@ fn oca_file_format(nested: NestedAttrType) -> String {
         }
         // TODO how to convert nested arrays?
         NestedAttrTypeFrame::Array(arr) => {
-            format!("Array[{}]", arr)
+            format!("[{}]", arr)
         }
         NestedAttrTypeFrame::Null => "".to_string(),
     })
@@ -206,10 +205,10 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                             }
                         }
                     }
-                    ast::ObjectKind::Overlay(o_type, _) => match o_type {
+                    ast::ObjectKind::Overlay(content) => match content {
                         _ => {
                             line.push_str("Overlay ");
-                            line.push_str(o_type.to_string().to_case(Case::UpperSnake).as_str());
+                            line.push_str(content.overlay_name.to_string().to_case(Case::UpperSnake).as_str());
                             if let Some(content) = command.object_kind.overlay_content() {
                                 if let Some(ref properties) = content.properties {
                                     let properties = properties.clone();
@@ -243,7 +242,7 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                         }
                     }
                 }
-                ast::ObjectKind::Overlay(_o_type, _) => {
+                ast::ObjectKind::Overlay(_) => {
                     todo!()
                 }
                 _ => {}
@@ -331,7 +330,7 @@ ADD Overlay ENTRY
         assert_eq!(oca_ast.meta.get("name").unwrap(), "プラスウルトラ");
         assert_eq!(oca_ast.commands.len(), 15);
         let character_encoding_overlay = oca_ast.commands[6].object_kind.clone();
-        assert_eq!(character_encoding_overlay.name(), "Character_Encoding/2.0.0".to_string());
+        assert_eq!(character_encoding_overlay.overlay_content().unwrap().overlay_name, "CHARACTER_ENCODING".to_string());
 
     }
 
@@ -413,7 +412,7 @@ ADD Overlay ENTRY
     fn test_attributes_with_special_names() {
         let _ = env_logger::builder().is_test(true).try_init();
         let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays").unwrap();
-        let unparsed_file = r#"ADD ATTRIBUTE person.name=Text Experiment...Range..original.values.=Array[Text]
+        let unparsed_file = r#"ADD ATTRIBUTE "person.name"=Text "Experiment...Range..original.values."=[Text]
 "#;
         let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
 
@@ -430,7 +429,7 @@ ADD Overlay ENTRY
         let _ = env_logger::builder().is_test(true).try_init();
         let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays").unwrap();
         let unparsed_file = r#"ADD ATTRIBUTE name=Text age=Numeric
-ADD ATTRIBUTE list=Array[Text] el=Text
+ADD ATTRIBUTE list=[Text] el=Text
 "#;
         let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
 
@@ -446,8 +445,8 @@ ADD ATTRIBUTE list=Array[Text] el=Text
     fn test_nested_attributes_from_ocafile_to_ast() {
         let _ = env_logger::builder().is_test(true).try_init();
         let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays").unwrap();
-        let unparsed_file = r#"ADD ATTRIBUTE name=Text age=Numeric car=Array[Array[Text]]
-ADD ATTRIBUTE incidentals_spare_parts=Array[refs:EJVVlVSZJqVNnuAMLHLkeSQgwfxYLWTKBELi9e8j1PW0]
+        let unparsed_file = r#"ADD ATTRIBUTE name=Text age=Numeric car=[[Text]]
+ADD ATTRIBUTE incidentals_spare_parts=[refs:EJVVlVSZJqVNnuAMLHLkeSQgwfxYLWTKBELi9e8j1PW0]
 "#;
         let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
 
@@ -493,7 +492,7 @@ ADD ATTRIBUTE incidentals_spare_parts=Array[refs:EJVVlVSZJqVNnuAMLHLkeSQgwfxYLWT
         let out = oca_file_format(attr);
         assert_eq!(
             out,
-            "Array[Array[refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu]]"
+            "[[refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu]]"
         );
     }
 }

@@ -51,7 +51,7 @@ impl OverlayDef {
            .collect()
     }
     pub fn get_full_name(&self) -> String {
-        return format!("{}/{}", self.name, self.version)
+        format!("{}/{}", self.name, self.version)
     }
 }
 
