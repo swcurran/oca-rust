@@ -66,7 +66,7 @@ impl From<u8> for ObjectKind {
         match val {
             0 => ObjectKind::OCABundle(BundleContent { said: ReferenceAttrType::Reference(RefValue::Name("".to_string())) }),
             1 => ObjectKind::CaptureBase(CaptureContent { attributes: None, properties: None }),
-            2 => ObjectKind::Overlay("".to_string(), Content { version: None, properties: None }),
+            2 => ObjectKind::Overlay("".to_string(), Content { properties: None }),
             _ => panic!("Invalid ObjectKind value"),
         }
     }
@@ -169,6 +169,12 @@ impl ObjectKind {
             _ => None,
         }
     }
+    pub fn name(&self) -> String {
+        match self {
+            ObjectKind::Overlay(name, _) => name.to_string(),
+            _ => panic!(),
+        }
+    }
 }
 
 impl Hash for ObjectKind {
@@ -268,8 +274,6 @@ pub struct CaptureContent {
 pub struct Content {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub properties: Option<IndexMap<String, NestedValue>>,
-    #[serde(skip)]
-    pub version: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Eq, Hash)]
@@ -565,6 +569,8 @@ mod tests {
 
     #[test]
     fn test_ocaast_serialize() {
+
+        let _ = env_logger::builder().is_test(true).try_init();
         let mut attributes = IndexMap::new();
         let mut properties = IndexMap::new();
 
@@ -584,11 +590,11 @@ mod tests {
             }),
         };
 
-        let overlay_registry = OverlayLocalRegistry::from_dir("test/").unwrap();
-        assert_eq!(overlay_registry.list_all(), vec!["overlays".to_string()]);
+        let overlay_registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
+        assert_eq!(overlay_registry.list_all().len(), 9);
 
         let overlays = overlay_registry.get_by_name("Label/2.0.0").unwrap().unwrap();
-        assert_eq!(overlays.name, "label");
+        assert_eq!(overlays.get_full_name(), "label/2.0.0");
 
         let mut label_props = IndexMap::new();
         label_props.insert("language".to_string(), NestedValue::Value("pl-PL".to_string()));
@@ -599,10 +605,9 @@ mod tests {
         let lable_command = Command {
             kind: CommandType::Add,
             object_kind: ObjectKind::Overlay(
-                overlays.name.clone(),
+                overlays.get_full_name(),
                 Content {
                     properties: Some(label_props),
-                    version: None,
                 },
             ),
         };
@@ -620,7 +625,7 @@ mod tests {
 
         assert_eq!(
             serialized,
-            r#"{"version":"2.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"},"properties":{"test":"test"}}},{"type":"Add","object_kind":"label","content":{"properties":{"language":"pl-PL","attribute_labels":{"allowed":"Dopuszczony"}}}}],"commands_meta":{},"meta":{}}"#
+            r#"{"version":"2.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"},"properties":{"test":"test"}}},{"type":"Add","object_kind":"label/2.0.0","content":{"properties":{"language":"pl-PL","attribute_labels":{"allowed":"Dopuszczony"}}}}],"commands_meta":{},"meta":{}}"#
         );
 
         let ast = deserialize_oca_ast_with_registry(&serialized, &overlay_registry).unwrap();

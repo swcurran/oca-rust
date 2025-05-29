@@ -75,9 +75,11 @@ impl OverlayRegistry for OverlayLocalRegistry {
     fn get_by_name(&self, name: &str) -> Result<Option<&OverlayDef>, &'static str> {
         debug!("Getting overlay by name: {}", name);
         let name = name.to_ascii_lowercase();
+        let (name, version) = name.split_once("/").ok_or_else(|| "Invalid overlay name format: version not found or in wrong format")?;
         let overlay_def = self.overlays.values().find_map(|overlay_file| {
             overlay_file.overlays_def.iter().find(|o| {
                 o.name.eq_ignore_ascii_case(&name)
+                && o.version.eq_ignore_ascii_case(version)
             })
         });
         Ok(overlay_def)
@@ -85,7 +87,18 @@ impl OverlayRegistry for OverlayLocalRegistry {
 
 
     fn list_all(&self) -> Vec<String> {
-        self.overlays.keys().cloned().collect()
+        // Extract all overlay namespace
+        self.overlays
+            .iter()
+            .flat_map(|(_, overlay_file)| {
+                overlay_file.overlays_def.iter().map(|o| {
+                    let namespace = o.namespace
+                        .as_ref()
+                        .map_or(String::new(), |ns| format!("{:?}:", ns));
+                    format!("{}{}/{}", namespace, o.name, o.version)
+                })
+            })
+            .collect::<Vec<String>>()
     }
 
     fn list_by_namespace(&self, namespace: &str) -> Vec<&OverlayFile> {

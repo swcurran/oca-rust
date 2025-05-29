@@ -122,9 +122,8 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Meta,
+                "Meta/2.0.0".to_string(),
                 Content {
-                    attributes: None,
                     properties: Some(properties),
                 },
             ),
@@ -151,9 +150,8 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Label,
+                "Label/2.0.0".to_string(),
                 Content {
-                    attributes: Some(attributes),
                     properties: Some(properties),
                 },
             ),
@@ -194,9 +192,8 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::CharacterEncoding,
+                "Character_Encoding/2.0.0".to_string(),
                 Content {
-                    attributes: Some(attributes),
                     properties: None,
                 },
             ),
@@ -212,9 +209,8 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayType::Conformance,
+                "Conformance/2.0.0".to_string(),
                 Content {
-                    attributes: Some(attributes),
                     properties: None,
                 },
             ),

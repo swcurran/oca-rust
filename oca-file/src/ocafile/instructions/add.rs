@@ -102,7 +102,6 @@ impl AddInstruction {
         let kind = CommandType::Add;
         let mut content = Content {
             properties: None,
-            version: None,
         };
 
         debug!("Parsing add instruction from the record: {:?}", record);
@@ -126,8 +125,6 @@ impl AddInstruction {
                                                     overlay_def = Some(od.clone());
                                                     info!("Found overlay definition: {:?}", overlay_def);
                                                     overlay_name = Some(name.to_string());
-                                                    content.version = Some(od.get_full_name());
-
                                                 }
                                                 Err(_) => {
                                                     return Err(InstructionError::UnknownOverlay(name.to_string()));

@@ -47,7 +47,6 @@ impl Facade {
                 &[u8::from(ObjectKind::Overlay(
                     overlay.name.clone(),
                     Content {
-                        version: Some(String::from("2.0.0")),
                         properties: None,
                     },
                 ))],

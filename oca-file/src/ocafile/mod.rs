@@ -330,8 +330,8 @@ ADD Overlay ENTRY
         assert_eq!(oca_ast.meta.get("version").unwrap(), "2.0.0");
         assert_eq!(oca_ast.meta.get("name").unwrap(), "プラスウルトラ");
         assert_eq!(oca_ast.commands.len(), 15);
-        let character_encoding_overlay = oca_ast.commands[6].object_kind.overlay_content().unwrap();
-        assert_eq!(character_encoding_overlay.version, Some("Character_Encoding/2.0.0".to_string()));
+        let character_encoding_overlay = oca_ast.commands[6].object_kind.clone();
+        assert_eq!(character_encoding_overlay.name(), "Character_Encoding/2.0.0".to_string());
 
     }
 

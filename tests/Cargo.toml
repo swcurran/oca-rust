@@ -6,6 +6,7 @@ publish = false
 
 [dev-dependencies]
 oca-rs = {path = "../oca", features = ["local-references"]}
+overlay-file = { path = "../overlay-file" }
 
 [[test]]
 name = "build_from_ocafile"

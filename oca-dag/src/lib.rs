@@ -196,7 +196,6 @@ mod tests {
             object_kind: ast::ObjectKind::Overlay(
                 "Label/2.0.0".to_string(),
                 Content {
-                    version: Some("2.0.0".to_string()),
                     properties: Some(indexmap! {
                         "lang".to_string() => ast::NestedValue::Value("en".to_string()),
                         "abc".to_string() => ast::NestedValue::Value("ble".to_string())
@@ -222,7 +221,6 @@ mod tests {
             object_kind: ast::ObjectKind::Overlay(
                 "Label/2.0.0".to_string(),
                 Content {
-                    version: Some("2.0.0".to_string()),
                     properties: Some(indexmap! {
                         "lang".to_string() => ast::NestedValue::Value("fr".to_string()),
                         "abc".to_string() => ast::NestedValue::Value("ble".to_string())

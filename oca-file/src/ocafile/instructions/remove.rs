@@ -22,7 +22,6 @@ impl RemoveInstruction {
                         name.to_string(),
                         Content {
                             properties: Some(extract_properties_pairs(object)),
-                            version: None,
                         },
                     ));
                 }

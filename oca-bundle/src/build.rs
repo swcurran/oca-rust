@@ -3,6 +3,7 @@ use crate::state::{
     attribute::Attribute, oca::OCABox,
 };
 use oca_ast::ast;
+use log::{debug, info};
 
 #[derive(Debug)]
 pub struct OCABuild {
@@ -165,6 +166,7 @@ mod tests {
 
     #[test]
     fn test_add_step() -> Result<(), Box<dyn std::error::Error>> {
+        let _ = env_logger::builder().is_test(true).try_init();
         let mut commands = vec![];
 
         let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/")?;
@@ -210,7 +212,6 @@ mod tests {
                 "Meta/2.0.0".to_string(),
                 ast::Content {
                     properties: Some(properties),
-                    version: None,
                 },
             ),
         });
@@ -243,7 +244,6 @@ mod tests {
                 "Label/2.0.0".to_string(),
                 ast::Content {
                     properties: Some(attr_labels),
-                    version: None,
                 },
             ),
         });
@@ -286,7 +286,6 @@ mod tests {
                 "Character_Encoding/2.0.0".to_string(),
                 ast::Content {
                     properties: Some(properties),
-                    version: None,
                 },
             ),
         });
@@ -304,7 +303,6 @@ mod tests {
                 "Conformance/2.0.0".to_string(),
                 ast::Content {
                     properties: Some(properties),
-                    version: None,
                 },
             ),
         });
@@ -387,7 +385,6 @@ mod tests {
                 "Meta/2.0.0".to_string(),
                 ast::Content {
                     properties: Some(properties),
-                    version: None,
                 },
             ),
         });
@@ -417,7 +414,6 @@ mod tests {
                 "Label/2.0.0".to_string(),
                 ast::Content {
                     properties: Some(attr_labels),
-                    version: None,
                 },
             ),
         });
@@ -451,7 +447,6 @@ mod tests {
                 "Character_Encoding/2.0.0".to_string(),
                 ast::Content {
                     properties: Some(attribute_character_encoding),
-                    version: None,
                 },
             ),
         });
@@ -469,7 +464,6 @@ mod tests {
                 "Conformance/2.0.0".to_string(),
                 ast::Content {
                     properties: Some(attributes),
-                    version: None,
                 },
             ),
         });
@@ -497,7 +491,6 @@ mod tests {
                 "Entry_Code/2.0.0".to_string(),
                 ast::Content {
                     properties: Some(attributes),
-                    version: None,
                 },
             ),
         });

@@ -6,6 +6,7 @@ mod test {
         repositories::SQLiteConfig,
         EncodeBundle, Facade, HashFunctionCode, SerializationFormats,
     };
+    use overlay_file::overlay_registry::OverlayLocalRegistry;
 
     #[test]
     fn build_from_base() -> Result<(), Error> {
@@ -22,7 +23,8 @@ ADD LABEL en ATTRS d="Schema digest" i="Credential Issuee" passed="Passed"
         .to_string();
         let mut facade = Facade::new(Box::new(db), Box::new(db_cache), cache_storage_config);
 
-        let result = facade.build_from_ocafile(ocafile)?;
+        let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
+        let result = facade.build_from_ocafile(ocafile, registry)?;
 
         assert_eq!(
             result.said.clone().unwrap().to_string(),
@@ -54,14 +56,15 @@ ADD CONFORMANCE ATTRS d=M i=M passed=M
 ADD LABEL en ATTRS d="Schema digest" i="Credential Issuee" passed="Passed"
 "#
         .to_string();
-        facade.build_from_ocafile(other_ocafile)?;
+        let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
+        facade.build_from_ocafile(other_ocafile, registry.clone())?;
 
         let ocafile = r#"
 FROM EObIQDZX7SGy2oPOZue8qCdLWKSq10pXqMWdrXpBXIDa
 ADD ATTRIBUTE x=Text
 "#
         .to_string();
-        let result = facade.build_from_ocafile(ocafile)?;
+        let result = facade.build_from_ocafile(ocafile, registry)?;
 
         assert_eq!(
             result.said.unwrap().to_string(),
@@ -81,7 +84,9 @@ ADD ATTRIBUTE x=Text
 ADD ATTRIBUTE b=Text
 "#
         .to_string();
-        facade.build_from_ocafile(second_ocafile)?;
+
+        let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
+        facade.build_from_ocafile(second_ocafile, registry.clone())?;
 
         let third_ocafile = r#"
 -- name=second
@@ -89,7 +94,7 @@ ADD ATTRIBUTE c=Text
 "#
         .to_string();
 
-        facade.build_from_ocafile(third_ocafile)?;
+        facade.build_from_ocafile(third_ocafile, registry.clone())?;
 
         let ocafile = r#"
 ADD ATTRIBUTE A=refs:EI_5ohTYptgOrXldUfZujgd7vcXK9zwa6aNqk4-UDWzq
@@ -97,7 +102,7 @@ ADD ATTRIBUTE B=refn:first
 ADD ATTRIBUTE C=Array[refn:second]
 "#
         .to_string();
-        let result = facade.build_from_ocafile(ocafile)?;
+        let result = facade.build_from_ocafile(ocafile, registry.clone())?;
 
         assert_eq!(
             result.said.unwrap().to_string(),
@@ -110,7 +115,7 @@ ADD ATTRIBUTE x=Text
 "#
         .to_string();
 
-        let result = facade.build_from_ocafile(from_ocafile)?;
+        let result = facade.build_from_ocafile(from_ocafile, registry.clone())?;
         assert_eq!(
             result.said.unwrap().to_string(),
             "EAXRzHPTRUtNVi-9Stb6vPwiMdZu5_kISQD93YaSHSHV"
@@ -139,7 +144,8 @@ ADD ATTRIBUTE x=Text
 ADD ATTRIBUTE a=Text
 "#
         .to_string();
-        facade.build_from_ocafile(first_ocafile)?;
+        let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
+        facade.build_from_ocafile(first_ocafile, registry.clone())?;
 
         let second_ocafile = r#"
 -- name=second
@@ -148,7 +154,7 @@ ADD LINK refn:first ATTRS b=a
 "#
         .to_string();
 
-        let result = facade.build_from_ocafile(second_ocafile)?;
+        let result = facade.build_from_ocafile(second_ocafile, registry)?;
 
         assert_eq!(
             result.said.unwrap().to_string(),
@@ -171,7 +177,8 @@ ADD ATTRIBUTE B=refn:second
 ADD ATTRIBUTE C=Array[refn:third]
 "#
         .to_string();
-        let result = facade.build_from_ocafile(ocafile);
+        let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
+        let result = facade.build_from_ocafile(ocafile, registry);
         assert!(result.is_err());
         let error = result.unwrap_err();
         assert!(matches!(error, Error::ValidationError(_)));
