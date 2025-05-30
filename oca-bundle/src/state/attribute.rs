@@ -38,11 +38,8 @@ impl Attribute {
     pub fn merge(&mut self, other: &Attribute) {
         if self.name != other.name {
             panic!("Cannot merge attributes with different names");
-        } else {
-            if other.attribute_type.is_some() {
-                self.attribute_type.clone_from(&other.attribute_type);
-            }
-
+        } else if other.attribute_type.is_some() {
+            self.attribute_type.clone_from(&other.attribute_type);
         }
     }
 

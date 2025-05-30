@@ -108,8 +108,7 @@ impl Overlay {
     }
 }
 
-
-
+// TODO not used?
 fn sort_nested_value(value: &mut NestedValue) {
     match value {
         NestedValue::Object(map) => {

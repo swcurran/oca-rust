@@ -12,8 +12,7 @@ use crate::state::{
     attribute::Attribute,
     oca::{capture_base::CaptureBase, overlay::Overlay},
 };
-use isolang::Language;
-use oca_ast::ast::{CaptureContent, Command, CommandType, OCAAst, ObjectKind, OverlayContent};
+use oca_ast::ast::{CaptureContent, Command, CommandType, OCAAst, ObjectKind};
 
 /// OCA Context to provide access to overlay registry
 #[derive(Debug, Clone)]
@@ -111,6 +110,8 @@ impl OCABundle {
             }),
             overlay_def: None,
         };
+
+        // TODO ADD Overlays
         ast.commands.push(command);
         ast
     }
@@ -159,42 +160,12 @@ impl OCABundle {
         });
         self.fill_said();
     }
-
-
-    // pub fn generate_bundle(&mut self, context: Arc<OCAContext>) -> OCABundle {
-    //     let mut capture_base = self.generate_capture_base();
-    //
-    //     capture_base.calculate_said();
-    //
-    //     let cb_said = capture_base.said.as_ref();
-    //     self.overlays
-    //         .iter_mut()
-    //         .for_each(|x| x.calculate_said(cb_said.unwrap()));
-    //
-    //     let mut oca_bundle = OCABundle {
-    //         said: None,
-    //         capture_base,
-    //         overlays: self.overlays.clone(),
-    //         context,
-    //     };
-    //
-    //     oca_bundle.fill_said();
-    //     oca_bundle
-    // }
-    //
-    // fn generate_capture_base(&mut self) -> CaptureBase {
-    //     let mut capture_base = CaptureBase::new();
-    //
-    //     for attribute in self.attributes.values() {
-    //         capture_base.add(attribute);
-    //     }
-    //     capture_base
-    // }
 }
 
 #[cfg(test)]
 mod tests {
 
+    use log::debug;
     use oca_file::ocafile::parse_from_string;
 
     use crate::build::from_ast;
@@ -203,6 +174,7 @@ mod tests {
 
     #[test]
     fn build_oca_bundle() {
+        let _ = env_logger::builder().is_test(true).try_init();
         let unparsed_file = r#"
 -- version=2.0.0
 -- name=プラスウルトラ
@@ -257,20 +229,14 @@ ADD Overlay ENTRY
 "#;
         let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
         let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
-        let mut b1 = OCABundle::default();
-        b1.context = Arc::new(OCAContext::new(registry.clone()));
 
-        let mut b2 = OCABundle::default();
-        b2.context = Arc::new(OCAContext::new(registry));
-
-        let oca_bundle = from_ast(Some(b1), &oca_ast).unwrap().oca_bundle;
-        let oca_bundle2 = from_ast(Some(b2), &oca_ast).unwrap().oca_bundle;
-        // println!("{}", oca_bundle_json); */
+        let oca_bundle = from_ast(None, &oca_ast).unwrap().oca_bundle;
+        let oca_bundle2 = from_ast(None, &oca_ast).unwrap().oca_bundle;
         let said = oca_bundle.clone().said;
-        // let oca_bundle = oca.generate_bundle();
         let oca_bundle_json = serde_json::to_string_pretty(&oca_bundle).unwrap();
         let said2 = oca_bundle2.said;
         println!("{}", oca_bundle_json);
+        // Check if process is deterministic and gives always same SAID
         assert_eq!(said, said2);
     }
 }

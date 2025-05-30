@@ -56,15 +56,15 @@ pub fn parse_overlay_body(pair: Pair, overlay_def: OverlayDef) -> IndexMap<Strin
 
                 match key_value.clone().into_inner().next().unwrap().as_rule() {
                     Rule::string => {
-                        value = Some(NestedValue::Value(key_value.as_str().to_string()));
+                        value = Some(NestedValue::Value(key_value.into_inner().next().unwrap().into_inner().as_str().to_string()));
                         map.insert(key.clone().unwrap(), value.clone().unwrap());
                     }
                     Rule::array => {
+                        // TODO add support for nested arrays
                         let values = key_value
-                            .into_inner()
-                            .map(|v| NestedValue::Value(v.as_str().to_string()))
+                            .into_inner().next().unwrap().into_inner()
+                            .map(|v| NestedValue::Value(v.into_inner().next().unwrap().into_inner().as_str().to_string()))
                             .collect::<Vec<NestedValue>>();
-                        debug!("Parsed key: {:?}, value: {:?}", key, values);
                         value = Some(NestedValue::Array(values));
                         map.insert(key.clone().unwrap(), value.clone().unwrap());
                     }

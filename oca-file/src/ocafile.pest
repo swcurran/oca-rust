@@ -22,7 +22,7 @@ unicode = @{ "u" ~ ASCII_HEX_DIGIT{4} | "U" ~ ASCII_HEX_DIGIT{8} }
 single_quoted_string = _{ "'" ~ single_quoted_inner ~ "'" }
 single_quoted_inner  = @{ (!("'" | "\\" | "\u{0000}" | "\u{001F}") ~ ANY)* ~ (escape ~ single_quoted_inner)? }
 
-string = ${ single_quoted_string | double_quoted_string }
+string = { single_quoted_string | double_quoted_string }
 
 // a line continuation, allowing an instruction to continue onto a new line
 line_continuation = _{ "\\" ~ ws* ~ NEWLINE }
@@ -158,7 +158,7 @@ attr_key = ${ string | char+}
 
 key_value = { string | array_type | char+}
 array_type      = _{ "[" ~ arg_ws? ~ array? ~ arg_ws? ~ "]" }
-array  = @{ key_value ~ (arg_ws? ~ "," ~ arg_ws? ~ key_value)* }
+array  = { key_value ~ (arg_ws? ~ "," ~ arg_ws? ~ key_value)* }
 
 
 key_pair = ${ attr_key ~ arg_ws? ~ "=" ~ arg_ws? ~ key_value }
