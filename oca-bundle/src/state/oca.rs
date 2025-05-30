@@ -151,6 +151,16 @@ impl OCABundle {
         self.attributes.get_mut(name)
     }
 
+    pub fn compute(&mut self) {
+        self.capture_base.calculate_said();
+        let cb_said = self.capture_base.said.clone().unwrap();
+        self.overlays.iter_mut().for_each(|overlay| {
+            overlay.calculate_said(&cb_said);
+        });
+        self.fill_said();
+    }
+
+
     // pub fn generate_bundle(&mut self, context: Arc<OCAContext>) -> OCABundle {
     //     let mut capture_base = self.generate_capture_base();
     //

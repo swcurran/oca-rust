@@ -1,10 +1,7 @@
 use crate::state::oca::overlay::Overlay;
 use crate::state::oca::OCABundle;
-use crate::state::{
-    attribute::Attribute,
-};
+use crate::state::attribute::Attribute;
 use oca_ast::ast;
-use log::{debug, info};
 
 #[derive(Debug)]
 pub struct OCABuild {
@@ -40,6 +37,7 @@ pub enum Error {
     },
 }
 
+/// Create a new OCA build from OCA AST
 pub fn from_ast(
     from_bundle: Option<OCABundle>,
     oca_ast: &ast::OCAAst,
@@ -123,7 +121,7 @@ pub fn apply_command(base: &mut OCABundle, op: ast::Command) -> Result<&OCABundl
         }
         (ast::CommandType::Add, ast::ObjectKind::Overlay(content)) => {
             let mut overlay = Overlay::new(content.clone());
-            overlay.context = Some(base.context.clone());
+            overlay.overlay_def = Some(op.overlay_def.clone().unwrap());
             base.overlays.push(overlay);
         }
         (ast::CommandType::Add, ast::ObjectKind::OCABundle(_)) => todo!(),
@@ -141,6 +139,9 @@ pub fn apply_command(base: &mut OCABundle, op: ast::Command) -> Result<&OCABundl
         (ast::CommandType::Modify, ast::ObjectKind::Overlay(_)) => todo!(),
     }
 
+
+    base.compute();
+
     if errors.is_empty() {
         Ok(base)
     } else {
@@ -150,7 +151,7 @@ pub fn apply_command(base: &mut OCABundle, op: ast::Command) -> Result<&OCABundl
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, sync::Arc};
+    use std::sync::Arc;
 
     use crate::state::oca::OCAContext;
 
@@ -404,6 +405,7 @@ ADD Overlay ENTRY
             Ok(oca_build) => {
                 assert_eq!(oca_build.oca_bundle.overlays.len(), 9);
                 assert_eq!(oca_build.oca_bundle.capture_base.attributes.len(), 10);
+                assert!(oca_build.oca_bundle.said.is_some());
                 let code = HashFunctionCode::Blake3_256;
                 let format = SerializationFormats::JSON;
                 let oca_bundle_encoded = oca_build.oca_bundle.encode(&code, &format).unwrap();

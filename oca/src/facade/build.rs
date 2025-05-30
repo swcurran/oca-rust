@@ -67,6 +67,7 @@ impl References for Box<dyn DataStorage> {
     }
 }
 
+/// Build an OCABundle from OCAFILE
 pub fn build_from_ocafile(ocafile: String, registry: OverlayLocalRegistry) -> Result<OCABundle, Error> {
     let ast = ocafile::parse_from_string(ocafile.clone(), &registry)
         .map_err(|e| Error::ValidationError(vec![ValidationError::OCAFileParse(e)]))?;
@@ -159,49 +160,50 @@ impl Facade {
         }
 
         let mut base: Option<OCABundle> = None;
+        // TODO it does only the reference FROM command check how we do it now
         // TODO this should be avoided if the ast is passed for further processing, the base is
         // checked again in generate bundle
-        if let Some(first_command) = oca_ast.commands.first() {
-            if let (oca_ast::ast::CommandType::From, ObjectKind::OCABundle(content)) = (
-                first_command.clone().kind,
-                first_command.clone().object_kind,
-            ) {
-                match content.said {
-                    ReferenceAttrType::Reference(refs) => {
-                        match refs {
-                            RefValue::Said(said) => {
-                                match get_oca_bundle(storage, said, false) {
-                                    Ok(oca_bundle) => {
-                                        // TODO
-                                        base = Some(oca_bundle.bundle.clone());
-                                    }
-                                    Err(e) => {
-                                        let default_command_meta =
-                                            oca_ast::ast::CommandMeta {
-                                                line_number: 0,
-                                                raw_line: "unknown".to_string(),
-                                            };
-                                        let command_meta = oca_ast
-                                            .commands_meta
-                                            .get(&0)
-                                            .unwrap_or(&default_command_meta);
-                                        e.iter().for_each(|e| {
-                                            errors.push(ValidationError::InvalidCommand {
-                                                line_number: command_meta.line_number,
-                                                raw_line: command_meta.raw_line.clone(),
-                                                message: e.clone(),
-                                            })
-                                        });
-                                    }
-                                }
-                            }
-                            RefValue::Name(_) => todo!(),
-                        }
-                    }
-                }
-                oca_ast.commands.remove(0);
-            }
-        };
+        // if let Some(first_command) = oca_ast.commands.first() {
+        //     if let (oca_ast::ast::CommandType::From, ObjectKind::OCABundle(content)) = (
+        //         first_command.clone().kind,
+        //         first_command.clone().object_kind,
+        //     ) {
+        //         match content.said {
+        //             ReferenceAttrType::Reference(refs) => {
+        //                 match refs {
+        //                     RefValue::Said(said) => {
+        //                         match get_oca_bundle(storage, said, false) {
+        //                             Ok(oca_bundle) => {
+        //                                 // TODO
+        //                                 base = Some(oca_bundle.bundle.clone());
+        //                             }
+        //                             Err(e) => {
+        //                                 let default_command_meta =
+        //                                     oca_ast::ast::CommandMeta {
+        //                                         line_number: 0,
+        //                                         raw_line: "unknown".to_string(),
+        //                                     };
+        //                                 let command_meta = oca_ast
+        //                                     .commands_meta
+        //                                     .get(&0)
+        //                                     .unwrap_or(&default_command_meta);
+        //                                 e.iter().for_each(|e| {
+        //                                     errors.push(ValidationError::InvalidCommand {
+        //                                         line_number: command_meta.line_number,
+        //                                         raw_line: command_meta.raw_line.clone(),
+        //                                         message: e.clone(),
+        //                                     })
+        //                                 });
+        //                             }
+        //                         }
+        //                     }
+        //                     RefValue::Name(_) => todo!(),
+        //                 }
+        //             }
+        //         }
+        //         oca_ast.commands.remove(0);
+        //     }
+        // };
         Ok((base, oca_ast))
     }
 
@@ -226,6 +228,7 @@ impl Facade {
 
         if schema_name.is_some() {
             let schema_name = schema_name.unwrap();
+            println!("Said: {:?}", oca_build.oca_bundle.said);
             let said = oca_build.oca_bundle.said.clone().unwrap().to_string();
             references.save(schema_name, said.clone());
         };

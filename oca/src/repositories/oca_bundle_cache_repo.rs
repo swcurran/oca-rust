@@ -15,6 +15,7 @@ impl OCABundleCacheRecord {
         let format = SerializationFormats::JSON;
         Self {
             said: oca_bundle.said.clone().unwrap().to_string(),
+            // TODO: why we encode here why not to pass already build object..?
             oca_bundle: String::from_utf8(oca_bundle.encode(&code, &format).unwrap()).unwrap(),
         }
     }

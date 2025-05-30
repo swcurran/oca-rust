@@ -1,35 +1,16 @@
 use indexmap::IndexMap;
 use oca_ast::ast::{NestedValue, OverlayContent};
-use overlay_file::overlay_registry::{OverlayLocalRegistry, OverlayRegistry};
+use overlay_file::OverlayDef;
 use said::derivation::HashFunctionCode;
 use serde::{Deserialize, Serialize, Serializer};
-use serde::ser::Error as SerdeError;
 use said::sad::{SerializationFormats, SAD};
 use said::version::SerializationInfo;
 use thiserror::Error;
 use std::cmp::Ordering;
 use std::io::Cursor;
-use std::sync::Arc;
 use log::{debug, info};
 
 pub type OverlayName = String;
-
-use std::cell::RefCell;
-
-use super::OCAContext;
-
-thread_local! {
-    static GLOBAL_REGISTRY: RefCell<Option<OverlayLocalRegistry>> = RefCell::new(None);
-}
-
-pub fn set_global_registry(registry: OverlayLocalRegistry) {
-    GLOBAL_REGISTRY.with(|r| *r.borrow_mut() = Some(registry));
-}
-
-pub fn get_global_registry() -> Option<OverlayLocalRegistry> {
-    GLOBAL_REGISTRY.with(|r| r.borrow().clone())
-}
-
 
 #[derive(SAD, Deserialize, Debug, Clone)]
 #[version(protocol = "OCAS", major = 2, minor = 0)]
@@ -46,7 +27,7 @@ pub struct Overlay {
     #[serde(flatten)]
     pub properties: Option<IndexMap<String, NestedValue>>,
     #[serde(skip)]
-    pub context: Option<Arc<OCAContext>>,
+    pub overlay_def: Option<OverlayDef>,
 }
 
 impl Serialize for Overlay {
@@ -63,17 +44,12 @@ impl Serialize for Overlay {
         map.serialize_entry("capture_base", &self.capture_base)?;
         map.serialize_entry("type", &self.name)?;
 
-        if let Some(context) = &self.context {
             // If registry is set, use it to serialize the overlay elements
-            for element in context.registry.get_by_fqn(&self.name).unwrap().unwrap().elements.iter() {
+            for element in self.overlay_def.as_ref().unwrap().elements.iter() {
                 if let Some(value) = self.properties.as_ref().and_then(|props| props.get(&element.name)) {
                     map.serialize_entry(&element.name, value)?;
                 }
             }
-        } else {
-            // If no registry is set, we cannot serialize the overlay elements
-            return Err(S::Error::custom("No registry set for overlay serialization"));
-        }
 
         // Serialize remaining properties in lexicographical order
         if let Some(properties) = &self.properties {
@@ -96,7 +72,7 @@ impl Overlay {
             unique_keys: None,
             capture_base: None,
             properties: content.properties,
-            context: None,
+            overlay_def: None,
         }
     }
 
