@@ -164,12 +164,9 @@ impl OCABundle {
 
 #[cfg(test)]
 mod tests {
-
-    use log::debug;
     use oca_file::ocafile::parse_from_string;
-
+    use serde_value::Value;
     use crate::build::from_ast;
-
     use super::*;
 
     #[test]
@@ -230,12 +227,175 @@ ADD Overlay ENTRY
         let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
         let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
 
+        println!("OCA AST: {:#?}", oca_ast);
+
+        let bundle_json = r#"
+        {
+  "digest": "EHm2AW4F6kh3HVYDlq7X8h4zHMHy4UoGLfhFF0tA5BIH",
+  "capture_base": {
+    "digest": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
+    "type": "capture_base/2.0.0",
+    "attributes": {
+      "age": "Numeric",
+      "car": [
+        "refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu"
+      ],
+      "d": "Text",
+      "el": "Text",
+      "i": "Text",
+      "incidentals_spare_parts": [
+        [
+          "refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu"
+        ]
+      ],
+      "list": [
+        "Text"
+      ],
+      "name": "Text",
+      "passed": "Boolean",
+      "remove": "Text"
+    }
+  },
+  "overlays": [
+    {
+      "digest": "EL_0PrkT0C914YZ2wsrqultjUpUeSCwxjhM3kQdzCsHn",
+      "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
+      "type": "Meta/2.0.0",
+      "language": "en",
+      "description": "Entrance credential",
+      "language": "en",
+      "name": "Entrance credential"
+    },
+    {
+      "digest": "EDb0-3T9elDEOk5mrbI-Dd58dnQrWAyQxywlpYxRwrQo",
+      "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
+      "type": "Character_Encoding/2.0.0",
+      "attribute_character_encoding": {
+        "d": "utf-8",
+        "i": "utf-8",
+        "passed": "utf-8"
+      },
+      "attribute_character_encoding": {
+        "d": "utf-8",
+        "i": "utf-8",
+        "passed": "utf-8"
+      }
+    },
+    {
+      "digest": "EHV4aoto43PHxIEu9xnyCmKN3shbiOAb970GQ61DWtP4",
+      "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
+      "type": "conformance/2.0.0",
+      "attribute_conformance": {
+        "d": "M",
+        "i": "M",
+        "passed": "M"
+      },
+      "attribute_conformance": {
+        "d": "M",
+        "i": "M",
+        "passed": "M"
+      }
+    },
+    {
+      "digest": "EAc3v_t8LTZZfL5TAuC0DZNvtMCYCgFi0yFOfFtUvbXf",
+      "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
+      "type": "label/2.0.0",
+      "attr_labels": {
+        "language": "en",
+        "d": "Schema digest",
+        "i": "Credential Issuee",
+        "passed": "Passed"
+      },
+      "attr_labels": {
+        "language": "en",
+        "d": "Schema digest",
+        "i": "Credential Issuee",
+        "passed": "Passed"
+      }
+    },
+    {
+      "digest": "EKX3BzX4RbqHqo38kjtFbM7oKnAtd6586JDpnozCHyfJ",
+      "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
+      "type": "format/2.0.0",
+      "attribute_formats": {
+        "d": "image/jpeg"
+      },
+      "attribute_formats": {
+        "d": "image/jpeg"
+      }
+    },
+    {
+      "digest": "ENLaH1nmt6Kkq_q-qYY5FSoO3nKSgt351FtD_tWsR6VL",
+      "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
+      "type": "unit/2.0.0",
+      "attribute_units": {
+        "i": "m^2",
+        "d": "°"
+      },
+      "attribute_units": {
+        "i": "m^2",
+        "d": "°"
+      }
+    },
+    {
+      "digest": "EBkhQh3X5-b9DWArEDElzU9BdVZ4vqHxf7UpdkmFq-8o",
+      "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
+      "type": "cardinality/2.0.0",
+      "attr_cardinality": {
+        "list": "1-2"
+      },
+      "attr_cardinality": {
+        "list": "1-2"
+      }
+    },
+    {
+      "digest": "EN7SBx8PFcJsOr2TIkhnik_eObQ4I9US6h2apn2v9SDO",
+      "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
+      "type": "ENTRY_CODE/2.0.0",
+      "attribute_entry_codes": {
+        "list": "entry_code_said",
+        "el": [
+          "o1",
+          "o2",
+          "o3"
+        ]
+      },
+      "attribute_entry_codes": {
+        "list": "entry_code_said",
+        "el": [
+          "o1",
+          "o2",
+          "o3"
+        ]
+      }
+    },
+    {
+      "digest": "EBaxpD_M1vs25VRgs8CokqfpLd_o_uLtilniBTrxkc_2",
+      "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
+      "type": "ENTRY/2.0.0",
+      "attribute_entrires": {
+        "language": "en",
+        "list": "entry_said",
+        "el": {
+          "o1": "o1_label",
+          "o2": "o2_label",
+          "o3": "o3_label"
+        }
+      }
+    }
+  ]
+}
+"#;
+        let reference_json: Value = serde_json::from_str(bundle_json).unwrap();
         let oca_bundle = from_ast(None, &oca_ast).unwrap().oca_bundle;
         let oca_bundle2 = from_ast(None, &oca_ast).unwrap().oca_bundle;
         let said = oca_bundle.clone().said;
         let oca_bundle_json = serde_json::to_string_pretty(&oca_bundle).unwrap();
+        assert_eq!(
+            serde_json::from_str::<Value>(&oca_bundle_json).unwrap(),
+            reference_json
+        );
         let said2 = oca_bundle2.said;
-        println!("{}", oca_bundle_json);
         // Check if process is deterministic and gives always same SAID
         assert_eq!(said, said2);
     }
