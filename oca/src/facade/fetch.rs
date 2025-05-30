@@ -358,8 +358,8 @@ impl Facade {
         Ok(oca_ast)
     }
 
-    pub fn parse_oca_bundle_to_ocafile(&self, bundle: &OCABundle) -> Result<String, Vec<String>> {
-        let oca_ast = bundle.to_ast();
+    pub fn parse_oca_bundle_to_ocafile(&self, bundle: &OCABundle, registry: overlay_file::overlay_registry::OverlayLocalRegistry) -> Result<String, Vec<String>> {
+        let oca_ast = bundle.to_ast(registry);
         Ok(ocafile::generate_from_ast(&oca_ast))
     }
 }
@@ -457,7 +457,7 @@ ADD ENTRY en ATTRS list="refs:ENrf7niTCnz7HD-Ci88rlxHlxkpQ2NIZNNv08fQnXANI" el={
         let registry = OverlayLocalRegistry::from_dir("../../../overlay-file/core_overlays").unwrap();
         let oca_bundle = facade.build_from_ocafile(ocafile_input, registry.clone());
         let oca_bundle = oca_bundle.unwrap();
-        let ocafile = facade.parse_oca_bundle_to_ocafile(&oca_bundle)?;
+        let ocafile = facade.parse_oca_bundle_to_ocafile(&oca_bundle, registry.clone())?;
         let new_bundle = facade.build_from_ocafile(ocafile, registry);
         match new_bundle {
             Ok(new_bundle) => {

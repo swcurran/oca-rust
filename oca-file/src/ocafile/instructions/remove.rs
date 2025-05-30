@@ -48,6 +48,7 @@ impl RemoveInstruction {
         Ok(Command {
             kind: CommandType::Remove,
             object_kind: object_kind.unwrap(),
+            overlay_def: None,
         })
     }
 }

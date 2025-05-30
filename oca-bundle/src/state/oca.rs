@@ -89,7 +89,7 @@ impl OCABundle {
         self.context = context;
     }
 
-    pub fn to_ast(&self) -> OCAAst {
+    pub fn to_ast(&self, registry: OverlayLocalRegistry) -> OCAAst {
         let mut ast = OCAAst::new();
 
         let properties = None;
@@ -109,6 +109,7 @@ impl OCABundle {
                 attributes: Some(self.capture_base.attributes.clone().into_iter().collect()),
                 properties,
             }),
+            overlay_def: None,
         };
         ast.commands.push(command);
         ast

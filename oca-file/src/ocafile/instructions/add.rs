@@ -112,13 +112,13 @@ impl AddInstruction {
             properties: None,
             overlay_name: "".to_string(),
         };
+        let mut overlay_def: Option<OverlayDef> = None;
 
         debug!("Parsing add instruction from the record: {:?}", record);
         for object in record.into_inner() {
             match object.as_rule() {
                 Rule::overlay => {
                     debug!("Parsing overlay block: {:?}", object);
-                    let mut overlay_def: Option<OverlayDef> = None;
 
                     for overlay in object.into_inner() {
                         match overlay.as_rule() {
@@ -206,11 +206,10 @@ impl AddInstruction {
             };
         }
 
-        println!("Parsed add instruction: {:?}", object_kind);
-
         Ok(Command {
             kind,
             object_kind: object_kind.unwrap(),
+            overlay_def,
         })
     }
 }

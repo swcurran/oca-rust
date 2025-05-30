@@ -34,6 +34,7 @@ impl FromInstruction {
         Ok(Command {
             kind: CommandType::From,
             object_kind: ObjectKind::OCABundle(BundleContent { said }),
+            overlay_def: None,
         })
     }
 }

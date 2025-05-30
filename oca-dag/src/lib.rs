@@ -95,10 +95,7 @@ pub fn build_core_db_model(oca_build: &oca_bundle::build::OCABuild) -> Vec<Resul
     result_models
 }
 
-fn apply_step(
-    state: State,
-    step: &oca_bundle::build::OCABuildStep,
-) -> (State, ResultModel) {
+fn apply_step(state: State, step: &oca_bundle::build::OCABuildStep) -> (State, ResultModel) {
     let mut current_state = state.clone();
     let mut result = ResultModel::new();
     let command_model = CommandModel::new(step.command.clone());
@@ -188,20 +185,20 @@ mod tests {
                 }),
                 properties: None,
             }),
+            overlay_def: None,
         });
 
         // 2. add label en abc "ble"
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
-            object_kind: ast::ObjectKind::Overlay(
-                OverlayContent {
-                    properties: Some(indexmap! {
-                        "lang".to_string() => ast::NestedValue::Value("en".to_string()),
-                        "abc".to_string() => ast::NestedValue::Value("ble".to_string())
-                    }),
-                    overlay_name: "Label/2.0.0".to_string(),
-                },
-            ),
+            object_kind: ast::ObjectKind::Overlay(OverlayContent {
+                properties: Some(indexmap! {
+                    "lang".to_string() => ast::NestedValue::Value("en".to_string()),
+                    "abc".to_string() => ast::NestedValue::Value("ble".to_string())
+                }),
+                overlay_name: "Label/2.0.0".to_string(),
+            }),
+            overlay_def: None,
         });
 
         // 3. add attr def
@@ -213,20 +210,20 @@ mod tests {
                 }),
                 properties: None,
             }),
+            overlay_def: None,
         });
 
         // 4. add label fr abc "ble"
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
-            object_kind: ast::ObjectKind::Overlay(
-                OverlayContent {
-                    properties: Some(indexmap! {
-                        "lang".to_string() => ast::NestedValue::Value("fr".to_string()),
-                        "abc".to_string() => ast::NestedValue::Value("ble".to_string())
-                    }),
-                    overlay_name: "Label/2.0.0".to_string(),
-                },
-            ),
+            object_kind: ast::ObjectKind::Overlay(OverlayContent {
+                properties: Some(indexmap! {
+                    "lang".to_string() => ast::NestedValue::Value("fr".to_string()),
+                    "abc".to_string() => ast::NestedValue::Value("ble".to_string())
+                }),
+                overlay_name: "Label/2.0.0".to_string(),
+            }),
+            overlay_def: None,
         });
 
         // 5. update attr "en" abc "bererg"

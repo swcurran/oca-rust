@@ -81,8 +81,8 @@ pub fn build_from_ocafile(ocafile: String, registry: OverlayLocalRegistry) -> Re
     Ok(oca_build.oca_bundle)
 }
 
-pub fn parse_oca_bundle_to_ocafile(bundle: &OCABundle) -> String {
-    ocafile::generate_from_ast(&bundle.to_ast())
+pub fn parse_oca_bundle_to_ocafile(bundle: &OCABundle, registry: OverlayLocalRegistry) -> String {
+    ocafile::generate_from_ast(&bundle.to_ast(registry))
 }
 
 impl Facade {

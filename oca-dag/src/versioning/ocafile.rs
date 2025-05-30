@@ -101,6 +101,7 @@ mod tests {
                 attributes: Some(attributes),
                 properties: None,
             }),
+            overlay_def: None,
         });
 
         let mut properties = IndexMap::new();
@@ -124,6 +125,7 @@ mod tests {
                     overlay_name: "Meta/2.0.0".to_string(),
                 },
             ),
+            overlay_def: None,
         });
 
         let mut attributes = IndexMap::new();
@@ -152,6 +154,7 @@ mod tests {
                     overlay_name: "Label/2.0.0".to_string(),
                 },
             ),
+            overlay_def: None,
         });
 
         let mut attributes = IndexMap::new();
@@ -194,6 +197,7 @@ mod tests {
                     overlay_name: "Character_Encoding/2.0.0".to_string(),
                 },
             ),
+            overlay_def: None,
         });
 
         let mut attributes = IndexMap::new();
@@ -211,6 +215,7 @@ mod tests {
                     overlay_name: "Conformance/2.0.0".to_string(),
                 },
             ),
+            overlay_def: None,
         });
 
         let db = SledDataStorage::open("db_test");
@@ -238,6 +243,7 @@ mod tests {
         commands.push(ast::Command {
             kind: ast::CommandType::From,
             object_kind: ast::ObjectKind::OCABundle(BundleContent { said: reference }),
+            overlay_def: None,
         });
 
         let mut attributes = IndexMap::new();
@@ -251,6 +257,7 @@ mod tests {
                 attributes: Some(attributes),
                 properties: None,
             }),
+            overlay_def: None,
         });
 
         let db = SledDataStorage::open("db_test");

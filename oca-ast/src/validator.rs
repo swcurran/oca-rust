@@ -293,6 +293,7 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
+            overlay_def: None,
         };
 
         let command2 = Command {
@@ -304,6 +305,7 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
+            overlay_def: None,
         };
 
         let remove_command = Command {
@@ -315,6 +317,7 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
+            overlay_def: None,
         };
 
         let add_command = Command {
@@ -325,6 +328,7 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
+            overlay_def: None,
         };
 
         let valid_command = Command {
@@ -336,6 +340,7 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
+            overlay_def: None,
         };
 
         let invalid_command = Command {
@@ -346,6 +351,7 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
+            overlay_def: None,
         };
 
         let mut ocaast = OCAAst::new();
@@ -372,6 +378,7 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
+            overlay_def: None,
         };
 
         let command2 = Command {
@@ -383,6 +390,7 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
+            overlay_def: None,
         };
 
         let valid_command = Command {
@@ -394,6 +402,7 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
+            overlay_def: None,
         };
 
         let invalid_command = Command {
@@ -405,6 +414,7 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
+            overlay_def: None,
         };
 
         let mut ocaast = OCAAst::new();

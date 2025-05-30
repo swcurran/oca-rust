@@ -12,6 +12,7 @@ fn generate_commands() -> Vec<ast::Command> {
             attributes: None,
             properties: None,
         }),
+        overlay_def: None,
     });
 
     let mut attributes = IndexMap::new();
@@ -30,6 +31,7 @@ fn generate_commands() -> Vec<ast::Command> {
             attributes: Some(attributes),
             properties: Some(indexmap! {}),
         }),
+        overlay_def: None,
     });
 
     commands

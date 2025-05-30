@@ -2,6 +2,7 @@ pub mod error;
 pub mod overlay_registry;
 use self::error::ParseError;
 use pest::Parser;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(pest_derive::Parser)]
@@ -25,7 +26,13 @@ impl OverlayFile {
     }
 }
 
-#[derive(Debug, Clone)]
+impl Default for OverlayFile {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct OverlayDef {
     pub namespace: Option<String>,
     pub name: String,
@@ -61,14 +68,14 @@ pub struct KeyPair {
     pub kind: ElementType,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct OverlayElementDef {
     pub name: String,
     pub keys: KeyType,
     pub values: ElementType,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 /// Type of the keys allowed for Overlay Object
 pub enum KeyType {
     /// Keys names needs to correspond to the attribute names from Capture Base
@@ -77,7 +84,7 @@ pub enum KeyType {
     Text
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 /// Type of the values allowed for Overlay Object
 pub enum ElementType {
     Object,
@@ -88,7 +95,7 @@ pub enum ElementType {
     Ref,
 }
 
-#[derive(Debug,Clone, Eq, PartialEq)]
+#[derive(Debug,Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum ConstraintKind {
     /// Only defined values are allowed
     Closed(Option<Vec<String>>),
