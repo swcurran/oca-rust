@@ -76,7 +76,7 @@ impl Validator {
 
     pub fn validate(self, oca_bundle: &OCABundleModel) -> Result<(), Vec<Error>> {
         let enforced_langs: HashSet<_> = self.enforced_translations.iter().collect();
-        let mut errors: Vec<Error> = vec![];
+        let errors: Vec<Error> = vec![];
 
         /* let oca_bundle: OCABundle = serde_json::from_str(oca_str.as_str())
                    .map_err(|e| vec![Error::Custom(e.to_string())])?;

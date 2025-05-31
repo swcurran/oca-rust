@@ -222,7 +222,7 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                         let (name, _) = content
                             .overlay_name
                             .split_once("/")
-                            .ok_or_else(|| {
+                            .ok_or({
                                 "Invalid overlay name format: version not found or in wrong format"
                             })
                             .unwrap();
@@ -231,7 +231,7 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                             if let Some(ref properties) = content.properties {
                                 let properties = properties.clone();
                                 if !properties.is_empty() {
-                                    line.push_str("\n");
+                                    line.push('\n');
                                     properties.iter().for_each(|(key, value)| {
                                         let formatted_value = format_nested_value(value, 4);
                                         if value.is_object() {

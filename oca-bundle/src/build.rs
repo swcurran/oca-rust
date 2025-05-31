@@ -1,6 +1,4 @@
-use std::collections::HashMap;
 
-use crate::state::attribute::Attribute;
 use crate::state::oca_bundle::overlay::OverlayModel;
 use crate::state::oca_bundle::OCABundleModel;
 use oca_ast::ast;
@@ -54,7 +52,7 @@ pub fn from_ast(
     };
     let has_from_bundle = from_bundle.is_some();
 
-    let mut oca_bundle = from_bundle.unwrap_or_else(|| OCABundleModel::default());
+    let mut oca_bundle = from_bundle.unwrap_or_default();
 
     let default_command_meta = ast::CommandMeta {
         line_number: 0,

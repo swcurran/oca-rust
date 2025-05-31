@@ -1,11 +1,6 @@
-use isolang::Language;
-use oca_bundle::{
-    state::attribute::{Attribute, AttributeType},
-    Encode as EncodeBundle, HashFunctionCode, SerializationFormats,
-};
+use oca_bundle::state::attribute::{Attribute, AttributeType};
 
 use cascade::cascade;
-use serde_value::Value;
 
 #[test]
 fn create_oca() {
@@ -15,7 +10,7 @@ fn create_oca() {
     //     // ..add_meta(Language::Eng, "description".to_string(), "Test case OCA".to_string());
     // };
 
-    let mut attribute = cascade! {
+    let attribute = cascade! {
         Attribute::new("name".to_string());
         ..set_attribute_type(oca_ast::ast::NestedAttrType::Value(AttributeType::Text));
         // ..set_encoding(Encoding::Utf8);
@@ -37,7 +32,7 @@ fn create_oca() {
 
     //oca.add_attribute(attribute);
 
-    let mut attribute_2 = cascade! {
+    let attribute_2 = cascade! {
         Attribute::new("age".to_string());
         ..set_attribute_type(oca_ast::ast::NestedAttrType::Value(AttributeType::Numeric));
         // ..set_encoding(Encoding::Utf8);

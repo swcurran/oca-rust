@@ -261,38 +261,35 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                     }
                     Rule::overlay_attributes => {
                         for a in attr.into_inner() {
-                            match a.as_rule() {
-                                Rule::key_pair => {
-                                    let mut key_pair = KeyPair {
-                                        name: "".to_string(),
-                                        kind: ElementType::Text,
-                                    };
-                                    a.into_inner().for_each(|kp| match kp.as_rule() {
-                                        Rule::attr_name => {
-                                            key_pair.name = kp.as_str().to_string();
-                                        }
-                                        Rule::attr_value_type => match kp.as_str() {
-                                            "Text" => key_pair.kind = ElementType::Text,
-                                            "Ref" => key_pair.kind = ElementType::Ref,
-                                            "Binary" => key_pair.kind = ElementType::Binary,
-                                            "Array" => key_pair.kind = ElementType::Array(None),
-                                            _ => {}
-                                        },
-                                        _ => {
-                                            panic!(
-                                                "Incorrect key pair for attribute: {:?}",
-                                                kp.as_rule()
-                                            )
-                                        }
-                                    });
-                                    let element = OverlayElementDef {
-                                        name: key_pair.name.clone(),
-                                        keys: KeyType::Text,
-                                        values: key_pair.kind.clone(),
-                                    };
-                                    overlay_def.elements.push(element);
-                                }
-                                _ => {}
+                            if a.as_rule() == Rule::key_pair {
+                                let mut key_pair = KeyPair {
+                                    name: "".to_string(),
+                                    kind: ElementType::Text,
+                                };
+                                a.into_inner().for_each(|kp| match kp.as_rule() {
+                                    Rule::attr_name => {
+                                        key_pair.name = kp.as_str().to_string();
+                                    }
+                                    Rule::attr_value_type => match kp.as_str() {
+                                        "Text" => key_pair.kind = ElementType::Text,
+                                        "Ref" => key_pair.kind = ElementType::Ref,
+                                        "Binary" => key_pair.kind = ElementType::Binary,
+                                        "Array" => key_pair.kind = ElementType::Array(None),
+                                        _ => {}
+                                    },
+                                    _ => {
+                                        panic!(
+                                            "Incorrect key pair for attribute: {:?}",
+                                            kp.as_rule()
+                                        )
+                                    }
+                                });
+                                let element = OverlayElementDef {
+                                    name: key_pair.name.clone(),
+                                    keys: KeyType::Text,
+                                    values: key_pair.kind.clone(),
+                                };
+                                overlay_def.elements.push(element);
                             }
                         }
                     }

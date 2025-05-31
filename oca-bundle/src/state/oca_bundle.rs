@@ -21,6 +21,7 @@ pub struct OCABundle {
 }
 
 #[derive(Serialize, Debug, Deserialize, Clone)]
+#[derive(Default)]
 pub struct OCABundleModel {
     pub digest: Option<said::SelfAddressingIdentifier>,
     pub capture_base: CaptureBase,
@@ -29,16 +30,6 @@ pub struct OCABundleModel {
     pub attributes: Option<HashMap<String, Attribute>>,
 }
 
-impl Default for OCABundleModel {
-    fn default() -> Self {
-        OCABundleModel {
-            digest: None,
-            capture_base: CaptureBase::default(),
-            overlays: Vec::new(),
-            attributes: None,
-        }
-    }
-}
 
 impl From<OCABundleModel> for OCABundle {
     fn from(model: OCABundleModel) -> Self {

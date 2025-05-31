@@ -69,7 +69,7 @@ impl OverlayRegistry for OverlayLocalRegistry {
             .unwrap_or((None, overlay_name));
         let (name, version) = name
             .split_once("/")
-            .ok_or_else(|| "Invalid overlay name format: version not found or in wrong format")?;
+            .ok_or("Invalid overlay name format: version not found or in wrong format")?;
         let name = name.to_ascii_lowercase();
         let namespace = namespace.map(|ns| ns.to_ascii_lowercase());
 
@@ -124,7 +124,7 @@ mod tests {
     fn test_overlay_registry() {
         let registry = OverlayLocalRegistry::from_dir("core_overlays").unwrap();
         assert_eq!(registry.list_all().len(), 9);
-        assert_eq!(registry.get_by_filename("semantic").is_some(), true);
+        assert!(registry.get_by_filename("semantic").is_some());
         assert_eq!(
             registry.get_by_fqn("label/2.0.0").unwrap().unwrap().name,
             "label"
@@ -133,7 +133,7 @@ mod tests {
         // TODO file can include more then one overlay
         let semantic_overlay_file = registry.get_by_filename("semantic").unwrap();
         assert_eq!(semantic_overlay_file.overlays_def.len(), 9);
-        let label_overlay = semantic_overlay_file.overlays_def.get(0).unwrap();
+        let label_overlay = semantic_overlay_file.overlays_def.first().unwrap();
         assert_eq!(label_overlay.name, "label");
     }
 }

@@ -230,7 +230,7 @@ impl Facade {
         // not match.
         local_references::replace_refn_with_refs(&mut oca_ast, references).map_err(|e| vec![e])?;
 
-        let mut oca_build = oca_bundle::build::from_ast(base, &oca_ast).map_err(|e| {
+        let oca_build = oca_bundle::build::from_ast(base, &oca_ast).map_err(|e| {
             e.iter()
                 .map(|e| ValidationError::OCABundleBuild(e.clone()))
                 .collect::<Vec<_>>()
