@@ -997,7 +997,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "oca-rs"
+name = "oca-store"
 version = "2.0.0-rc2"
 dependencies = [
  "dyn-clonable",
@@ -1010,7 +1010,7 @@ dependencies = [
  "overlay-file",
  "regex",
  "rusqlite",
- "said 0.4.1",
+ "said 0.4.2",
  "serde",
  "serde_json",
  "sled",
@@ -1660,7 +1660,7 @@ dependencies = [
 name = "tests-integration"
 version = "2.0.0-rc2"
 dependencies = [
- "oca-rs",
+ "oca-store",
  "overlay-file",
 ]
 

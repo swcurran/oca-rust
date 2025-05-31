@@ -4,7 +4,7 @@ members = [
     "oca-bundle",
     "oca-ast",
     "oca-dag",
-    "oca",
+    "oca-store",
     "oca-file",
     "transformation/ast",
     "transformation/oca-file",
