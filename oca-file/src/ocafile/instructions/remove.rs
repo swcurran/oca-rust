@@ -2,7 +2,7 @@ use crate::ocafile::{error::InstructionError, Pair, Rule};
 use indexmap::IndexMap;
 use log::debug;
 use oca_ast::ast::{
-    CaptureContent, Command, CommandType, OverlayContent, NestedAttrType, NestedValue, ObjectKind,
+    CaptureContent, Command, CommandType, NestedAttrType, NestedValue, ObjectKind, OverlayContent,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -18,12 +18,10 @@ impl RemoveInstruction {
                 Rule::remove_overlay => {
                     let name = object.as_str();
 
-                    object_kind = Some(ObjectKind::Overlay(
-                        OverlayContent {
-                            properties: Some(extract_properties_pairs(object)),
-                            overlay_name: name.to_string(),
-                        },
-                    ));
+                    object_kind = Some(ObjectKind::Overlay(OverlayContent {
+                        properties: Some(extract_properties_pairs(object)),
+                        overlay_name: name.to_string(),
+                    }));
                 }
                 Rule::remove_attribute => {
                     let mut attributes: IndexMap<String, NestedAttrType> = IndexMap::new();

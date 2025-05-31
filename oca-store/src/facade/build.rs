@@ -63,7 +63,10 @@ impl References for Box<dyn DataStorage> {
 }
 
 /// Build an OCABundle from OCAFILE
-pub fn build_from_ocafile(ocafile: String, registry: OverlayLocalRegistry) -> Result<OCABundle, Error> {
+pub fn build_from_ocafile(
+    ocafile: String,
+    registry: OverlayLocalRegistry,
+) -> Result<OCABundle, Error> {
     let ast = ocafile::parse_from_string(ocafile.clone(), &registry)
         .map_err(|e| Error::ValidationError(vec![ValidationError::OCAFileParse(e)]))?;
     let oca_build = oca_bundle::build::from_ast(None, &ast)
@@ -78,13 +81,20 @@ pub fn build_from_ocafile(ocafile: String, registry: OverlayLocalRegistry) -> Re
     Ok(bundle)
 }
 
-pub fn parse_oca_bundle_to_ocafile(bundle: &OCABundleModel, registry: OverlayLocalRegistry) -> String {
+pub fn parse_oca_bundle_to_ocafile(
+    bundle: &OCABundleModel,
+    registry: OverlayLocalRegistry,
+) -> String {
     ocafile::generate_from_ast(&bundle.to_ast(registry))
 }
 
 impl Facade {
     #[cfg(not(feature = "local-references"))]
-    pub fn validate_ocafile(&self, ocafile: String, registry: OverlayLocalRegistry) -> Result<OCABuild, Vec<ValidationError>> {
+    pub fn validate_ocafile(
+        &self,
+        ocafile: String,
+        registry: OverlayLocalRegistry,
+    ) -> Result<OCABuild, Vec<ValidationError>> {
         let (base, oca_ast) = Self::parse_and_check_base(self.storage(), ocafile, registry)?;
         oca_bundle::build::from_ast(base, &oca_ast).map_err(|e| {
             e.iter()
@@ -112,7 +122,11 @@ impl Facade {
     /// be dereferenced in other ocafiles later.
     // TODO this name is misleading, it does not only validate ocafile, it builds
     #[cfg(feature = "local-references")]
-    pub fn validate_ocafile(&mut self, ocafile: String, registry: OverlayLocalRegistry) -> Result<OCABuild, Vec<ValidationError>> {
+    pub fn validate_ocafile(
+        &mut self,
+        ocafile: String,
+        registry: OverlayLocalRegistry,
+    ) -> Result<OCABuild, Vec<ValidationError>> {
         let (base, oca_ast) = Self::parse_and_check_base(self.storage(), ocafile, registry)?;
         Self::oca_ast_to_oca_build_with_references(base, oca_ast, &mut self.db)
     }
@@ -134,7 +148,11 @@ impl Facade {
     }
 
     /// Build an OCABundle from OCAFILE
-    pub fn build_from_ocafile(&mut self, ocafile: String, registry: OverlayLocalRegistry) -> Result<OCABundleModel, Error> {
+    pub fn build_from_ocafile(
+        &mut self,
+        ocafile: String,
+        registry: OverlayLocalRegistry,
+    ) -> Result<OCABundleModel, Error> {
         let mut oca_build = self
             .validate_ocafile(ocafile, registry)
             .map_err(Error::ValidationError)?;
@@ -168,38 +186,33 @@ impl Facade {
                 first_command.clone().object_kind,
             ) {
                 match content.said {
-                    ReferenceAttrType::Reference(refs) => {
-                        match refs {
-                            RefValue::Said(said) => {
-                                match get_oca_bundle_model(storage, said) {
-                                    Ok(oca_bundle) => {
-                                        info!(" ****** Base OCABundle found: {:?}", oca_bundle);
-                                        base = Some(oca_bundle.clone());
-                                    }
-                                    Err(e) => {
-                                        let default_command_meta =
-                                            oca_ast::ast::CommandMeta {
-                                                line_number: 0,
-                                                raw_line: "unknown".to_string(),
-                                            };
-                                        let command_meta = oca_ast
-                                            .commands_meta
-                                            .get(&0)
-                                            .unwrap_or(&default_command_meta);
-                                        e.iter().for_each(|e| {
-                                            errors.push(ValidationError::InvalidCommand {
-                                                line_number: command_meta.line_number,
-                                                raw_line: command_meta.raw_line.clone(),
-                                                message: e.clone(),
-                                            })
-                                        });
-                                        return Err(errors);
-                                    }
-                                }
+                    ReferenceAttrType::Reference(refs) => match refs {
+                        RefValue::Said(said) => match get_oca_bundle_model(storage, said) {
+                            Ok(oca_bundle) => {
+                                info!(" ****** Base OCABundle found: {:?}", oca_bundle);
+                                base = Some(oca_bundle.clone());
                             }
-                            RefValue::Name(_) => todo!(),
-                        }
-                    }
+                            Err(e) => {
+                                let default_command_meta = oca_ast::ast::CommandMeta {
+                                    line_number: 0,
+                                    raw_line: "unknown".to_string(),
+                                };
+                                let command_meta = oca_ast
+                                    .commands_meta
+                                    .get(&0)
+                                    .unwrap_or(&default_command_meta);
+                                e.iter().for_each(|e| {
+                                    errors.push(ValidationError::InvalidCommand {
+                                        line_number: command_meta.line_number,
+                                        raw_line: command_meta.raw_line.clone(),
+                                        message: e.clone(),
+                                    })
+                                });
+                                return Err(errors);
+                            }
+                        },
+                        RefValue::Name(_) => todo!(),
+                    },
                 }
                 oca_ast.commands.remove(0);
             }
@@ -259,19 +272,17 @@ impl Facade {
 
         let command_str = serde_json::to_string(&step.command).unwrap();
         input.extend(command_str.as_bytes());
-        self.db
-            .insert(
-                Namespace::OCA,
-                &format!("oca.{}.operation", step.result.digest.clone().unwrap()),
-                &input,
-            );
+        self.db.insert(
+            Namespace::OCA,
+            &format!("oca.{}.operation", step.result.digest.clone().unwrap()),
+            &input,
+        );
 
-        self.db_cache
-            .insert(
-                Namespace::OCABundlesJSON,
-                &step.result.digest.clone().unwrap().to_string(),
-                &serde_json::to_string(&step.result).unwrap().into_bytes(),
-            );
+        self.db_cache.insert(
+            Namespace::OCABundlesJSON,
+            &step.result.digest.clone().unwrap().to_string(),
+            &serde_json::to_string(&step.result).unwrap().into_bytes(),
+        );
         self.db_cache
             .insert(
                 Namespace::OCAObjectsJSON,

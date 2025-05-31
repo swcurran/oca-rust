@@ -112,7 +112,6 @@ ADD ATTRIBUTE b=Text
         let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
         facade.build_from_ocafile(second_ocafile, registry.clone())?;
 
-
         let third_ocafile = r#"
 -- name=second
 ADD ATTRIBUTE c=Text

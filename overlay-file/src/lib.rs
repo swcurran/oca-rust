@@ -52,10 +52,7 @@ impl OverlayDef {
     }
     /// Return ordered list of element names as they should appear in serialization
     pub fn get_ordered_element_names(&self) -> Vec<String> {
-        self.elements
-           .iter()
-           .map(|el| el.name.clone())
-           .collect()
+        self.elements.iter().map(|el| el.name.clone()).collect()
     }
     pub fn get_full_name(&self) -> String {
         format!("{}/{}", self.name, self.version)
@@ -81,7 +78,7 @@ pub enum KeyType {
     /// Keys names needs to correspond to the attribute names from Capture Base
     AttrNames,
     /// Keys are any arbitrary string
-    Text
+    Text,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -95,7 +92,7 @@ pub enum ElementType {
     Ref,
 }
 
-#[derive(Debug,Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum ConstraintKind {
     /// Only defined values are allowed
     Closed(Option<Vec<String>>),
@@ -174,11 +171,14 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
             for attr in line.into_inner() {
                 match attr.as_rule() {
                     Rule::overlay_name => {
-                        let (namespace, name): (Option<String>, String) = match attr.as_str().split_once(':') {
-                            Some((ns, n)) if !ns.is_empty() => (Some(ns.to_string()), n.to_string()),
-                            Some((_, n)) => (None, n.to_string()),
-                            None => (None, attr.as_str().to_string()),
-                        };
+                        let (namespace, name): (Option<String>, String) =
+                            match attr.as_str().split_once(':') {
+                                Some((ns, n)) if !ns.is_empty() => {
+                                    (Some(ns.to_string()), n.to_string())
+                                }
+                                Some((_, n)) => (None, n.to_string()),
+                                None => (None, attr.as_str().to_string()),
+                            };
                         overlay_def.namespace = namespace;
                         overlay_def.name = name;
                     }
@@ -193,57 +193,58 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                         for e in attr.into_inner() {
                             match e.as_rule() {
                                 Rule::overlay_object_header => {
-                                    e.into_inner().for_each(|header| {
-                                        match header.as_rule() {
-                                            Rule::attr_name=> {
-                                                name = Some(header.as_str().to_string());
-                                            }
-                                            _ => { panic!("Missing name for an object: {:?}", header.as_rule()) }
+                                    e.into_inner().for_each(|header| match header.as_rule() {
+                                        Rule::attr_name => {
+                                            name = Some(header.as_str().to_string());
+                                        }
+                                        _ => {
+                                            panic!(
+                                                "Missing name for an object: {:?}",
+                                                header.as_rule()
+                                            )
                                         }
                                     });
                                 }
                                 Rule::overlay_object_body => {
                                     for key in e.into_inner() {
                                         match key.as_rule() {
-                                            Rule::key_type => {
-                                                match key.into_inner().next() {
-                                                    Some(k) => match k.as_rule() {
-                                                        Rule::ATTR_NAMES_TYPE => {
-                                                          keys = Some(KeyType::AttrNames)
-                                                        },
-                                                        Rule::TEXT_TYPE => {
-                                                          keys = Some(KeyType::Text)
-                                                        }
-                                                        Rule::ARRAY_TYPE => todo!(),
-                                                        _ => continue,
-                                                    },
-                                                    None => {
-                                                        return Err(ParseError::MetaError("key type is empty".to_string()));
+                                            Rule::key_type => match key.into_inner().next() {
+                                                Some(k) => match k.as_rule() {
+                                                    Rule::ATTR_NAMES_TYPE => {
+                                                        keys = Some(KeyType::AttrNames)
                                                     }
+                                                    Rule::TEXT_TYPE => keys = Some(KeyType::Text),
+                                                    Rule::ARRAY_TYPE => todo!(),
+                                                    _ => continue,
+                                                },
+                                                None => {
+                                                    return Err(ParseError::MetaError(
+                                                        "key type is empty".to_string(),
+                                                    ));
                                                 }
                                             },
-                                            Rule::value_type => {
-                                                match key.into_inner().next() {
-                                                    Some(k) => match k.as_rule() {
-                                                        Rule::object_type=> {
-                                                            values = Some(ElementType::Object);
-                                                        },
-                                                        Rule::ARRAY_TYPE => {
-                                                            todo!()
-                                                        },
-                                                        Rule::TEXT_TYPE => {
-                                                            values = Some(ElementType::Text);
-                                                        },
-                                                        Rule::REF_TYPE => {
-                                                            values = Some(ElementType::Ref);
-                                                        },
-                                                        _ => continue,
-                                                    },
-                                                    None => {
-                                                        return Err(ParseError::MetaError("value type is empty".to_string()));
+                                            Rule::value_type => match key.into_inner().next() {
+                                                Some(k) => match k.as_rule() {
+                                                    Rule::object_type => {
+                                                        values = Some(ElementType::Object);
                                                     }
+                                                    Rule::ARRAY_TYPE => {
+                                                        todo!()
+                                                    }
+                                                    Rule::TEXT_TYPE => {
+                                                        values = Some(ElementType::Text);
+                                                    }
+                                                    Rule::REF_TYPE => {
+                                                        values = Some(ElementType::Ref);
+                                                    }
+                                                    _ => continue,
+                                                },
+                                                None => {
+                                                    return Err(ParseError::MetaError(
+                                                        "value type is empty".to_string(),
+                                                    ));
                                                 }
-                                            }
+                                            },
                                             _ => continue,
                                         };
                                     }
@@ -266,21 +267,22 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                                         name: "".to_string(),
                                         kind: ElementType::Text,
                                     };
-                                    a.into_inner().for_each(|kp| {
-                                        match kp.as_rule() {
-                                            Rule::attr_name => {
-                                                key_pair.name = kp.as_str().to_string();
-                                            }
-                                            Rule::attr_value_type => {
-                                                match kp.as_str() {
-                                                    "Text" => key_pair.kind = ElementType::Text,
-                                                    "Ref" => key_pair.kind = ElementType::Ref,
-                                                    "Binary" => key_pair.kind = ElementType::Binary,
-                                                    "Array" => key_pair.kind = ElementType::Array(None),
-                                                    _ => {}
-                                                }
-                                            }
-                                            _ => { panic!("Incorrect key pair for attribute: {:?}", kp.as_rule()) }
+                                    a.into_inner().for_each(|kp| match kp.as_rule() {
+                                        Rule::attr_name => {
+                                            key_pair.name = kp.as_str().to_string();
+                                        }
+                                        Rule::attr_value_type => match kp.as_str() {
+                                            "Text" => key_pair.kind = ElementType::Text,
+                                            "Ref" => key_pair.kind = ElementType::Ref,
+                                            "Binary" => key_pair.kind = ElementType::Binary,
+                                            "Array" => key_pair.kind = ElementType::Array(None),
+                                            _ => {}
+                                        },
+                                        _ => {
+                                            panic!(
+                                                "Incorrect key pair for attribute: {:?}",
+                                                kp.as_rule()
+                                            )
                                         }
                                     });
                                     let element = OverlayElementDef {
@@ -293,7 +295,6 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                                 _ => {}
                             }
                         }
-
                     }
                     _ => {}
                 }
@@ -398,7 +399,14 @@ ADD OVERLAY hcf:Meta
 
         assert_eq!(meta.version, "1.2.2");
         assert_eq!(meta.elements.len(), 3);
-        assert_eq!(meta.elements.iter().find(|e| e.name == "name").unwrap().values, ElementType::Text);
+        assert_eq!(
+            meta.elements
+                .iter()
+                .find(|e| e.name == "name")
+                .unwrap()
+                .values,
+            ElementType::Text
+        );
 
         assert_eq!(result.overlays_def.len(), 3);
     }

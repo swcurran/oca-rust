@@ -21,7 +21,6 @@ use overlay_file::overlay_registry::OverlayRegistry;
 use pest::Parser;
 use recursion::CollapsibleExt;
 
-
 #[derive(pest_derive::Parser)]
 #[grammar = "ocafile.pest"]
 pub struct OCAfileParser;
@@ -30,12 +29,18 @@ pub type Pair<'a> = pest::iterators::Pair<'a, Rule>;
 
 pub trait TryFromPair {
     type Error;
-    fn try_from_pair(pair: Pair<'_>, registry: &dyn OverlayRegistry) -> Result<Command, Self::Error>;
+    fn try_from_pair(
+        pair: Pair<'_>,
+        registry: &dyn OverlayRegistry,
+    ) -> Result<Command, Self::Error>;
 }
 
 impl TryFromPair for Command {
     type Error = InstructionError;
-    fn try_from_pair(record: Pair, registry: &dyn OverlayRegistry) -> std::result::Result<Self, Self::Error> {
+    fn try_from_pair(
+        record: Pair,
+        registry: &dyn OverlayRegistry,
+    ) -> std::result::Result<Self, Self::Error> {
         let instruction: Command = match record.as_rule() {
             Rule::from => FromInstruction::from_record(record, 0)?,
             Rule::add => AddInstruction::from_record(record, 0, registry)?,
@@ -46,7 +51,10 @@ impl TryFromPair for Command {
     }
 }
 
-pub fn parse_from_string(unparsed_file: String, registry: &dyn OverlayRegistry) -> Result<OCAAst, ParseError> {
+pub fn parse_from_string(
+    unparsed_file: String,
+    registry: &dyn OverlayRegistry,
+) -> Result<OCAAst, ParseError> {
     let file = OCAfileParser::parse(Rule::file, &unparsed_file)
         .map_err(|e| {
             let (line_number, column_number) = match e.line_col {
@@ -157,28 +165,28 @@ fn format_nested_value(value: &ast::NestedValue, indent: usize) -> String {
     match value {
         ast::NestedValue::Value(v) => v.to_string(),
         ast::NestedValue::Reference(ref_value) => format_reference(ref_value.clone()),
-        ast::NestedValue::Object(obj) => {
-            obj.iter()
-                .map(|(k, v)| {
-                    let formatted_value = format_nested_value(v, indent + 2);
-                    if v.is_object() {
-                        format!("{}{}\n{}", " ".repeat(indent), k, formatted_value)
-                    } else if v.is_array() {
-                        format!("{}{}={}", " ".repeat(indent), k, formatted_value)
-                    } else {
-                        format!("{}{}=\"{}\"", " ".repeat(indent), k, formatted_value)
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join("\n")
-        },
+        ast::NestedValue::Object(obj) => obj
+            .iter()
+            .map(|(k, v)| {
+                let formatted_value = format_nested_value(v, indent + 2);
+                if v.is_object() {
+                    format!("{}{}\n{}", " ".repeat(indent), k, formatted_value)
+                } else if v.is_array() {
+                    format!("{}{}={}", " ".repeat(indent), k, formatted_value)
+                } else {
+                    format!("{}{}=\"{}\"", " ".repeat(indent), k, formatted_value)
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n"),
         ast::NestedValue::Array(arr) => {
-            let formatted = arr.iter()
+            let formatted = arr
+                .iter()
                 .map(|v| format_nested_value(v, 0))
                 .collect::<Vec<_>>();
             let formatted = formatted.join("\", \"");
             format!("[\"{}\"]", formatted)
-        },
+        }
     }
 }
 
@@ -190,8 +198,8 @@ fn format_nested_value(value: &ast::NestedValue, indent: usize) -> String {
 pub fn generate_from_ast(ast: &OCAAst) -> String {
     let mut ocafile = String::new();
 
-     ast.commands.iter().for_each(|command| {
-         let mut line = String::new();
+    ast.commands.iter().for_each(|command| {
+        let mut line = String::new();
 
         debug!("Processing command: {:?}", command);
         match command.kind {
@@ -211,7 +219,13 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                     }
                     ast::ObjectKind::Overlay(content) => {
                         line.push_str("Overlay ");
-                        let (name, _) = content.overlay_name.split_once("/").ok_or_else(|| "Invalid overlay name format: version not found or in wrong format").unwrap();
+                        let (name, _) = content
+                            .overlay_name
+                            .split_once("/")
+                            .ok_or_else(|| {
+                                "Invalid overlay name format: version not found or in wrong format"
+                            })
+                            .unwrap();
                         line.push_str(name.to_case(Case::UpperSnake).as_str());
                         if let Some(content) = command.object_kind.overlay_content() {
                             if let Some(ref properties) = content.properties {
@@ -221,11 +235,20 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                                     properties.iter().for_each(|(key, value)| {
                                         let formatted_value = format_nested_value(value, 4);
                                         if value.is_object() {
-                                            line.push_str(&format!("  {}\n{}\n", key, formatted_value));
+                                            line.push_str(&format!(
+                                                "  {}\n{}\n",
+                                                key, formatted_value
+                                            ));
                                         } else if value.is_array() {
-                                            line.push_str(&format!("  {}={}\n", key, formatted_value));
+                                            line.push_str(&format!(
+                                                "  {}={}\n",
+                                                key, formatted_value
+                                            ));
                                         } else {
-                                            line.push_str(&format!("  {}=\"{}\"\n", key, formatted_value));
+                                            line.push_str(&format!(
+                                                "  {}=\"{}\"\n",
+                                                key, formatted_value
+                                            ));
                                         }
                                     });
                                 }
@@ -271,7 +294,6 @@ mod tests {
     use said::derivation::{HashFunction, HashFunctionCode};
 
     use super::{error::ExtractingAttributeError, *};
-
 
     #[test]
     fn parse_from_string_valid() {
@@ -335,8 +357,13 @@ ADD Overlay ENTRY
         assert_eq!(oca_ast.meta.get("name").unwrap(), "プラスウルトラ");
         assert_eq!(oca_ast.commands.len(), 15);
         let character_encoding_overlay = oca_ast.commands[6].object_kind.clone();
-        assert_eq!(character_encoding_overlay.overlay_content().unwrap().overlay_name, "Character_Encoding/2.0.0".to_string());
-
+        assert_eq!(
+            character_encoding_overlay
+                .overlay_content()
+                .unwrap()
+                .overlay_name,
+            "Character_Encoding/2.0.0".to_string()
+        );
     }
 
     #[test]
@@ -406,9 +433,7 @@ ADD Overlay ENTRY
         let ocafile = generate_from_ast(&oca_ast);
         println!("Generated OCA file:\n{}", ocafile);
         let oca_ast2 = parse_from_string(ocafile.clone(), &registry).unwrap();
-        assert_eq!(
-            oca_ast, oca_ast2,
-        );
+        assert_eq!(oca_ast, oca_ast2,);
     }
 
     #[test]
@@ -493,9 +518,6 @@ ADD ATTRIBUTE incidentals_spare_parts=[refs:EJVVlVSZJqVNnuAMLHLkeSQgwfxYLWTKBELi
         let attr = NestedAttrType::Array(Box::new(NestedAttrType::Array(Box::new(ref_type))));
 
         let out = oca_file_format(attr);
-        assert_eq!(
-            out,
-            "[[refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu]]"
-        );
+        assert_eq!(out, "[[refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu]]");
     }
 }

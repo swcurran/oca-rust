@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
+use crate::state::attribute::Attribute;
 use crate::state::oca_bundle::overlay::OverlayModel;
 use crate::state::oca_bundle::OCABundleModel;
-use crate::state::attribute::Attribute;
 use oca_ast::ast;
 
 /// OCABuild represents a build process of an OCA bundle from OCA AST.
@@ -95,16 +95,16 @@ pub fn from_ast(
         }
     }
     if errors.is_empty() {
-        Ok(OCABuild {
-            oca_bundle,
-            steps,
-        })
+        Ok(OCABuild { oca_bundle, steps })
     } else {
         Err(errors)
     }
 }
 
-pub fn apply_command(base: &mut OCABundleModel, op: ast::Command) -> Result<&OCABundleModel, Vec<String>> {
+pub fn apply_command(
+    base: &mut OCABundleModel,
+    op: ast::Command,
+) -> Result<&OCABundleModel, Vec<String>> {
     let mut errors = vec![];
 
     match (op.kind, op.object_kind) {
@@ -203,12 +203,10 @@ mod tests {
         let meta_ov_def = registry.get_by_fqn("Meta/2.0.0").unwrap();
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
-            object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayContent {
-                    properties: Some(properties),
-                    overlay_name: "Label/2.0.0".to_string(),
-                },
-            ),
+            object_kind: ast::ObjectKind::Overlay(ast::OverlayContent {
+                properties: Some(properties),
+                overlay_name: "Label/2.0.0".to_string(),
+            }),
             overlay_def: meta_ov_def.cloned(),
         });
 
@@ -237,12 +235,10 @@ mod tests {
         let label_ov_def = registry.get_by_fqn("Label/2.0.0").unwrap();
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
-            object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayContent {
-                    properties: Some(attr_labels),
-                    overlay_name: "Label/2.0.0".to_string(),
-                },
-            ),
+            object_kind: ast::ObjectKind::Overlay(ast::OverlayContent {
+                properties: Some(attr_labels),
+                overlay_name: "Label/2.0.0".to_string(),
+            }),
             overlay_def: label_ov_def.cloned(),
         });
 
@@ -281,12 +277,10 @@ mod tests {
         let character_encoding_ov_def = registry.get_by_fqn("Character_Encoding/2.0.0").unwrap();
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
-            object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayContent {
-                    properties: Some(properties),
-                    overlay_name: "Character_Encoding/2.0.0".to_string(),
-                },
-            ),
+            object_kind: ast::ObjectKind::Overlay(ast::OverlayContent {
+                properties: Some(properties),
+                overlay_name: "Character_Encoding/2.0.0".to_string(),
+            }),
             overlay_def: character_encoding_ov_def.cloned(),
         });
 
@@ -300,12 +294,10 @@ mod tests {
         let conformance_ov_def = registry.get_by_fqn("Conformance/2.0.0").unwrap();
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
-            object_kind: ast::ObjectKind::Overlay(
-                ast::OverlayContent {
-                    properties: Some(properties),
-                    overlay_name: "Conformance/2.0.0".to_string(),
-                },
-            ),
+            object_kind: ast::ObjectKind::Overlay(ast::OverlayContent {
+                properties: Some(properties),
+                overlay_name: "Conformance/2.0.0".to_string(),
+            }),
             overlay_def: conformance_ov_def.cloned(),
         });
 
@@ -319,7 +311,10 @@ mod tests {
                 }
                 Err(errors) => {
                     println!("Error applying command: {:?}", errors);
-                    return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}", errors))));
+                    return Err(Box::new(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        format!("{:?}", errors),
+                    )));
                 }
             }
         }

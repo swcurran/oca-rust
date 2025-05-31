@@ -2,11 +2,9 @@ use indexmap::IndexMap;
 use overlay_file::OverlayDef;
 use said::SelfAddressingIdentifier;
 use serde::ser::SerializeStruct;
-use serde::{
-    de, Deserialize, Deserializer, Serialize, Serializer
-};
-use std::{collections::HashMap, fmt, str::FromStr};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::hash::Hash;
+use std::{collections::HashMap, fmt, str::FromStr};
 use strum_macros::Display;
 use thiserror::Error;
 use wasm_bindgen::prelude::*;
@@ -111,13 +109,20 @@ impl<'de> Deserialize<'de> for ObjectKind {
     }
 }
 
-
 impl From<u8> for ObjectKind {
     fn from(val: u8) -> Self {
         match val {
-            0 => ObjectKind::OCABundle(BundleContent { said: ReferenceAttrType::Reference(RefValue::Name("".to_string())) }),
-            1 => ObjectKind::CaptureBase(CaptureContent { attributes: None, properties: None }),
-            2 => ObjectKind::Overlay(OverlayContent { properties: None, overlay_name: "".to_string() } ),
+            0 => ObjectKind::OCABundle(BundleContent {
+                said: ReferenceAttrType::Reference(RefValue::Name("".to_string())),
+            }),
+            1 => ObjectKind::CaptureBase(CaptureContent {
+                attributes: None,
+                properties: None,
+            }),
+            2 => ObjectKind::Overlay(OverlayContent {
+                properties: None,
+                overlay_name: "".to_string(),
+            }),
             _ => panic!("Invalid ObjectKind value"),
         }
     }
@@ -242,7 +247,6 @@ pub struct OverlayContent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub properties: Option<IndexMap<String, NestedValue>>,
     pub overlay_name: String,
-
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Eq, Hash)]
@@ -399,14 +403,13 @@ impl Default for OCAAst {
 
 #[cfg(test)]
 mod tests {
-    use overlay_file::overlay_registry::{OverlayLocalRegistry, OverlayRegistry};
     use indexmap::indexmap;
+    use overlay_file::overlay_registry::{OverlayLocalRegistry, OverlayRegistry};
 
     use super::*;
 
     #[test]
     fn test_ocaast_serialize() {
-
         let _ = env_logger::builder().is_test(true).try_init();
         let mut attributes = IndexMap::new();
         let mut properties = IndexMap::new();
@@ -428,26 +431,29 @@ mod tests {
             overlay_def: None,
         };
 
-        let overlay_registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
+        let overlay_registry =
+            OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
         assert_eq!(overlay_registry.list_all().len(), 9);
 
         let label_overlay_def = overlay_registry.get_by_fqn("Label/2.0.0").unwrap().unwrap();
         assert_eq!(label_overlay_def.get_full_name(), "label/2.0.0");
 
         let mut label_props = IndexMap::new();
-        label_props.insert("language".to_string(), NestedValue::Value("pl-PL".to_string()));
-        let attr_labels = indexmap! { "allowed".to_string() => NestedValue::Value("Dopuszczony".to_string())};
+        label_props.insert(
+            "language".to_string(),
+            NestedValue::Value("pl-PL".to_string()),
+        );
+        let attr_labels =
+            indexmap! { "allowed".to_string() => NestedValue::Value("Dopuszczony".to_string())};
         let labels = NestedValue::Object(attr_labels.clone());
         label_props.insert("attribute_labels".to_string(), labels);
 
         let lable_command = Command {
             kind: CommandType::Add,
-            object_kind: ObjectKind::Overlay(
-                OverlayContent {
-                    properties: Some(label_props),
-                    overlay_name: label_overlay_def.clone().name,
-                },
-            ),
+            object_kind: ObjectKind::Overlay(OverlayContent {
+                properties: Some(label_props),
+                overlay_name: label_overlay_def.clone().name,
+            }),
             overlay_def: Some(label_overlay_def.clone()),
         };
 
@@ -474,12 +480,19 @@ mod tests {
                 .commands
                 .last()
                 .unwrap()
-                .object_kind.overlay_content()
+                .object_kind
+                .overlay_content()
                 .unwrap()
                 .overlay_name,
             "label"
         );
-        let content = ocaast.commands.last().unwrap().object_kind.overlay_content().unwrap();
+        let content = ocaast
+            .commands
+            .last()
+            .unwrap()
+            .object_kind
+            .overlay_content()
+            .unwrap();
         let props = content.properties.clone().unwrap();
         let attr_labels = props.get("attribute_labels").unwrap();
         let to_owned = if let NestedValue::Object(obj) = attr_labels {
@@ -488,7 +501,10 @@ mod tests {
             None
         };
 
-        assert_eq!(to_owned.unwrap().clone(), NestedValue::Value("Dopuszczony".to_string()));
+        assert_eq!(
+            to_owned.unwrap().clone(),
+            NestedValue::Value("Dopuszczony".to_string())
+        );
 
         assert_eq!(ocaast, ast);
     }

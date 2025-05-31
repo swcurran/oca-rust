@@ -1,8 +1,6 @@
 use isolang::Language;
 use oca_bundle::{
-    state::{
-        attribute::{Attribute, AttributeType},
-    },
+    state::attribute::{Attribute, AttributeType},
     Encode as EncodeBundle, HashFunctionCode, SerializationFormats,
 };
 
@@ -35,7 +33,7 @@ fn create_oca() {
         // }));
         // ..set_unit("kg".to_string());
     };
-//    attribute.set_format("^[a-zA-Z]*$".to_string());
+    //    attribute.set_format("^[a-zA-Z]*$".to_string());
 
     //oca.add_attribute(attribute);
 
@@ -53,7 +51,7 @@ fn create_oca() {
         // }));
         // ..set_unit("kg".to_string());
     };
- //   attribute_2.set_format("^[a-zA-Z]*$".to_string());
+    //   attribute_2.set_format("^[a-zA-Z]*$".to_string());
 
     // oca.add_attribute(attribute_2);
 

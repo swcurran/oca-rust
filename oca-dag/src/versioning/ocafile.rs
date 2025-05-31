@@ -27,7 +27,8 @@ pub fn build_oca(
             base = Some(serde_json::from_str::<OCABundleModel>(&oca_bundle_str).unwrap());
         } else {
             let mut current_base = base.take().unwrap_or_default();
-            let bundle_model_result = oca_bundle::build::apply_command(&mut current_base, command.clone());
+            let bundle_model_result =
+                oca_bundle::build::apply_command(&mut current_base, command.clone());
 
             match bundle_model_result {
                 Ok(bundle_model) => {
@@ -43,19 +44,14 @@ pub fn build_oca(
                     input.push(command_str.len().try_into().unwrap());
                     input.extend(command_str.as_bytes());
                     if let Some(oca_said) = bundle_model.digest.as_ref() {
-                        db.insert(
-                            &format!("oca.{}.operation", oca_said),
-                            &input,
-                        )?;
+                        db.insert(&format!("oca.{}.operation", oca_said), &input)?;
                         db.insert(
                             &format!("oca.{}", oca_said),
                             &serde_json::to_vec(&bundle_model).map_err(|e| e.to_string())?,
-
                         )?;
                     } else {
                         input.push(0);
                     }
-
                 }
                 Err(errors) => {
                     println!("{:?}", errors);
@@ -65,7 +61,6 @@ pub fn build_oca(
     }
 
     base.ok_or_else(|| "No OCA bundle created".to_string())
-
 }
 
 #[cfg(test)]
@@ -120,12 +115,10 @@ mod tests {
         );
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
-            object_kind: ast::ObjectKind::Overlay(
-                OverlayContent {
-                    properties: Some(properties),
-                    overlay_name: "Meta/2.0.0".to_string(),
-                },
-            ),
+            object_kind: ast::ObjectKind::Overlay(OverlayContent {
+                properties: Some(properties),
+                overlay_name: "Meta/2.0.0".to_string(),
+            }),
             overlay_def: None,
         });
 
@@ -149,12 +142,10 @@ mod tests {
         );
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
-            object_kind: ast::ObjectKind::Overlay(
-                OverlayContent {
-                    properties: Some(properties),
-                    overlay_name: "Label/2.0.0".to_string(),
-                },
-            ),
+            object_kind: ast::ObjectKind::Overlay(OverlayContent {
+                properties: Some(properties),
+                overlay_name: "Label/2.0.0".to_string(),
+            }),
             overlay_def: None,
         });
 
@@ -192,12 +183,10 @@ mod tests {
         );
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
-            object_kind: ast::ObjectKind::Overlay(
-                OverlayContent {
-                    properties: None,
-                    overlay_name: "Character_Encoding/2.0.0".to_string(),
-                },
-            ),
+            object_kind: ast::ObjectKind::Overlay(OverlayContent {
+                properties: None,
+                overlay_name: "Character_Encoding/2.0.0".to_string(),
+            }),
             overlay_def: None,
         });
 
@@ -210,12 +199,10 @@ mod tests {
         );
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
-            object_kind: ast::ObjectKind::Overlay(
-                OverlayContent {
-                    properties: None,
-                    overlay_name: "Conformance/2.0.0".to_string(),
-                },
-            ),
+            object_kind: ast::ObjectKind::Overlay(OverlayContent {
+                properties: None,
+                overlay_name: "Conformance/2.0.0".to_string(),
+            }),
             overlay_def: None,
         });
 

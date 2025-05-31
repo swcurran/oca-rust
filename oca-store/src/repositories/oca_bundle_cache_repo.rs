@@ -15,7 +15,8 @@ impl OCABundleCacheRecord {
         Self {
             said: oca_bundle.digest.clone().unwrap().to_string(),
             oca_bundle: serde_json::to_string(oca_bundle)
-                .expect("Failed to serialize OCABundleModel"),}
+                .expect("Failed to serialize OCABundleModel"),
+        }
     }
 }
 

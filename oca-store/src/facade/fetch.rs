@@ -1,14 +1,17 @@
 use super::Facade;
-use crate::{data_storage::Namespace, repositories::OCABundleFTSRecord};
 #[cfg(feature = "local-references")]
 use crate::local_references;
 use crate::{
     data_storage::DataStorage,
     repositories::{OCABundleCacheRepo, OCABundleFTSRepo},
 };
+use crate::{data_storage::Namespace, repositories::OCABundleFTSRecord};
 use oca_ast::ast::{self, NestedValue, OCAAst, ObjectKind, RefValue};
-use oca_bundle::{build::OCABuildStep, state::oca_bundle::{overlay::Overlay, OCABundleModel}};
 use oca_bundle::state::oca_bundle::{capture_base::CaptureBase, OCABundle};
+use oca_bundle::{
+    build::OCABuildStep,
+    state::oca_bundle::{overlay::Overlay, OCABundleModel},
+};
 use oca_file::ocafile;
 use said::SelfAddressingIdentifier;
 
@@ -139,27 +142,44 @@ impl Facade {
                 let mut name = "".to_string();
                 let mut description = "".to_string();
                 let mut language = "".to_string();
-                if let NestedValue::Value(s) = meta_overlay.properties.as_ref().unwrap().get("name").unwrap() {
+                if let NestedValue::Value(s) = meta_overlay
+                    .properties
+                    .as_ref()
+                    .unwrap()
+                    .get("name")
+                    .unwrap()
+                {
                     name = s.to_string();
                 }
-                if let NestedValue::Value(s) = meta_overlay.properties.as_ref().unwrap().get("description").unwrap_or(&NestedValue::Value("".to_string())) {
+                if let NestedValue::Value(s) = meta_overlay
+                    .properties
+                    .as_ref()
+                    .unwrap()
+                    .get("description")
+                    .unwrap_or(&NestedValue::Value("".to_string()))
+                {
                     description = s.to_string();
                 }
-                if let NestedValue::Value(s) = meta_overlay.properties.as_ref().unwrap().get("language").unwrap_or(&NestedValue::Value("".to_string())) {
+                if let NestedValue::Value(s) = meta_overlay
+                    .properties
+                    .as_ref()
+                    .unwrap()
+                    .get("language")
+                    .unwrap_or(&NestedValue::Value("".to_string()))
+                {
                     language = s.to_string();
                 }
                 let oca_bundle_fts_record = OCABundleFTSRecord::new(
                     oca_bundle.digest.clone().unwrap().to_string(),
                     name,
                     description,
-                    isolang::Language::from_639_1(&language).unwrap()
+                    isolang::Language::from_639_1(&language).unwrap(),
                 );
 
                 oca_bundle_fts_repo.insert(oca_bundle_fts_record);
             }
         }
     }
-
 
     #[cfg(feature = "local-references")]
     pub fn fetch_all_refs(&self) -> Result<HashMap<String, String>, String> {
@@ -313,7 +333,6 @@ impl Facade {
         get_oca_bundle(self.db_cache.borrow(), said, with_dep)
     }
 
-
     pub fn get_oca_bundle_steps(
         &self,
         said: SelfAddressingIdentifier,
@@ -355,12 +374,13 @@ impl Facade {
             let oca_bundle_json = self.get_oca_bundle_set(s, false).unwrap().bundle.clone();
 
             // Deserialize OCA BUNDLE JSON to store it in history
-            let oca_bundle: Result<OCABundleModel, Vec<String>> = serde_json::from_str(&oca_bundle_json)
-                .map_err(|e| vec![format!("Failed to parse oca bundle: {}", e)]);
+            let oca_bundle: Result<OCABundleModel, Vec<String>> =
+                serde_json::from_str(&oca_bundle_json)
+                    .map_err(|e| vec![format!("Failed to parse oca bundle: {}", e)]);
             history.push(OCABuildStep {
                 parent_said: parent_said.clone().parse().ok(),
                 command,
-                result: oca_bundle.unwrap()
+                result: oca_bundle.unwrap(),
             });
             said = parent_said;
 
@@ -408,7 +428,11 @@ impl Facade {
         Ok(oca_ast)
     }
 
-    pub fn parse_oca_bundle_to_ocafile(&self, bundle: &OCABundleModel, registry: overlay_file::overlay_registry::OverlayLocalRegistry) -> Result<String, Vec<String>> {
+    pub fn parse_oca_bundle_to_ocafile(
+        &self,
+        bundle: &OCABundleModel,
+        registry: overlay_file::overlay_registry::OverlayLocalRegistry,
+    ) -> Result<String, Vec<String>> {
         // Keep in mind that ast to bundle is not a reversible operation This function existin only
         // to support quick conversion from OCA Bundle to OCAFILE in case if someone loose the
         // original OCAFILE normally any modification of the bundle should start with OCAFILE
@@ -423,7 +447,10 @@ impl Facade {
 /// * `said` - SAID of the OCA Bundle
 /// # Return
 /// * `Result<OCABundleModel, Vec<String>>` - OCA Bundle Model or vector of errors
-pub fn get_oca_bundle_model(storage: &dyn DataStorage, said: SelfAddressingIdentifier) -> Result<OCABundleModel, Vec<String>> {
+pub fn get_oca_bundle_model(
+    storage: &dyn DataStorage,
+    said: SelfAddressingIdentifier,
+) -> Result<OCABundleModel, Vec<String>> {
     let bundle_set = get_oca_bundle(storage, said, false)?;
 
     let oca_bundle: Result<OCABundleModel, Vec<String>> = serde_json::from_str(&bundle_set.bundle)
@@ -551,10 +578,13 @@ ADD Overlay ENTRY
     "o1"="o1_label"
     "o2"="o2_label"
     "o3"="o3_label"
-"#.to_string();
+"#
+        .to_string();
 
         let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays").unwrap();
-        let oca_bundle = facade.build_from_ocafile(ocafile_input, registry.clone()).unwrap();
+        let oca_bundle = facade
+            .build_from_ocafile(ocafile_input, registry.clone())
+            .unwrap();
         let ocafile = facade.parse_oca_bundle_to_ocafile(&oca_bundle, registry.clone())?;
         let new_bundle = facade.build_from_ocafile(ocafile, registry);
         match new_bundle {

@@ -57,14 +57,34 @@ pub fn parse_overlay_body(pair: Pair, overlay_def: OverlayDef) -> IndexMap<Strin
 
                 match key_value.clone().into_inner().next().unwrap().as_rule() {
                     Rule::string => {
-                        value = Some(NestedValue::Value(key_value.into_inner().next().unwrap().into_inner().as_str().to_string()));
+                        value = Some(NestedValue::Value(
+                            key_value
+                                .into_inner()
+                                .next()
+                                .unwrap()
+                                .into_inner()
+                                .as_str()
+                                .to_string(),
+                        ));
                         map.insert(key.clone().unwrap(), value.clone().unwrap());
                     }
                     Rule::array => {
                         // TODO add support for nested arrays
                         let values = key_value
-                            .into_inner().next().unwrap().into_inner()
-                            .map(|v| NestedValue::Value(v.into_inner().next().unwrap().into_inner().as_str().to_string()))
+                            .into_inner()
+                            .next()
+                            .unwrap()
+                            .into_inner()
+                            .map(|v| {
+                                NestedValue::Value(
+                                    v.into_inner()
+                                        .next()
+                                        .unwrap()
+                                        .into_inner()
+                                        .as_str()
+                                        .to_string(),
+                                )
+                            })
                             .collect::<Vec<NestedValue>>();
                         value = Some(NestedValue::Array(values));
                         map.insert(key.clone().unwrap(), value.clone().unwrap());
@@ -136,11 +156,14 @@ impl AddInstruction {
                                                         "Found overlay definition: {:?}",
                                                         overlay_def
                                                     );
-                                                    content.overlay_name = overlay_def.clone().unwrap().get_full_name();
+                                                    content.overlay_name = overlay_def
+                                                        .clone()
+                                                        .unwrap()
+                                                        .get_full_name();
                                                 }
                                                 Err(e) => {
                                                     return Err(InstructionError::Parser(
-                                                        e.to_string()
+                                                        e.to_string(),
                                                     ));
                                                 }
                                             }
@@ -330,7 +353,10 @@ mod tests {
                                     .to_lowercase()
                                     .as_str()
                                 {
-                                    "label/2.0.0" | "entry_code/2.0.0" | "format/2.0.0" | "character_encoding/2.0.0" => {
+                                    "label/2.0.0"
+                                    | "entry_code/2.0.0"
+                                    | "format/2.0.0"
+                                    | "character_encoding/2.0.0" => {
                                         println!("Parsed overlay label: {:?}", content);
                                     }
                                     _ => {

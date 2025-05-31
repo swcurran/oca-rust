@@ -18,10 +18,10 @@ fn extract_attr_type(input: Pair) -> Result<NestedAttrType, ExtractingAttributeE
                 ExtractingAttributeError::Unexpected("Missing attribute type".to_string()).into()
             }
         },
-        Rule::alias => NestedAttrTypeFrame::Reference(oca_ast::ast::RefValue::Name(
-            seed.as_str().to_string(),
-        ))
-        .into(),
+        Rule::alias => {
+            NestedAttrTypeFrame::Reference(oca_ast::ast::RefValue::Name(seed.as_str().to_string()))
+                .into()
+        }
         Rule::said => match SelfAddressingIdentifier::from_str(seed.as_str()) {
             Ok(said) => NestedAttrTypeFrame::Reference(RefValue::Said(said)).into(),
             Err(e) => ExtractingAttributeError::SaidError(e).into(),

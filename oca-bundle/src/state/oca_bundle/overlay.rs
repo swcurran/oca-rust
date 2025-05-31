@@ -1,13 +1,13 @@
 use indexmap::IndexMap;
+use log::{debug, info};
 use oca_ast::ast::{NestedValue, OverlayContent};
 use overlay_file::OverlayDef;
-use said::{derivation::HashFunctionCode, SelfAddressingIdentifier};
 use said::make_me_happy;
+use said::{derivation::HashFunctionCode, SelfAddressingIdentifier};
 use serde::{Deserialize, Serialize, Serializer};
-use thiserror::Error;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
-use log::{debug, info};
+use thiserror::Error;
 
 pub type OverlayName = String;
 
@@ -34,7 +34,6 @@ pub type OverlayName = String;
 pub struct Overlay {
     model: OverlayModel,
 }
-
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct OverlayModel {
@@ -65,12 +64,17 @@ impl Serialize for Overlay {
         map.serialize_entry("capture_base", &self.model.capture_base_said)?;
         map.serialize_entry("type", &self.model.name)?;
 
-            // If registry is set, use it to serialize the overlay elements
-            for element in self.model.overlay_def.as_ref().unwrap().elements.iter() {
-                if let Some(value) = self.model.properties.as_ref().and_then(|props| props.get(&element.name)) {
-                    map.serialize_entry(&element.name, value)?;
-                }
+        // If registry is set, use it to serialize the overlay elements
+        for element in self.model.overlay_def.as_ref().unwrap().elements.iter() {
+            if let Some(value) = self
+                .model
+                .properties
+                .as_ref()
+                .and_then(|props| props.get(&element.name))
+            {
+                map.serialize_entry(&element.name, value)?;
             }
+        }
 
         // Serialize remaining properties in lexicographical order
         if let Some(properties) = &self.model.properties {
@@ -104,7 +108,11 @@ impl Serialize for OverlayModel {
         let mut props = BTreeMap::new();
         // Use overlay definition to serialize elements in the correct order
         for element in self.overlay_def.as_ref().unwrap().elements.iter() {
-            if let Some(value) = self.properties.as_ref().and_then(|props| props.get(&element.name)) {
+            if let Some(value) = self
+                .properties
+                .as_ref()
+                .and_then(|props| props.get(&element.name))
+            {
                 props.insert(element.name.clone(), value.clone());
             }
         }
@@ -161,35 +169,47 @@ impl Serialize for OverlayModel {
 
 impl From<&OverlayModel> for Overlay {
     fn from(model: &OverlayModel) -> Self {
-        Self { model: model.clone() }
+        Self {
+            model: model.clone(),
+        }
     }
 }
 
 impl Overlay {
     pub fn new(overlay_model: OverlayModel) -> Self {
         Self {
-            model: overlay_model
+            model: overlay_model,
         }
     }
 
     pub fn to_json(&self) -> Result<String, OverlaySerializationError> {
         let code = HashFunctionCode::Blake3_256;
         if self.model.capture_base_said.is_none() {
-            return Err(OverlaySerializationError::MissingCaptureBaseSaid(self.model.name.clone()));
+            return Err(OverlaySerializationError::MissingCaptureBaseSaid(
+                self.model.name.clone(),
+            ));
         }
-        let serialized_overlay = serde_json::to_string(&self).map_err(|_| OverlaySerializationError::MissingOverlayDef(self.model.name.clone()))?;
+        let serialized_overlay = serde_json::to_string(&self)
+            .map_err(|_| OverlaySerializationError::MissingOverlayDef(self.model.name.clone()))?;
         let said_field = Some("digest");
         let input = serialized_overlay.as_str();
         match make_me_happy(input, code, said_field) {
             Ok(sad) => {
-                let json: serde_json::Value = serde_json::from_str(&sad).map_err(|_| OverlaySerializationError::MissingOverlayDef(self.model.name.clone()))?;
-                info!("Overlay {} serialized successfully with digest: {}", self.model.name, json.get("digest").unwrap());
+                let json: serde_json::Value = serde_json::from_str(&sad).map_err(|_| {
+                    OverlaySerializationError::MissingOverlayDef(self.model.name.clone())
+                })?;
+                info!(
+                    "Overlay {} serialized successfully with digest: {}",
+                    self.model.name,
+                    json.get("digest").unwrap()
+                );
                 Ok(sad)
-            },
-            Err(_) => Err(OverlaySerializationError::MissingOverlayDef(self.model.name.clone())),
+            }
+            Err(_) => Err(OverlaySerializationError::MissingOverlayDef(
+                self.model.name.clone(),
+            )),
         }
     }
-
 }
 
 impl OverlayModel {
@@ -215,15 +235,26 @@ impl OverlayModel {
     fn compute_digest(&self) -> Result<said::SelfAddressingIdentifier, OverlaySerializationError> {
         let code = HashFunctionCode::Blake3_256;
         if self.capture_base_said.is_none() {
-            return Err(OverlaySerializationError::MissingCaptureBaseSaid(self.name.clone()));
+            return Err(OverlaySerializationError::MissingCaptureBaseSaid(
+                self.name.clone(),
+            ));
         }
         let overlay = Overlay::from(self);
-        let serialized_overlay = serde_json::to_string(&overlay).map_err(|_| OverlaySerializationError::MissingOverlayDef(self.name.clone()))?;
+        let serialized_overlay = serde_json::to_string(&overlay)
+            .map_err(|_| OverlaySerializationError::MissingOverlayDef(self.name.clone()))?;
         let said_field = Some("digest");
         let input = serialized_overlay.as_str();
-        let str = make_me_happy(input, code, said_field).map_err(|_| OverlaySerializationError::MissingOverlayDef(self.name.clone()));
-        let json: serde_json::Value = serde_json::from_str(&str.unwrap()).map_err(|_| OverlaySerializationError::MissingOverlayDef(self.name.clone()))?;
-        let said: SelfAddressingIdentifier = json.get("digest").unwrap().as_str().unwrap().parse().unwrap();
+        let str = make_me_happy(input, code, said_field)
+            .map_err(|_| OverlaySerializationError::MissingOverlayDef(self.name.clone()));
+        let json: serde_json::Value = serde_json::from_str(&str.unwrap())
+            .map_err(|_| OverlaySerializationError::MissingOverlayDef(self.name.clone()))?;
+        let said: SelfAddressingIdentifier = json
+            .get("digest")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .parse()
+            .unwrap();
         Ok(said)
     }
 }

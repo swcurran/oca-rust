@@ -1,5 +1,5 @@
 use crate::data_storage::Namespace;
-use oca_ast::ast::{BundleContent, CaptureContent, OverlayContent, ObjectKind, RefValue};
+use oca_ast::ast::{BundleContent, CaptureContent, ObjectKind, OverlayContent, RefValue};
 use oca_bundle::state::oca_bundle::OCABundleModel;
 use serde::{ser::SerializeStruct, Serialize};
 use std::collections::HashSet;
@@ -27,14 +27,15 @@ impl Facade {
             Namespace::OCARelations,
             &format!("{}.metadata", oca_bundle.digest.clone().unwrap()),
             &[u8::from(ObjectKind::OCABundle(BundleContent {
-                said: oca_ast::ast::ReferenceAttrType::Reference(RefValue::Name(
-                    "".to_string(),
-                )),
+                said: oca_ast::ast::ReferenceAttrType::Reference(RefValue::Name("".to_string())),
             }))],
         )?;
         self.db.insert(
             Namespace::OCARelations,
-            &format!("{}.metadata", oca_bundle.capture_base.digest.clone().unwrap()),
+            &format!(
+                "{}.metadata",
+                oca_bundle.capture_base.digest.clone().unwrap()
+            ),
             &[u8::from(ObjectKind::CaptureBase(CaptureContent {
                 attributes: None,
                 properties: None,
@@ -44,12 +45,10 @@ impl Facade {
             let _ = self.db.insert(
                 Namespace::OCARelations,
                 &format!("{}.metadata", overlay.digest.clone().unwrap()),
-                &[u8::from(ObjectKind::Overlay(
-                    OverlayContent {
-                        properties: None,
-                        overlay_name: overlay.name.clone(),
-                    },
-                ))],
+                &[u8::from(ObjectKind::Overlay(OverlayContent {
+                    properties: None,
+                    overlay_name: overlay.name.clone(),
+                }))],
             );
         });
 
@@ -166,9 +165,7 @@ impl From<Vec<u8>> for Relationship {
         let mut result = Relationship::new(OCAObject {
             said: "".to_string(),
             object_type: ObjectKind::OCABundle(BundleContent {
-                said: oca_ast::ast::ReferenceAttrType::Reference(RefValue::Name(
-                    "".to_string(),
-                )),
+                said: oca_ast::ast::ReferenceAttrType::Reference(RefValue::Name("".to_string())),
             }),
         });
 
@@ -189,10 +186,7 @@ impl From<Vec<u8>> for OCAObject {
         let object_type = ObjectKind::from(val[0]);
         let said_len = val[1];
         let said = String::from_utf8(val[2..2 + said_len as usize].to_vec()).unwrap();
-        Self {
-            said,
-            object_type,
-        }
+        Self { said, object_type }
     }
 }
 

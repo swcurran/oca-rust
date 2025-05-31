@@ -1,8 +1,6 @@
 use crate::ocafile::{error::InstructionError, Pair, Rule};
 use log::debug;
-use oca_ast::ast::{
-    BundleContent, Command, CommandType, ObjectKind, RefValue, ReferenceAttrType,
-};
+use oca_ast::ast::{BundleContent, Command, CommandType, ObjectKind, RefValue, ReferenceAttrType};
 use said::SelfAddressingIdentifier;
 
 #[derive(Debug, PartialEq, Eq, Clone)]

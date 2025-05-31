@@ -7,14 +7,11 @@ use said::{make_me_sad, ProtocolVersion, SelfAddressingIdentifier};
 use serde::ser::Error;
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::Value;
-use thiserror::Error;
 use std::collections::HashMap;
+use thiserror::Error;
 pub mod capture_base;
 pub mod overlay;
-use crate::state::{
-    attribute::Attribute,
-    oca_bundle::capture_base::CaptureBase,
-};
+use crate::state::{attribute::Attribute, oca_bundle::capture_base::CaptureBase};
 use oca_ast::ast::{CaptureContent, Command, CommandType, OCAAst, ObjectKind, OverlayContent};
 
 #[derive(Debug, Deserialize, Clone)]
@@ -52,9 +49,8 @@ impl From<OCABundleModel> for OCABundle {
 impl OCABundle {
     pub fn to_json(&self) -> Result<String, serde_json::Error> {
         let code = HashFunctionCode::Blake3_256;
-        let serialized_bundle = serde_json::to_string(&self).map_err(|_| {
-            serde_json::Error::custom("Failed to serialize OCABundleModel")
-        })?;
+        let serialized_bundle = serde_json::to_string(&self)
+            .map_err(|_| serde_json::Error::custom("Failed to serialize OCABundleModel"))?;
         let said_field = Some("digest");
         let version = ProtocolVersion::new("OCAS", 2, 0).unwrap();
         let input = serialized_bundle.as_str();
@@ -62,12 +58,17 @@ impl OCABundle {
             Ok(sad) => {
                 let json: Value = serde_json::from_str(&serialized_bundle)
                     .map_err(|_| serde_json::Error::custom("Failed to parse OCABundle JSON"))?;
-                info!("OCABundle serialized successfully with digest: {}", json.get("digest").unwrap()); Ok(sad)
-            },
-            Err(_) => Err(serde_json::Error::custom("Failed to compute digest for oca bundle")),
+                info!(
+                    "OCABundle serialized successfully with digest: {}",
+                    json.get("digest").unwrap()
+                );
+                Ok(sad)
+            }
+            Err(_) => Err(serde_json::Error::custom(
+                "Failed to compute digest for oca bundle",
+            )),
         }
     }
-
 }
 
 impl Serialize for OCABundle {
@@ -78,9 +79,13 @@ impl Serialize for OCABundle {
         use serde::ser::SerializeMap;
         let mut map = serializer.serialize_map(None)?;
         map.serialize_entry("digest", &self.model.digest)?;
-        let capture_base_json = self.model.capture_base.to_json().map_err(serde::ser::Error::custom)?;
-        let capture_base: Value = serde_json::from_str(&capture_base_json)
+        let capture_base_json = self
+            .model
+            .capture_base
+            .to_json()
             .map_err(serde::ser::Error::custom)?;
+        let capture_base: Value =
+            serde_json::from_str(&capture_base_json).map_err(serde::ser::Error::custom)?;
         map.serialize_entry("capture_base", &capture_base)?;
         let overlays: Vec<Overlay> = self.model.overlays.iter().map(Overlay::from).collect();
         let overlays_json: Vec<Value> = overlays
@@ -90,16 +95,13 @@ impl Serialize for OCABundle {
                 serde_json::from_str(&overlay_json).map_err(serde::ser::Error::custom)
             })
             .collect::<Result<_, _>>()?;
-        map.serialize_entry( "overlays", &overlays_json)?;
+        map.serialize_entry("overlays", &overlays_json)?;
         map.end()
     }
 }
 
 impl OCABundleModel {
-    pub fn new(
-        capture_base: CaptureBase,
-        overlays: Vec<OverlayModel>,
-    ) -> Self {
+    pub fn new(capture_base: CaptureBase, overlays: Vec<OverlayModel>) -> Self {
         OCABundleModel {
             digest: None,
             capture_base,
@@ -194,11 +196,11 @@ impl OCABundleModel {
                 info!("Failed to compute OCABundle SAID: {}", e);
             }
         }
-
-
     }
 
-    fn compute_digest(&mut self) -> Result<said::SelfAddressingIdentifier, OCABundleSerializationError> {
+    fn compute_digest(
+        &mut self,
+    ) -> Result<said::SelfAddressingIdentifier, OCABundleSerializationError> {
         info!("**** Computing digest for OCABundle");
         self.capture_base.fill_digest();
         let cb_said = self.capture_base.digest.clone();
@@ -211,13 +213,28 @@ impl OCABundleModel {
         let oca_bundle = OCABundle::from(self.clone());
         let json = oca_bundle.to_json().unwrap();
         let said: SelfAddressingIdentifier = serde_json::from_str(&json)
-            .map_err(|_| OCABundleSerializationError::SerializationError("Failed to parse OCABundle JSON".to_string()))
+            .map_err(|_| {
+                OCABundleSerializationError::SerializationError(
+                    "Failed to parse OCABundle JSON".to_string(),
+                )
+            })
             .and_then(|v: Value| {
                 v.get("digest")
                     .and_then(|d| d.as_str())
-                    .ok_or_else(|| OCABundleSerializationError::SerializationError("Missing digest in OCABundle JSON".to_string()))
-                    .and_then(|s| s.parse().map_err(|_| OCABundleSerializationError::SerializationError("Failed to parse SAID".to_string())))
-            }).unwrap();
+                    .ok_or_else(|| {
+                        OCABundleSerializationError::SerializationError(
+                            "Missing digest in OCABundle JSON".to_string(),
+                        )
+                    })
+                    .and_then(|s| {
+                        s.parse().map_err(|_| {
+                            OCABundleSerializationError::SerializationError(
+                                "Failed to parse SAID".to_string(),
+                            )
+                        })
+                    })
+            })
+            .unwrap();
         self.digest = Some(said.clone());
         Ok(said)
     }
@@ -226,14 +243,13 @@ impl OCABundleModel {
 pub enum OCABundleSerializationError {
     #[error("Failed to serialize OCA bundle")]
     SerializationError(String),
-
 }
 
 #[cfg(test)]
 mod tests {
-    use oca_file::ocafile::parse_from_string;
-    use crate::build::from_ast;
     use super::*;
+    use crate::build::from_ast;
+    use oca_file::ocafile::parse_from_string;
 
     #[test]
     fn build_oca_bundle() {
@@ -422,9 +438,13 @@ ADD Overlay ENTRY
         oca_bundle2.compute_digest();
         let overlay_model = oca_bundle.overlays.first().unwrap();
         let overlay = Overlay::from(&overlay_model.clone());
-        let meta_overlay: serde_json::Value = serde_json::from_str(&overlay.to_json().unwrap()).unwrap();
+        let meta_overlay: serde_json::Value =
+            serde_json::from_str(&overlay.to_json().unwrap()).unwrap();
         let meta_said = "EEZ0Rj_FzN4Bms8WOg5yrKd06USAZ3k6NI7vxjwH8njp";
-        assert_eq!(meta_overlay.get("digest").unwrap().as_str().unwrap(), meta_said.to_string());
+        assert_eq!(
+            meta_overlay.get("digest").unwrap().as_str().unwrap(),
+            meta_said.to_string()
+        );
 
         let said = oca_bundle.clone().digest;
         let bundle = OCABundle::from(oca_bundle.clone());
