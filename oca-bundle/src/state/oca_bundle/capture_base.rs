@@ -68,10 +68,8 @@ impl CaptureBase {
     }
 
     pub fn fill_digest(&mut self) -> Result<(), CaptureBaseSerializationError> {
-        if self.digest.is_none() {
-            let said = self.compute_digest()?;
-            self.digest = Some(said);
-        }
+        let said = self.compute_digest()?;
+        self.digest = Some(said);
         Ok(())
     }
 

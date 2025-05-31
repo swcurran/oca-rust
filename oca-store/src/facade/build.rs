@@ -32,8 +32,6 @@ pub enum ValidationError {
     OCAFileParse(#[from] oca_file::ocafile::error::ParseError),
     #[error(transparent)]
     OCABundleBuild(#[from] oca_bundle::build::Error),
-    #[error(transparent)]
-    TransformationBuild(#[from] transformation_file::build::Error),
     #[error("Error at line {line_number} ({raw_line}): {message}")]
     InvalidCommand {
         #[serde(rename = "ln")]
@@ -110,13 +108,14 @@ impl Facade {
     /// Validate ocafile using internal references for dereferencing `refn`.
     /// Mapping between `refn` -> `said` is saved in facades database, so it can
     /// be dereferenced in other ocafiles later.
+    // TODO this name is misleading, it does not only validate ocafile, it builds
     #[cfg(feature = "local-references")]
     pub fn validate_ocafile(&mut self, ocafile: String, registry: OverlayLocalRegistry) -> Result<OCABuild, Vec<ValidationError>> {
         let (base, oca_ast) = Self::parse_and_check_base(self.storage(), ocafile, registry)?;
         Self::oca_ast_to_oca_build_with_references(base, oca_ast, &mut self.db)
     }
 
-    pub fn build(&mut self, oca_build: &OCABuild) -> Result<OCABundleModel, Error> {
+    pub fn build(&mut self, oca_build: &mut OCABuild) -> Result<OCABundleModel, Error> {
         self.build_cache(&oca_build.oca_bundle);
 
         oca_build
@@ -124,19 +123,20 @@ impl Facade {
             .iter()
             .for_each(|step| self.build_step(step));
 
-        let _ = self.add_relations(oca_build.oca_bundle.clone());
+        let _ = self.add_relations(&oca_build.oca_bundle);
 
         self.build_models(oca_build);
 
         Ok(oca_build.oca_bundle.clone())
     }
 
+    /// Build an OCABundle from OCAFILE
     pub fn build_from_ocafile(&mut self, ocafile: String, registry: OverlayLocalRegistry) -> Result<OCABundleModel, Error> {
-        let oca_build = self
+        let mut oca_build = self
             .validate_ocafile(ocafile, registry)
             .map_err(Error::ValidationError)?;
 
-        self.build(&oca_build)
+        self.build(&mut oca_build)
     }
 
     fn parse_and_check_base(
@@ -155,6 +155,7 @@ impl Facade {
             return Err(errors);
         }
 
+        // TODO if there is FROM command it should create base model
         let mut base: Option<OCABundleModel> = None;
         // TODO it does only the reference FROM command check how we do it now
         // TODO this should be avoided if the ast is passed for further processing, the base is
@@ -213,7 +214,7 @@ impl Facade {
         // not match.
         local_references::replace_refn_with_refs(&mut oca_ast, references).map_err(|e| vec![e])?;
 
-        let oca_build = oca_bundle::build::from_ast(base, &oca_ast).map_err(|e| {
+        let mut oca_build = oca_bundle::build::from_ast(base, &oca_ast).map_err(|e| {
             e.iter()
                 .map(|e| ValidationError::OCABundleBuild(e.clone()))
                 .collect::<Vec<_>>()
@@ -224,7 +225,7 @@ impl Facade {
 
         if schema_name.is_some() {
             let schema_name = schema_name.unwrap();
-            println!("Said: {:?}", oca_build.oca_bundle.digest);
+            debug!("Said of new bundle: {:?}", oca_build.oca_bundle.digest);
             let said = oca_build.oca_bundle.digest.clone().unwrap().to_string();
             references.save(schema_name, said.clone());
         };
@@ -255,30 +256,29 @@ impl Facade {
 
         let command_str = serde_json::to_string(&step.command).unwrap();
         input.extend(command_str.as_bytes());
-        let result_bundle = step.result.clone();
         self.db
             .insert(
                 Namespace::OCA,
-                &format!("oca.{}.operation", result_bundle.digest.clone().unwrap()),
+                &format!("oca.{}.operation", step.result.digest.clone().unwrap()),
                 &input,
             );
 
         self.db_cache
             .insert(
                 Namespace::OCABundlesJSON,
-                &result_bundle.digest.clone().unwrap().to_string(),
-                &serde_json::to_string(&result_bundle).unwrap().into_bytes(),
+                &step.result.digest.clone().unwrap().to_string(),
+                &serde_json::to_string(&step.result).unwrap().into_bytes(),
             );
         self.db_cache
             .insert(
                 Namespace::OCAObjectsJSON,
-                &result_bundle.capture_base.digest.clone().unwrap().to_string(),
-                &serde_json::to_string(&result_bundle.capture_base)
+                &step.result.capture_base.digest.clone().unwrap().to_string(),
+                &serde_json::to_string(&step.result.capture_base)
                     .unwrap()
                     .into_bytes(),
             )
             .unwrap();
-        result_bundle.overlays.iter().for_each(|overlay| {
+        step.result.overlays.iter().for_each(|overlay| {
             self.db_cache
                 .insert(
                     Namespace::OCAObjectsJSON,

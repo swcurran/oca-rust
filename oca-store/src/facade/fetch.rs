@@ -375,6 +375,9 @@ impl Facade {
     }
 
     pub fn parse_oca_bundle_to_ocafile(&self, bundle: &OCABundleModel, registry: overlay_file::overlay_registry::OverlayLocalRegistry) -> Result<String, Vec<String>> {
+        // Keep in mind that ast to bundle is not a reversible operation This function existin only
+        // to support quick conversion from OCA Bundle to OCAFILE in case if someone loose the
+        // original OCAFILE normally any modification of the bundle should start with OCAFILE
         let oca_ast = bundle.to_ast(registry);
         Ok(ocafile::generate_from_ast(&oca_ast))
     }
@@ -400,7 +403,7 @@ pub fn get_oca_bundle(
     .unwrap();
 
     // Retrive ocabundle to extract potential references
-    let oca_bundle: Result<OCABundle, Vec<String>> = serde_json::from_str(&oca_bundle_json)
+    let oca_bundle: Result<OCABundleModel, Vec<String>> = serde_json::from_str(&oca_bundle_json)
         .map_err(|e| vec![format!("Failed to parse oca bundle: {}", e)]);
 
     match oca_bundle {
@@ -453,6 +456,7 @@ fn retrive_all_references(bundle: OCABundleModel) -> Vec<SelfAddressingIdentifie
 
 #[cfg(test)]
 mod test {
+    use log::debug;
     use overlay_file::overlay_registry::OverlayLocalRegistry;
 
     use super::*;
@@ -461,32 +465,53 @@ mod test {
 
     #[test]
     fn facade_get_ocafile() -> Result<(), Vec<String>> {
+        let _ = env_logger::builder().is_test(true).try_init();
         let db = InMemoryDataStorage::new();
         let db_cache = InMemoryDataStorage::new();
         let cache_storage_config = SQLiteConfig::build().unwrap();
         let mut facade = Facade::new(Box::new(db), Box::new(db_cache), cache_storage_config);
         let ocafile_input = r#"
 ADD ATTRIBUTE d=Text i=Text passed=Boolean
-ADD META en PROPS description="Entrance credential" name="Entrance credential"
-ADD CHARACTER_ENCODING ATTRS d="utf-8" i="utf-8" passed="utf-8"
-ADD CONFORMANCE ATTRS d="M" i="M" passed="M"
-ADD LABEL en ATTRS d="Schema digest" i="Credential Issuee" passed="Passed"
-ADD FORMAT ATTRS d="image/jpeg"
-ADD UNIT ATTRS i=m
-ADD ATTRIBUTE list=Array[Text] el=Text
-ADD CARDINALITY ATTRS list="1-2"
-ADD ENTRY_CODE ATTRS list="entry_code_said" el=["o1", "o2", "o3"]
-ADD ENTRY en ATTRS list="refs:ENrf7niTCnz7HD-Ci88rlxHlxkpQ2NIZNNv08fQnXANI" el={"o1": "o1_label", "o2": "o2_label", "o3": "o3_label"}
+ADD Overlay META
+  description="Entrance credential"
+  name="Entrance credential"
+ADD Overlay CHARACTER_ENCODING
+  d="utf-8"
+  i="utf-8"
+  passed="utf-8"
+ADD Overlay CONFORMANCE
+  d="M"
+  i="M"
+  passed="M"
+ADD Overlay LABEL
+  d="Schema digest"
+  i="Credential Issuee"
+  passed="Passed"
+ADD Overlay FORMAT
+  d="image/jpeg"
+ADD Overlay UNIT
+  i="m"
+ADD ATTRIBUTE list=[Text] el=Text
+ADD Overlay CARDINALITY
+  list="1-2"
+ADD Overlay ENTRY_CODE
+  list="entry_code_said"
+  el=["o1", "o2", "o3"]
+ADD Overlay ENTRY
+  list="refs:ENrf7niTCnz7HD-Ci88rlxHlxkpQ2NIZNNv08fQnXANI"
+  el
+    "o1"="o1_label"
+    "o2"="o2_label"
+    "o3"="o3_label"
 "#.to_string();
 
-        let registry = OverlayLocalRegistry::from_dir("../../../overlay-file/core_overlays").unwrap();
-        let oca_bundle = facade.build_from_ocafile(ocafile_input, registry.clone());
-        let oca_bundle = oca_bundle.unwrap();
+        let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays").unwrap();
+        let oca_bundle = facade.build_from_ocafile(ocafile_input, registry.clone()).unwrap();
         let ocafile = facade.parse_oca_bundle_to_ocafile(&oca_bundle, registry.clone())?;
         let new_bundle = facade.build_from_ocafile(ocafile, registry);
         match new_bundle {
             Ok(new_bundle) => {
-                assert_eq!(oca_bundle.said, new_bundle.said);
+                assert_eq!(oca_bundle.digest, new_bundle.digest);
             }
             Err(e) => {
                 println!("{:#?}", e);

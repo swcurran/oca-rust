@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod test {
-    use oca_rs::{
+    use oca_store::{
         data_storage::{DataStorage, InMemoryDataStorage},
         facade::{build::Error, build::ValidationError},
         repositories::SQLiteConfig,
-        EncodeBundle, Facade, HashFunctionCode, SerializationFormats,
+        Facade,
     };
     use overlay_file::overlay_registry::OverlayLocalRegistry;
 
@@ -15,10 +15,23 @@ mod test {
         let cache_storage_config = SQLiteConfig::build().unwrap();
         let ocafile = r#"
 ADD ATTRIBUTE d=Text i = Text passed=Boolean
-ADD META en PROPS name = "Entrance credential" description = "Entrance credential"
-ADD CHARACTER_ENCODING ATTRS d=utf-8 i=utf-8 passed=utf-8
-ADD CONFORMANCE ATTRS d=M i=M passed=M
-ADD LABEL en ATTRS d="Schema digest" i="Credential Issuee" passed="Passed"
+ADD Overlay META
+  language="en"
+  name = "Entrance credential"
+  description = "Entrance credential"
+ADD Overlay CHARACTER_ENCODING
+   d="utf-8"
+   i="utf-8"
+   passed="utf-8"
+ADD Overlay CONFORMANCE
+    d=M
+    i=M
+    passed=M
+ADD Overlay LABEL
+ language=en
+ d="Schema digest"
+ i="Credential Issuee"
+ passed="Passed"
 "#
         .to_string();
         let mut facade = Facade::new(Box::new(db), Box::new(db_cache), cache_storage_config);
@@ -27,14 +40,12 @@ ADD LABEL en ATTRS d="Schema digest" i="Credential Issuee" passed="Passed"
         let result = facade.build_from_ocafile(ocafile, registry)?;
 
         assert_eq!(
-            result.said.clone().unwrap().to_string(),
+            result.digest.clone().unwrap().to_string(),
             "EL7Qhl-wWldmBoJ0-sx35EL4gRXDQixm69zOphfwySfG"
         );
 
-        let code = HashFunctionCode::Blake3_256;
-        let format = SerializationFormats::JSON;
-        let oca_bundle_encoded = result.encode(&code, &format).unwrap();
-        let oca_bundle_version = String::from_utf8(oca_bundle_encoded[6..23].to_vec()).unwrap();
+        let oca_bundle_encoded = result.to_json().unwrap();
+        let oca_bundle_version = oca_bundle_encoded[6..23].to_string();
         assert_eq!(oca_bundle_version, "OCAS20JSON0004ce_");
 
         let search_result = facade.search_oca_bundle(None, "Ent".to_string(), 10, 1);
@@ -67,7 +78,7 @@ ADD ATTRIBUTE x=Text
         let result = facade.build_from_ocafile(ocafile, registry)?;
 
         assert_eq!(
-            result.said.unwrap().to_string(),
+            result.digest.unwrap().to_string(),
             "EAXRzHPTRUtNVi-9Stb6vPwiMdZu5_kISQD93YaSHSHV"
         );
         Ok(())
@@ -105,7 +116,7 @@ ADD ATTRIBUTE C=Array[refn:second]
         let result = facade.build_from_ocafile(ocafile, registry.clone())?;
 
         assert_eq!(
-            result.said.unwrap().to_string(),
+            result.digest.unwrap().to_string(),
             "EPUejWOHzKRj78qY0sbtQvDZQzKPQ405Iv8L0QM66fVU"
         );
 
@@ -117,7 +128,7 @@ ADD ATTRIBUTE x=Text
 
         let result = facade.build_from_ocafile(from_ocafile, registry.clone())?;
         assert_eq!(
-            result.said.unwrap().to_string(),
+            result.digest.unwrap().to_string(),
             "EAXRzHPTRUtNVi-9Stb6vPwiMdZu5_kISQD93YaSHSHV"
         );
         let refs = facade.fetch_all_refs().unwrap();
@@ -157,7 +168,7 @@ ADD LINK refn:first ATTRS b=a
         let result = facade.build_from_ocafile(second_ocafile, registry)?;
 
         assert_eq!(
-            result.said.unwrap().to_string(),
+            result.digest.unwrap().to_string(),
             "EOUgyR4Pk8Ckz3h5dA-0yFGhwKeNO2z8_PnmymTGMNdi"
         );
 

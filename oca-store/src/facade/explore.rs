@@ -56,7 +56,7 @@ impl Facade {
         Ok(())
     }
 
-    pub fn add_relations(&mut self, oca_bundle: OCABundleModel) -> Result<(), String> {
+    pub fn add_relations(&mut self, oca_bundle: &OCABundleModel) -> Result<(), String> {
         self.insert_oca_objects_metadata(oca_bundle.clone())?;
 
         let oca_bundle_said = oca_bundle.digest.clone().unwrap().to_string();
@@ -78,7 +78,7 @@ impl Facade {
                 )));
         capture_base_rel.add_relation(OCAObject::new(self, oca_bundle_said.clone()));
 
-        for overlay in oca_bundle.overlays {
+        for overlay in oca_bundle.overlays.clone() {
             let overlay_said = overlay.digest.clone().unwrap().to_string();
 
             oca_bundle_rel.add_relation(OCAObject::new(self, overlay_said.clone()));

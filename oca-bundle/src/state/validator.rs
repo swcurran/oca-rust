@@ -1,8 +1,7 @@
-use crate::state::oca_bundle::overlay::Overlay;
 use isolang::Language;
 use std::collections::HashSet;
 
-use super::oca_bundle::{overlay, OCABundle};
+use super::oca_bundle::OCABundleModel;
 
 #[derive(Debug)]
 pub enum Error {
@@ -41,7 +40,7 @@ pub enum SemanticValidationStatus {
     Invalid(Vec<Error>),
 }
 
-pub fn validate(oca_bundle: &OCABundle) -> Result<SemanticValidationStatus, String> {
+pub fn validate(oca_bundle: &OCABundleModel) -> Result<SemanticValidationStatus, String> {
     let validator = Validator::new();
     match validator.validate(oca_bundle) {
         Ok(_) => Ok(SemanticValidationStatus::Valid),
@@ -287,14 +286,8 @@ impl Validator {
 
 #[cfg(test)]
 mod tests {
-    use oca_ast::ast::NestedAttrType;
-
     use super::*;
     use crate::controller::load_oca;
-    use crate::state::{
-        attribute::{Attribute, AttributeType},
-        encoding::Encoding,
-    };
 
     #[test]
     fn validate_valid_oca() {
@@ -381,27 +374,96 @@ mod tests {
         let validator = Validator::new();
         let data = r#"
 {
-    "version": "OCAB10000023_",
-    "said": "EBQMQm_tXSC8tnNICl7paGUeGg0SyF1tceHhTUutn1PN",
-    "capture_base": {
-        "type": "capture_base/2.0.0",
-        "said": "EBQMQm_tXSC8tnNICl7paGUeGg0SyF1tceHhTUutn1PN",
-        "attributes": {
-            "n1": "Text",
-            "n2": "DateTime",
-            "n3": "refs:EBQMQm_tXSC8tnNICl7paGUeGg0SyF1tceHhTUutn1aP"
-        }
-    },
-    "overlays": {
-        "character_encoding": {
-            "capture_base": "EDRt2wL8yVWVSJdF8aMFtU9VQ6aWzXZTgWj3WqsIKLqm",
-            "said": "EBQMQm_tXSC8tnNICl7paGUeGg0SyF1tceHhTUutn1PN",
-            "type": "overlay/character_encoding/2.0.0",
-            "attribute_character_encoding": {}
-        }
+  "v": "OCAS02JSON0007c1_",
+  "digest": "EDTaoqiaaL504P-HTxYWuiniwhrzGcP9ji-mPeJgudLk",
+  "capture_base": {
+    "digest": "EA0l-Sazi2X9cLn2pbVLr6C-t4-lVsSx3E_yJyEwTwum",
+    "type": "capture_base/2.0.0",
+    "attributes": {
+      "d": "Text",
+      "el": "Text",
+      "i": "Text",
+      "list": [
+        "Text"
+      ],
+      "passed": "Boolean"
     }
+  },
+  "overlays": [
+    {
+      "digest": "EKN9PGIHxLuZe92ZDyrZulScFgTfAdjEc9xXEVb_WULX",
+      "capture_base": "EA0l-Sazi2X9cLn2pbVLr6C-t4-lVsSx3E_yJyEwTwum",
+      "type": "Meta/2.0.0",
+      "description": "Entrance credential",
+      "name": "Entrance credential"
+    },
+    {
+      "digest": "EFOAxxDMSnOiuah9OwoCdwkns8EfsurcHXF57-XdGnen",
+      "capture_base": "EA0l-Sazi2X9cLn2pbVLr6C-t4-lVsSx3E_yJyEwTwum",
+      "type": "Character_Encoding/2.0.0",
+      "d": "utf-8",
+      "i": "utf-8",
+      "passed": "utf-8"
+    },
+    {
+      "digest": "ELivUa6QlCOpidnqLDs9Il1uqILb9pBUj2rLdGgqWDwv",
+      "capture_base": "EA0l-Sazi2X9cLn2pbVLr6C-t4-lVsSx3E_yJyEwTwum",
+      "type": "conformance/2.0.0",
+      "d": "M",
+      "i": "M",
+      "passed": "M"
+    },
+    {
+      "digest": "ECsW-Zb7A0TfG_M_HNH9wwKqil3rSiyKEfPE4398aQdC",
+      "capture_base": "EA0l-Sazi2X9cLn2pbVLr6C-t4-lVsSx3E_yJyEwTwum",
+      "type": "label/2.0.0",
+      "d": "Schema digest",
+      "i": "Credential Issuee",
+      "passed": "Passed"
+    },
+    {
+      "digest": "EJcEfNE3s_lZeUF1C_tez3qbThSsIJq4qV6WHlo-hmIL",
+      "capture_base": "EA0l-Sazi2X9cLn2pbVLr6C-t4-lVsSx3E_yJyEwTwum",
+      "type": "format/2.0.0",
+      "d": "image/jpeg"
+    },
+    {
+      "digest": "EICOF_bxwUyKC7W-blp51-YPPieJxqDPL7wrSkeT8jOg",
+      "capture_base": "EA0l-Sazi2X9cLn2pbVLr6C-t4-lVsSx3E_yJyEwTwum",
+      "type": "unit/2.0.0",
+      "i": "m"
+    },
+    {
+      "digest": "EPT1EDp2ofO1xJSQFehyZb8kCfMqXV8giTs0MeqQOp2a",
+      "capture_base": "EA0l-Sazi2X9cLn2pbVLr6C-t4-lVsSx3E_yJyEwTwum",
+      "type": "cardinality/2.0.0",
+      "list": "1-2"
+    },
+    {
+      "digest": "EKJ1z6PIFXqfP7wy6Hj21Of23HcoiT-b5P1qs_DgYJHo",
+      "capture_base": "EA0l-Sazi2X9cLn2pbVLr6C-t4-lVsSx3E_yJyEwTwum",
+      "type": "ENTRY_CODE/2.0.0",
+      "el": [
+        "o1",
+        "o2",
+        "o3"
+      ],
+      "list": "entry_code_said"
+    },
+    {
+      "digest": "EKohdNuyxHWPZ1dy-Om5Rx4RxufHM5jjDKBa3jyRvp52",
+      "capture_base": "EA0l-Sazi2X9cLn2pbVLr6C-t4-lVsSx3E_yJyEwTwum",
+      "type": "ENTRY/2.0.0",
+      "el": {
+        "o1": "o1_label",
+        "o2": "o2_label",
+        "o3": "o3_label"
+      },
+      "list": "refs:ENrf7niTCnz7HD-Ci88rlxHlxkpQ2NIZNNv08fQnXANI"
+    }
+  ]
 }
-        "#;
+"#;
         let oca_bundle = load_oca(&mut data.as_bytes());
         match oca_bundle {
             Ok(oca_bundle) => {

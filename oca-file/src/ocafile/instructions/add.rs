@@ -13,10 +13,11 @@ pub fn resolve_overlay_def<'a>(
     registry: &'a dyn OverlayRegistry,
     name: &str,
 ) -> Result<&'a OverlayDef, InstructionError> {
-    registry
-        .get_by_name(name)
-        .unwrap()
-        .ok_or_else(|| InstructionError::UnknownOverlay(name.to_string()))
+    match registry.get_by_name(name) {
+        Ok(Some(overlay_def)) => Ok(overlay_def),
+        Ok(None) => Err(InstructionError::UnknownOverlay(name.to_string())),
+        Err(e) => Err(InstructionError::UnknownOverlay(e.to_string())),
+    }
 }
 
 // TODO: move to helpers.rs
@@ -137,9 +138,9 @@ impl AddInstruction {
                                                     );
                                                     content.overlay_name = overlay_def.clone().unwrap().get_full_name();
                                                 }
-                                                Err(_) => {
-                                                    return Err(InstructionError::UnknownOverlay(
-                                                        name.to_string(),
+                                                Err(e) => {
+                                                    return Err(InstructionError::Parser(
+                                                        e.to_string()
                                                     ));
                                                 }
                                             }

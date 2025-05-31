@@ -1,3 +1,4 @@
+use log::debug;
 use oca_bundle::state::oca_bundle::OCABundleModel;
 
 use crate::facade::Connection;
@@ -12,6 +13,7 @@ impl OCABundleCacheRecord {
     pub fn new(oca_bundle: &OCABundleModel) -> Self {
         // TODO handle error cases and return meaningful error
         // if ocabundlemodel is not computed it should fail here
+        debug!("Creating OCABundleCacheRecord from OCABundleModel: {:?}", oca_bundle);
         Self {
             said: oca_bundle.digest.clone().unwrap().to_string(),
             oca_bundle: serde_json::to_string(oca_bundle)

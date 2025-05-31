@@ -38,7 +38,7 @@ pub enum InstructionError {
     #[error(transparent)]
     ExtractError(#[from] ExtractingAttributeError),
 
-    #[error("{0}")]
+    #[error("Overlay definition not found {0}")]
     UnknownOverlay(String),
 }
 

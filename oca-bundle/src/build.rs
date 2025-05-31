@@ -1,7 +1,8 @@
+use std::collections::HashMap;
+
 use crate::state::oca_bundle::overlay::OverlayModel;
 use crate::state::oca_bundle::OCABundleModel;
 use crate::state::attribute::Attribute;
-use log::debug;
 use oca_ast::ast;
 
 /// OCABuild represents a build process of an OCA bundle from OCA AST.
@@ -116,10 +117,6 @@ pub fn apply_command(base: &mut OCABundleModel, op: ast::Command) -> Result<&OCA
         (ast::CommandType::Add, ast::ObjectKind::CaptureBase(content)) => {
             if let Some(ref attributes) = content.attributes {
                 base.capture_base.attributes.extend(attributes.clone());
-                for (attr_name, _) in attributes {
-                    let attribute = Attribute::new(attr_name.clone());
-                    base.attributes.insert(attr_name.to_string(), attribute);
-                }
             }
         }
         (ast::CommandType::Add, ast::ObjectKind::Overlay(content)) => {
@@ -141,7 +138,9 @@ pub fn apply_command(base: &mut OCABundleModel, op: ast::Command) -> Result<&OCA
         (ast::CommandType::Modify, ast::ObjectKind::OCABundle(_)) => todo!(),
         (ast::CommandType::Modify, ast::ObjectKind::Overlay(_)) => todo!(),
     }
-    debug!("Applied step to produce OCA Bundle: {:?}", base);
+    // Calculate and fill digest for bundle, capture base and overlays
+    base.fill_digest();
+    base.fill_attributes();
     if errors.is_empty() {
         Ok(base)
     } else {
@@ -325,7 +324,7 @@ mod tests {
             }
         }
         assert_eq!(
-            base.attributes.len(),
+            base.attributes.unwrap().len(),
             3,
             "Expected 5 attributes in the base after applying commands"
         );
@@ -398,7 +397,7 @@ ADD Overlay ENTRY
         let mut oca_bundle = from_ast(Some(oca_bundle), &oca_ast).unwrap().oca_bundle;
         oca_bundle.fill_digest();
         assert_eq!(oca_bundle.overlays.len(), 9);
-        assert_eq!(oca_bundle.capture_base.attributes.len(), 10);
+        assert_eq!(oca_bundle.capture_base.attributes.len(), 9);
         assert!(oca_bundle.digest.is_some());
         let oca_bundle = OCABundle::from(oca_bundle);
         println!("Bundle: {}", oca_bundle.to_json().unwrap());

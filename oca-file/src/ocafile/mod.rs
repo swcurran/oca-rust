@@ -1,5 +1,6 @@
 pub mod error;
 
+use log::debug;
 pub use oca_ast::ast::OCAAst;
 mod instructions;
 
@@ -163,7 +164,7 @@ fn format_nested_value(value: &ast::NestedValue, indent: usize) -> String {
                     if v.is_object() {
                         format!("{}{}\n{}", " ".repeat(indent), k, formatted_value)
                     } else {
-                        format!("{}{}={}", " ".repeat(indent), k, formatted_value)
+                        format!("{}{}=\"{}\"", " ".repeat(indent), k, formatted_value)
                     }
                 })
                 .collect::<Vec<_>>()
@@ -172,9 +173,9 @@ fn format_nested_value(value: &ast::NestedValue, indent: usize) -> String {
         ast::NestedValue::Array(arr) => {
             let formatted = arr.iter()
                 .map(|v| format_nested_value(v, 0))
-                .collect::<Vec<_>>()
-                .join(", ");
-            format!("[{}]", formatted)
+                .collect::<Vec<_>>();
+            let formatted = formatted.join("\", \"");
+            format!("[\"{}\"]", formatted)
         },
     }
 }
@@ -190,6 +191,7 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
      ast.commands.iter().for_each(|command| {
          let mut line = String::new();
 
+        debug!("Processing command: {:?}", command);
         match command.kind {
             ast::CommandType::Add => {
                 line.push_str("ADD ");
@@ -205,27 +207,28 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                             }
                         }
                     }
-                    ast::ObjectKind::Overlay(content) => match content {
-                        _ => {
-                            line.push_str("Overlay ");
-                            line.push_str(content.overlay_name.to_string().to_case(Case::UpperSnake).as_str());
-                            if let Some(content) = command.object_kind.overlay_content() {
-                                if let Some(ref properties) = content.properties {
-                                    let properties = properties.clone();
-                                    if !properties.is_empty() {
-                                        line.push_str("\n");
-                                        properties.iter().for_each(|(key, value)| {
-                                            let formatted_value = format_nested_value(value, 4);
-                                            if value.is_object() {
-                                                line.push_str(&format!("  {}\n{}\n", key, formatted_value));
-                                            } else {
-                                                line.push_str(&format!("  {}={}\n", key, formatted_value));
-                                            }
-                                        });
-                                    }
+                    ast::ObjectKind::Overlay(content) => {
+                        line.push_str("Overlay ");
+                        let (name, _) = content.overlay_name.split_once("/").ok_or_else(|| "Invalid overlay name format: version not found or in wrong format").unwrap();
+                        line.push_str(name.to_case(Case::UpperSnake).as_str());
+                        if let Some(content) = command.object_kind.overlay_content() {
+                            if let Some(ref properties) = content.properties {
+                                let properties = properties.clone();
+                                if !properties.is_empty() {
+                                    line.push_str("\n");
+                                    properties.iter().for_each(|(key, value)| {
+                                        let formatted_value = format_nested_value(value, 4);
+                                        if value.is_object() {
+                                            line.push_str(&format!("  {}\n{}\n", key, formatted_value));
+                                        } else if value.is_array() {
+                                            line.push_str(&format!("  {}={}\n", key, formatted_value));
+                                        } else {
+                                            line.push_str(&format!("  {}=\"{}\"\n", key, formatted_value));
+                                        }
+                                    });
                                 }
-                            };
-                        }
+                            }
+                        };
                     }
                     _ => {
                         return;

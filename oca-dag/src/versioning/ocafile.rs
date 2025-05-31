@@ -30,10 +30,8 @@ pub fn build_oca(
             let bundle_model_result = oca_bundle::build::apply_command(&mut current_base, command.clone());
 
             match bundle_model_result {
-                Ok(bm) => {
-                    let mut bundle_model = bm.clone();
+                Ok(bundle_model) => {
                     let command_str = serde_json::to_string(&command).unwrap();
-                    bundle_model.fill_digest();
 
                     let mut input: Vec<u8> = vec![];
                     if let Some(base_said) = bundle_model.digest.as_ref() {
@@ -226,7 +224,7 @@ mod tests {
 
         let db_read = SledDataStorage::open("db_test");
         let op = db_read
-            .get(&format!("oca.{}.operation", oca.unwrap().said.unwrap()))
+            .get(&format!("oca.{}.operation", oca.unwrap().digest.unwrap()))
             .unwrap();
         println!("{:?}", String::from_utf8_lossy(&op.unwrap()));
         // println!("{}", serde_json::to_string_pretty(&oca.unwrap()).unwrap());
@@ -266,16 +264,9 @@ mod tests {
         let db = SledDataStorage::open("db_test");
         let oca = build_oca(Box::new(db), commands);
 
-        let code = HashFunctionCode::Blake3_256;
-        let format = SerializationFormats::JSON;
-        println!(
-            "{:?}",
-            String::from_utf8(oca.clone().unwrap().encode(&code, &format).unwrap())
-        );
-
         let db_read = SledDataStorage::open("db_test");
         let op = db_read
-            .get(&format!("oca.{}.operation", oca.unwrap().said.unwrap()))
+            .get(&format!("oca.{}.operation", oca.unwrap().digest.unwrap()))
             .unwrap();
         println!("{:?}", String::from_utf8_lossy(&op.unwrap()));
         // println!("{}", serde_json::to_string_pretty(&oca.unwrap()).unwrap());

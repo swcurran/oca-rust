@@ -888,24 +888,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "oca-ast-transformation"
-version = "2.0.0-rc2"
-dependencies = [
- "env_logger 0.10.2",
- "indexmap 1.9.3",
- "log",
- "recursion",
- "said",
- "serde",
- "serde-wasm-bindgen",
- "serde_json",
- "strum",
- "strum_macros",
- "thiserror 1.0.69",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "oca-bundle"
 version = "2.0.0-rc2"
 dependencies = [
@@ -976,31 +958,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "oca-file-transformation"
-version = "2.0.0-rc2"
-dependencies = [
- "clap 4.5.37",
- "convert_case",
- "env_logger 0.10.2",
- "indexmap 1.9.3",
- "log",
- "oca-ast-transformation",
- "pest",
- "pest_derive",
- "pretty_assertions",
- "recursion",
- "said",
- "serde",
- "serde_json",
- "sled",
- "thiserror 1.0.69",
-]
-
-[[package]]
 name = "oca-store"
 version = "2.0.0-rc2"
 dependencies = [
  "dyn-clonable",
+ "env_logger 0.11.8",
  "isolang",
  "log",
  "oca-ast",
@@ -1015,7 +977,6 @@ dependencies = [
  "serde_json",
  "sled",
  "thiserror 1.0.69",
- "transformation-file",
 ]
 
 [[package]]
@@ -1674,21 +1635,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.101",
-]
-
-[[package]]
-name = "transformation-file"
-version = "2.0.0-rc2"
-dependencies = [
- "indexmap 1.9.3",
- "oca-ast-transformation",
- "said",
- "serde",
- "serde-value",
- "serde_json",
- "serde_yaml",
- "thiserror 1.0.69",
- "wasm-bindgen",
 ]
 
 [[package]]
