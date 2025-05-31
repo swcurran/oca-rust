@@ -3,15 +3,16 @@ pub mod versioning;
 
 use oca_ast::ast;
 use said::{derivation::HashFunction, SelfAddressingIdentifier};
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::str::FromStr;
 
 #[derive(Debug, Clone)]
-pub struct CommandModel {
+pub struct CommandNode {
     pub digest: SelfAddressingIdentifier,
     pub json: String,
 }
-impl CommandModel {
+impl CommandNode {
     fn new(command: ast::Command) -> Self {
         Self {
             digest: Self::calculate_command_digest(&command),
@@ -27,21 +28,21 @@ impl CommandModel {
 }
 
 #[derive(Debug, Clone)]
-pub struct CaptureBaseModel {
+pub struct CaptureBaseNode {
     pub capture_base_said: SelfAddressingIdentifier,
     pub parent: Option<SelfAddressingIdentifier>,
     pub command_digest: SelfAddressingIdentifier,
 }
 
 #[derive(Debug, Clone)]
-pub struct OverlayModel {
+pub struct OverlayNode {
     pub overlay_said: SelfAddressingIdentifier,
     pub parent: Option<SelfAddressingIdentifier>,
     pub command_digest: SelfAddressingIdentifier,
 }
 
-#[derive(Debug, Clone)]
-pub struct OCABundleModel {
+#[derive(Debug, Clone, Deserialize)]
+pub struct OCABundleNode {
     pub oca_bundle_said: SelfAddressingIdentifier,
     pub parent: Option<SelfAddressingIdentifier>,
     pub capture_base_said: SelfAddressingIdentifier,
@@ -66,10 +67,10 @@ impl State {
 
 #[derive(Debug)]
 pub struct ResultModel {
-    pub command: Option<CommandModel>,
-    pub oca_bundle: Option<OCABundleModel>,
-    pub capture_base: Option<CaptureBaseModel>,
-    pub overlay: Option<OverlayModel>,
+    pub command: Option<CommandNode>,
+    pub oca_bundle: Option<OCABundleNode>,
+    pub capture_base: Option<CaptureBaseNode>,
+    pub overlay: Option<OverlayNode>,
 }
 impl ResultModel {
     fn new() -> Self {
@@ -98,13 +99,13 @@ pub fn build_core_db_model(oca_build: &oca_bundle::build::OCABuild) -> Vec<Resul
 fn apply_step(state: State, step: &oca_bundle::build::OCABuildStep) -> (State, ResultModel) {
     let mut current_state = state.clone();
     let mut result = ResultModel::new();
-    let command_model = CommandModel::new(step.command.clone());
+    let command_model = CommandNode::new(step.command.clone());
     result.command = Some(command_model.clone());
 
     match &step.command.object_kind {
         ast::ObjectKind::CaptureBase(_) => {
-            let capture_base_model = CaptureBaseModel {
-                capture_base_said: step.result.capture_base.said.clone().unwrap(),
+            let capture_base_model = CaptureBaseNode {
+                capture_base_said: step.result.capture_base.digest.clone().unwrap(),
                 parent: state.capture_base,
                 command_digest: command_model.digest,
             };
@@ -133,7 +134,7 @@ fn apply_step(state: State, step: &oca_bundle::build::OCABuildStep) -> (State, R
                 // };
                 let overlay_key = overlay.name.to_string(); // TODO fetch UNIQUE ATTR AND use here
                 let parent_overlay = state.overlays.get(&overlay_key);
-                let overlay_model = OverlayModel {
+                let overlay_model = OverlayNode {
                     overlay_said: overlay.digest.clone().unwrap(),
                     parent: parent_overlay.cloned(),
                     command_digest: command_model.digest,
@@ -149,10 +150,10 @@ fn apply_step(state: State, step: &oca_bundle::build::OCABuildStep) -> (State, R
         }
     }
 
-    let oca_bundle_model = OCABundleModel {
-        oca_bundle_said: step.result.said.clone().unwrap(),
+    let oca_bundle_model = OCABundleNode {
+        oca_bundle_said: step.result.digest.clone().unwrap(),
         parent: state.oca_bundle,
-        capture_base_said: step.result.capture_base.said.clone().unwrap(),
+        capture_base_said: step.result.capture_base.digest.clone().unwrap(),
         overlays_said: step
             .result
             .overlays

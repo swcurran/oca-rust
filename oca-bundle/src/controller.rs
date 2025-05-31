@@ -1,10 +1,12 @@
 use std::io::Read;
 
-use crate::state::oca::OCABundle;
+use crate::state::oca_bundle::OCABundle;
 
 pub type GenericError = Box<dyn std::error::Error + Sync + Send>;
 pub type GenericResult<T> = Result<T, GenericError>;
 
+/// Loads an OCA Bundle JSON representation from a reader.
+/// Serializes the JSON into an `OCABundle` object.
 pub fn load_oca(source: &mut dyn Read) -> GenericResult<OCABundle> {
     let oca: OCABundle = serde_json::from_reader(source)?;
 

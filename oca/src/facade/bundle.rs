@@ -1,6 +1,6 @@
 use std::io::Read;
 
-use oca_bundle::state::oca::OCABundle as StructuralBundle;
+use oca_bundle::state::oca_bundle::OCABundle as StructuralBundle;
 use said::derivation::HashFunctionCode;
 use said::version::SerializationInfo;
 use said::{sad::SerializationFormats, sad::SAD};

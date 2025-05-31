@@ -1,6 +1,6 @@
 use indexmap::{indexmap, IndexMap};
 use oca_ast::ast;
-use oca_bundle::state::oca::OCABundle;
+use oca_bundle::state::oca_bundle::OCABundle;
 use oca_dag::data_storage::{DataStorage, SledDataStorage};
 
 fn generate_commands() -> Vec<ast::Command> {

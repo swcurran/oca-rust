@@ -13,7 +13,7 @@ use crate::repositories::{
 use log::debug;
 use oca_ast::ast::{OCAAst, ObjectKind, RefValue, ReferenceAttrType};
 use oca_bundle::build::{OCABuild, OCABuildStep};
-use oca_bundle::state::oca::OCABundle;
+use oca_bundle::state::oca_bundle::OCABundle;
 use oca_bundle::Encode;
 use oca_dag::build_core_db_model;
 use oca_file::ocafile;
@@ -280,7 +280,7 @@ impl Facade {
         self.db_cache
             .insert(
                 Namespace::OCAObjectsJSON,
-                &result_bundle.capture_base.said.clone().unwrap().to_string(),
+                &result_bundle.capture_base.digest.clone().unwrap().to_string(),
                 &serde_json::to_string(&result_bundle.capture_base)
                     .unwrap()
                     .into_bytes(),

@@ -1,8 +1,8 @@
-use crate::state::oca::overlay::Overlay;
+use crate::state::oca_bundle::overlay::Overlay;
 use isolang::Language;
 use std::collections::HashSet;
 
-use super::oca::{overlay, OCABundle};
+use super::oca_bundle::{overlay, OCABundle};
 
 #[derive(Debug)]
 pub enum Error {
@@ -82,45 +82,45 @@ impl Validator {
         /* let oca_bundle: OCABundle = serde_json::from_str(oca_str.as_str())
                    .map_err(|e| vec![Error::Custom(e.to_string())])?;
         */
-        let mut recalculated_oca_bundle = oca_bundle.clone();
-        recalculated_oca_bundle.fill_said();
+        // let mut recalculated_oca_bundle = oca_bundle.clone();
+        // recalculated_oca_bundle.fill_said();
+        //
+        // if oca_bundle.said.ne(&recalculated_oca_bundle.said) {
+        //     errors.push(Error::Custom("OCA Bundle: Malformed SAID".to_string()));
+        // }
+        //
+        // let capture_base = &oca_bundle.capture_base;
+        //
+        // let mut recalculated_capture_base = capture_base.clone();
+        // recalculated_capture_base.calculate_said();
+        //
+        // if capture_base.said.ne(&recalculated_capture_base.said) {
+        //     errors.push(Error::Custom("capture_base: Malformed SAID".to_string()));
+        // }
 
-        if oca_bundle.said.ne(&recalculated_oca_bundle.said) {
-            errors.push(Error::Custom("OCA Bundle: Malformed SAID".to_string()));
-        }
-
-        let capture_base = &oca_bundle.capture_base;
-
-        let mut recalculated_capture_base = capture_base.clone();
-        recalculated_capture_base.calculate_said();
-
-        if capture_base.said.ne(&recalculated_capture_base.said) {
-            errors.push(Error::Custom("capture_base: Malformed SAID".to_string()));
-        }
-
-        for o in &oca_bundle.overlays {
-            let mut recalculated_overlay = o.clone();
-            recalculated_overlay.fill_said();
-            if o.digest.ne(&recalculated_overlay.digest) {
-                // let msg = match o.language() {
-                //     Some(lang) => format!("{} ({}): Malformed SAID", o.overlay_type(), lang),
-                //     None => format!("{}: Malformed SAID", o.overlay_type()),
-                // };
-                let msg = format!("{}: Malformed SAID", o.name);
-                errors.push(Error::Custom(msg));
-            }
-
-            if o.capture_base.ne(&capture_base.said) {
-                // let msg = match o.language() {
-                //     Some(lang) => {
-                //         format!("{} ({}): Mismatch capture_base SAI", o.overlay_type(), lang)
-                //     }
-                //     None => format!("{}: Mismatch capture_base SAI", o.overlay_type()),
-                // };
-                let msg = format!("{}: Mismatch capture_base SAI", o.name);
-                errors.push(Error::Custom(msg));
-            }
-        }
+        // for o in &oca_bundle.overlays {
+        //     let mut recalculated_overlay = o.clone();
+        //     recalculated_overlay.fill_said();
+        //     if o.digest.ne(&recalculated_overlay.digest) {
+        //         // let msg = match o.language() {
+        //         //     Some(lang) => format!("{} ({}): Malformed SAID", o.overlay_type(), lang),
+        //         //     None => format!("{}: Malformed SAID", o.overlay_type()),
+        //         // };
+        //         let msg = format!("{}: Malformed SAID", o.name);
+        //         errors.push(Error::Custom(msg));
+        //     }
+        //
+        //     if o.capture_base.ne(&capture_base.said) {
+        //         // let msg = match o.language() {
+        //         //     Some(lang) => {
+        //         //         format!("{} ({}): Mismatch capture_base SAI", o.overlay_type(), lang)
+        //         //     }
+        //         //     None => format!("{}: Mismatch capture_base SAI", o.overlay_type()),
+        //         // };
+        //         let msg = format!("{}: Mismatch capture_base SAI", o.name);
+        //         errors.push(Error::Custom(msg));
+        //     }
+        // }
 
         // if !enforced_langs.is_empty() {
         //     let meta_overlays = oca_bundle

@@ -1,6 +1,6 @@
 use crate::data_storage::Namespace;
 use oca_ast::ast::{BundleContent, CaptureContent, OverlayContent, ObjectKind, RefValue};
-use oca_bundle::state::oca::OCABundle;
+use oca_bundle::state::oca_bundle::OCABundle;
 use serde::{ser::SerializeStruct, Serialize};
 use std::collections::HashSet;
 

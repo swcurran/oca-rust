@@ -1,4 +1,4 @@
-use oca_bundle::state::oca::OCABundle;
+use oca_bundle::state::oca_bundle::OCABundle;
 
 struct OCABundleDTO {
     bundle: OCABundle,
@@ -14,12 +14,12 @@ impl OCABundleDTO {
 impl From<OCABundleDTO> for Vec<u8> {
     fn from(val: OCABundleDTO) -> Self {
         let mut digests: Vec<u8> = Vec::new();
-        if let Some(ref said) = val.bundle.capture_base.said {
+        if let Some(ref said) = val.bundle.model.capture_base.digest {
             digests.push(said.to_string().len().try_into().unwrap());
             digests.extend(said.to_string().as_bytes());
         }
 
-        val.bundle.overlays.iter().for_each(|overlay| {
+        val.bundle.model.overlays.iter().for_each(|overlay| {
             if let Some(ref said) = overlay.digest {
                 digests.push(said.to_string().len().try_into().unwrap());
                 // digests.push(overlay.overlay_type().into());

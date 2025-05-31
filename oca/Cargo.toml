@@ -1,14 +1,10 @@
 [package]
 name = "oca-rs"
-description = "OCA rust ecosytem facade"
+description = "Simple OCA object storage"
 version = "2.0.0-rc2"
 license = "EUPL-1.2"
 edition = "2021"
-authors = [
-  "Marcin Olichwiruk <marcin.olichwiruk@opensoftware.pl>",
-  "Robert Mitwicki <robert.mitwicki@opensoftware.pl>",
-  "Michał Pietrus <michal.pietrus@opensoftware.pl>",
-]
+authors = ["Human Colossus Community <contact@humancolossus.org>"]
 readme = "README.md"
 include = ["src/**/*", "README.md"]
 

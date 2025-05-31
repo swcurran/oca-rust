@@ -1,13 +1,13 @@
 use crate::data_storage::DataStorage;
 use oca_ast::ast::{self, RefValue};
-use oca_bundle::state::oca::{OCABundle};
+use oca_bundle::state::oca_bundle::{OCABundle, OCABundleModel};
 use said::{derivation::HashFunctionCode, sad::SerializationFormats, version::Encode};
 
 pub fn build_oca(
     db: Box<dyn DataStorage>,
     commands: Vec<ast::Command>,
-) -> Result<OCABundle, String> {
-    let mut base: Option<OCABundle> = None;
+) -> Result<OCABundleModel, String> {
+    let mut base: Option<OCABundleModel> = None;
     for command in commands {
         if let ast::CommandType::From = command.kind {
             let said = match command.clone().object_kind.oca_bundle_content() {
@@ -19,42 +19,45 @@ pub fn build_oca(
                 },
                 None => return Err("Missing bundle content".to_string()),
             };
+            // TODO conside to name keys a bit more meaningful like oca.bundle
             let oca_bundle_str = match db.get(&format!("oca.{}", said))? {
                 Some(oca_bundle_str) => String::from_utf8(oca_bundle_str).unwrap(),
                 None => return Err("OCA not found".to_string()),
             };
-            base = Some(serde_json::from_str::<OCABundle>(&oca_bundle_str).unwrap());
+            base = Some(serde_json::from_str::<OCABundleModel>(&oca_bundle_str).unwrap());
         } else {
             let mut current_base = base.take().unwrap_or_default();
-            let result = oca_bundle::build::apply_command(&mut current_base, command.clone());
+            let bundle_model_result = oca_bundle::build::apply_command(&mut current_base, command.clone());
 
-            match result {
-                Ok(oca_bundle) => {
+            match bundle_model_result {
+                Ok(bm) => {
+                    let mut bundle_model = bm.clone();
                     let command_str = serde_json::to_string(&command).unwrap();
+                    bundle_model.fill_digest();
 
                     let mut input: Vec<u8> = vec![];
-                    match base.clone() {
-                        Some(base) => {
-                            let base_said = base.said.as_ref().unwrap().to_string();
-                            input.push(base_said.len().try_into().unwrap());
-                            input.extend(base_said.as_bytes());
-                        }
-                        None => {
-                            input.push(0);
-                        }
+                    if let Some(base_said) = bundle_model.digest.as_ref() {
+                        input.push(base_said.to_string().len().try_into().unwrap());
+                        input.extend(base_said.to_string().as_bytes());
+                    } else {
+                        input.push(0);
                     }
                     input.push(command_str.len().try_into().unwrap());
                     input.extend(command_str.as_bytes());
-                    db.insert(
-                        &format!("oca.{}.operation", oca_bundle.clone().said.unwrap()),
-                        &input,
-                    )?;
-                    let code = HashFunctionCode::Blake3_256;
-                    let format = SerializationFormats::JSON;
-                    db.insert(
-                        &format!("oca.{}", oca_bundle.clone().said.unwrap()),
-                        &oca_bundle.encode(&code, &format).unwrap(),
-                    )?;
+                    if let Some(oca_said) = bundle_model.digest.as_ref() {
+                        db.insert(
+                            &format!("oca.{}.operation", oca_said),
+                            &input,
+                        )?;
+                        db.insert(
+                            &format!("oca.{}", oca_said),
+                            &serde_json::to_vec(&bundle_model).map_err(|e| e.to_string())?,
+
+                        )?;
+                    } else {
+                        input.push(0);
+                    }
+
                 }
                 Err(errors) => {
                     println!("{:?}", errors);

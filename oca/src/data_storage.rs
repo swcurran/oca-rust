@@ -1,8 +1,16 @@
 use dyn_clonable::*;
 use std::{collections::HashMap, path::PathBuf};
 
+/// Represents the namespace for data Storage
+///
+/// OCA - TODO
+/// OCAObjectsJSON - Json representation of OCA objects
+/// CoreModel - Core model of OCA
+/// OCARelations - Relations between OCA objects
+/// OCAReferences - References to OCA objects
 pub enum Namespace {
     OCA,
+    /// Represents the namespace for OCA bundles in JSON format
     OCABundlesJSON,
     OCAObjectsJSON,
     CoreModel,

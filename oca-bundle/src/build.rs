@@ -1,11 +1,14 @@
-use crate::state::oca::overlay::Overlay;
-use crate::state::oca::OCABundle;
+use crate::state::oca_bundle::overlay::OverlayModel;
+use crate::state::oca_bundle::OCABundleModel;
 use crate::state::attribute::Attribute;
+use log::debug;
 use oca_ast::ast;
 
+/// OCABuild represents a build process of an OCA bundle from OCA AST.
+/// It contains the final OCA bundle and a list of steps that were applied to create it.
 #[derive(Debug)]
 pub struct OCABuild {
-    pub oca_bundle: OCABundle,
+    pub oca_bundle: OCABundleModel,
     pub steps: Vec<OCABuildStep>,
 }
 
@@ -13,7 +16,7 @@ pub struct OCABuild {
 pub struct OCABuildStep {
     pub parent_said: Option<said::SelfAddressingIdentifier>,
     pub command: ast::Command,
-    pub result: OCABundle,
+    pub result: OCABundleModel,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -39,18 +42,18 @@ pub enum Error {
 
 /// Create a new OCA build from OCA AST
 pub fn from_ast(
-    from_bundle: Option<OCABundle>,
+    from_bundle: Option<OCABundleModel>,
     oca_ast: &ast::OCAAst,
 ) -> Result<OCABuild, Vec<Error>> {
     let mut errors = vec![];
     let mut steps = vec![];
     let mut parent_said: Option<said::SelfAddressingIdentifier> = match &from_bundle {
-        Some(oca_bundle) => oca_bundle.said.clone(),
+        Some(oca_bundle) => oca_bundle.digest.clone(),
         None => None,
     };
     let has_from_bundle = from_bundle.is_some();
 
-    let mut oca_bundle = from_bundle.unwrap_or_else(|| OCABundle::default());
+    let mut oca_bundle = from_bundle.unwrap_or_else(|| OCABundleModel::default());
 
     let default_command_meta = ast::CommandMeta {
         line_number: 0,
@@ -79,7 +82,7 @@ pub fn from_ast(
                     command: command.clone(),
                     result: oca_bundle.clone(),
                 });
-                parent_said.clone_from(&oca_bundle.said);
+                parent_said.clone_from(&oca_bundle.digest);
             }
             Err(mut err) => {
                 errors.extend(err.iter_mut().map(|e| Error::FromASTError {
@@ -100,7 +103,7 @@ pub fn from_ast(
     }
 }
 
-pub fn apply_command(base: &mut OCABundle, op: ast::Command) -> Result<&OCABundle, Vec<String>> {
+pub fn apply_command(base: &mut OCABundleModel, op: ast::Command) -> Result<&OCABundleModel, Vec<String>> {
     let mut errors = vec![];
 
     match (op.kind, op.object_kind) {
@@ -120,7 +123,7 @@ pub fn apply_command(base: &mut OCABundle, op: ast::Command) -> Result<&OCABundl
             }
         }
         (ast::CommandType::Add, ast::ObjectKind::Overlay(content)) => {
-            let mut overlay = Overlay::new(content.clone());
+            let mut overlay = OverlayModel::new(content.clone());
             overlay.overlay_def = Some(op.overlay_def.clone().unwrap());
             base.overlays.push(overlay);
         }
@@ -138,10 +141,7 @@ pub fn apply_command(base: &mut OCABundle, op: ast::Command) -> Result<&OCABundl
         (ast::CommandType::Modify, ast::ObjectKind::OCABundle(_)) => todo!(),
         (ast::CommandType::Modify, ast::ObjectKind::Overlay(_)) => todo!(),
     }
-
-
-    base.compute();
-
+    debug!("Applied step to produce OCA Bundle: {:?}", base);
     if errors.is_empty() {
         Ok(base)
     } else {
@@ -151,16 +151,13 @@ pub fn apply_command(base: &mut OCABundle, op: ast::Command) -> Result<&OCABundl
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
-    use crate::state::oca::OCAContext;
+    use crate::state::oca_bundle::OCABundle;
 
     use super::*;
     use indexmap::IndexMap;
     use oca_ast::ast::{AttributeType, CaptureContent};
     use oca_file::ocafile::parse_from_string;
     use overlay_file::overlay_registry::{OverlayLocalRegistry, OverlayRegistry};
-    use said::{derivation::HashFunctionCode, sad::SerializationFormats, version::Encode};
 
     #[test]
     fn test_add_step() -> Result<(), Box<dyn std::error::Error>> {
@@ -314,8 +311,7 @@ mod tests {
         });
 
         // todo test if references with name are working
-        let mut base = OCABundle::default();
-        base.set_context(Arc::new(OCAContext::new(registry)));
+        let mut base = OCABundleModel::default();
 
         for command in commands {
             match apply_command(&mut base, command.clone()) {
@@ -397,24 +393,14 @@ ADD Overlay ENTRY
 "#;
         let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
 
-        let mut oca_bundle = OCABundle::default();
-        oca_bundle.set_context(Arc::new(OCAContext::new(registry)));
+        let oca_bundle = OCABundleModel::default();
 
-        let build_result = from_ast(Some(oca_bundle), &oca_ast);
-        match build_result {
-            Ok(oca_build) => {
-                assert_eq!(oca_build.oca_bundle.overlays.len(), 9);
-                assert_eq!(oca_build.oca_bundle.capture_base.attributes.len(), 10);
-                assert!(oca_build.oca_bundle.said.is_some());
-                let code = HashFunctionCode::Blake3_256;
-                let format = SerializationFormats::JSON;
-                let oca_bundle_encoded = oca_build.oca_bundle.encode(&code, &format).unwrap();
-                let oca_bundle_json = String::from_utf8(oca_bundle_encoded).unwrap();
-                println!("Bundle: {}", oca_bundle_json);
-            }
-            Err(e) => {
-                println!("{:?}", e);
-            }
-        }
+        let mut oca_bundle = from_ast(Some(oca_bundle), &oca_ast).unwrap().oca_bundle;
+        oca_bundle.fill_digest();
+        assert_eq!(oca_bundle.overlays.len(), 9);
+        assert_eq!(oca_bundle.capture_base.attributes.len(), 10);
+        assert!(oca_bundle.digest.is_some());
+        let oca_bundle = OCABundle::from(oca_bundle);
+        println!("Bundle: {}", oca_bundle.to_json().unwrap());
     }
 }

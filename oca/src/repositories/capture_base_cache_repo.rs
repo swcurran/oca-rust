@@ -1,4 +1,4 @@
-use oca_bundle::state::oca::capture_base::CaptureBase;
+use oca_bundle::state::oca_bundle::capture_base::CaptureBase;
 
 use crate::facade::Connection;
 
@@ -11,7 +11,7 @@ pub struct CaptureBaseCacheRecord {
 impl CaptureBaseCacheRecord {
     pub fn new(capture_base: &CaptureBase) -> Self {
         Self {
-            said: capture_base.said.clone().unwrap().to_string(),
+            said: capture_base.digest.clone().unwrap().to_string(),
             capture_base: serde_json::to_string(capture_base).unwrap(),
         }
     }

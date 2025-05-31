@@ -7,8 +7,8 @@ use crate::{
     repositories::{OCABundleCacheRepo, OCABundleFTSRepo},
 };
 use oca_ast::ast::{self, OCAAst, ObjectKind, RefValue};
-use oca_bundle::{build::OCABuildStep, state::oca::overlay::Overlay};
-use oca_bundle::state::oca::{capture_base::CaptureBase, OCABundle};
+use oca_bundle::{build::OCABuildStep, state::oca_bundle::overlay::Overlay};
+use oca_bundle::state::oca_bundle::{capture_base::CaptureBase, OCABundle};
 use oca_file::ocafile;
 use said::{
     derivation::HashFunctionCode,
@@ -209,6 +209,12 @@ impl Facade {
         })
     }
 
+    /// Retrive OCA object from local storage by its SAID
+    /// # Arguments
+    /// * `saids` - Vector of SAIDs to retrive OCA objects
+    ///
+    /// # Return
+    /// * `Result<Vec<OCAObject>, Vec<String>>` - Vector of OCA objects or vector of errors
     pub fn get_oca_objects(&self, saids: Vec<String>) -> Result<Vec<OCAObject>, Vec<String>> {
         let mut result: Vec<OCAObject> = vec![];
         let mut errors: Vec<String> = vec![];

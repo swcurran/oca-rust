@@ -1,94 +1,119 @@
 use indexmap::IndexMap;
+use log::info;
+use overlay::{Overlay, OverlayModel};
 use overlay_file::overlay_registry::OverlayLocalRegistry;
 use said::derivation::HashFunctionCode;
-use said::sad::{SerializationFormats, SAD};
-use said::version::SerializationInfo;
-use serde::{Deserialize, Serialize};
+use said::{make_me_sad, ProtocolVersion, SelfAddressingIdentifier};
+use serde::ser::Error;
+use serde::{Deserialize, Serialize, Serializer};
+use serde_json::Value;
+use thiserror::Error;
 use std::collections::HashMap;
-use std::sync::Arc;
 pub mod capture_base;
 pub mod overlay;
 use crate::state::{
     attribute::Attribute,
-    oca::{capture_base::CaptureBase, overlay::Overlay},
+    oca_bundle::capture_base::CaptureBase,
 };
 use oca_ast::ast::{CaptureContent, Command, CommandType, OCAAst, ObjectKind};
 
-/// OCA Context to provide access to overlay registry
-#[derive(Debug, Clone)]
-pub struct OCAContext {
-    registry: Arc<OverlayLocalRegistry>,
-}
-
-impl OCAContext {
-    pub fn new(registry: OverlayLocalRegistry) -> Self {
-        OCAContext {
-            registry: Arc::new(registry),
-        }
-    }
-}
-
-impl Default for OCAContext {
-    fn default() -> Self {
-        OCAContext {
-            registry: Arc::new(OverlayLocalRegistry::new()),
-        }
-    }
-}
-
-#[derive(SAD, Serialize, Debug, Deserialize, Clone)]
-#[version(protocol = "OCAS", major = 2, minor = 0)]
+#[derive(Debug, Deserialize, Clone)]
+// #[version(protocol = "OCAS", major = 2, minor = 0)]
 pub struct OCABundle {
-    #[said]
-    #[serde(rename = "digest")]
-    pub said: Option<said::SelfAddressingIdentifier>,
-    pub capture_base: CaptureBase,
-    pub overlays: Vec<Overlay>,
+    pub model: OCABundleModel,
+}
 
-    #[serde(skip)]
-    pub context: Arc<OCAContext>,
-    #[serde(skip)]
-    // Storing attributes in different model for easy access
+#[derive(Serialize, Debug, Deserialize, Clone)]
+pub struct OCABundleModel {
+    pub digest: Option<said::SelfAddressingIdentifier>,
+    pub capture_base: CaptureBase,
+    pub overlays: Vec<OverlayModel>,
+    // Storing attributes in different model for easy read access
     pub attributes: HashMap<String, Attribute>,
 }
 
-impl Default for OCABundle {
+impl Default for OCABundleModel {
     fn default() -> Self {
-        OCABundle {
-            said: None,
-            capture_base: CaptureBase::new(),
+        OCABundleModel {
+            digest: None,
+            capture_base: CaptureBase::default(),
             overlays: Vec::new(),
-            context: Arc::new(OCAContext::default()),
             attributes: HashMap::new(),
         }
+    }
+}
+
+impl From<OCABundleModel> for OCABundle {
+    fn from(model: OCABundleModel) -> Self {
+        OCABundle { model }
     }
 }
 
 impl OCABundle {
+    pub fn to_json(&self) -> Result<String, serde_json::Error> {
+        let code = HashFunctionCode::Blake3_256;
+        let serialized_bundle = serde_json::to_string(&self).map_err(|_| {
+            serde_json::Error::custom("Failed to serialize OCABundleModel")
+        })?;
+        let said_field = Some("digest");
+        let version = ProtocolVersion::new("OCAS", 2, 0).unwrap();
+        let input = serialized_bundle.as_str();
+        match make_me_sad(input, code, version, said_field) {
+            Ok(sad) => {
+                let json: Value = serde_json::from_str(&serialized_bundle)
+                    .map_err(|_| serde_json::Error::custom("Failed to parse OCABundle JSON"))?;
+                info!("OCABundle serialized successfully with digest: {}", json.get("digest").unwrap()); Ok(sad)
+            },
+            Err(_) => Err(serde_json::Error::custom("Failed to compute digest for oca bundle")),
+        }
+    }
+
+}
+
+impl Serialize for OCABundle {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        use serde::ser::SerializeMap;
+        let mut map = serializer.serialize_map(None)?;
+        map.serialize_entry("digest", &self.model.digest)?;
+        let capture_base_json = self.model.capture_base.to_json().map_err(serde::ser::Error::custom)?;
+        let capture_base: Value = serde_json::from_str(&capture_base_json)
+            .map_err(serde::ser::Error::custom)?;
+        map.serialize_entry("capture_base", &capture_base)?;
+        let overlays: Vec<Overlay> = self.model.overlays.iter().map(Overlay::from).collect();
+        let overlays_json: Vec<Value> = overlays
+            .iter()
+            .map(|overlay| {
+                let overlay_json = overlay.to_json().map_err(serde::ser::Error::custom)?;
+                serde_json::from_str(&overlay_json).map_err(serde::ser::Error::custom)
+            })
+            .collect::<Result<_, _>>()?;
+        map.serialize_entry( "overlays", &overlays_json)?;
+        map.end()
+    }
+}
+
+impl OCABundleModel {
     pub fn new(
         capture_base: CaptureBase,
-        overlays: Vec<Overlay>,
-        context: Arc<OCAContext>,
+        overlays: Vec<OverlayModel>,
     ) -> Self {
-        OCABundle {
-            said: None,
+        OCABundleModel {
+            digest: None,
             capture_base,
             overlays,
-            context,
             attributes: HashMap::new(),
         }
     }
-    pub fn fill_said(&mut self) {
-        let code = HashFunctionCode::Blake3_256;
-        let format = SerializationFormats::JSON;
-        self.compute_digest(&code, &format);
-    }
+    // pub fn fill_said(&mut self) {
+    //     let code = HashFunctionCode::Blake3_256;
+    //     let format = SerializationFormats::JSON;
+    //     self.compute_digest(&code, &format);
+    // }
 
-    pub fn set_context(&mut self, context: Arc<OCAContext>) {
-        self.context = context;
-    }
-
-    pub fn to_ast(&self, registry: OverlayLocalRegistry) -> OCAAst {
+    pub fn to_ast(&self, _registry: OverlayLocalRegistry) -> OCAAst {
         let mut ast = OCAAst::new();
 
         let properties = None;
@@ -152,14 +177,48 @@ impl OCABundle {
         self.attributes.get_mut(name)
     }
 
-    pub fn compute(&mut self) {
-        self.capture_base.calculate_said();
-        let cb_said = self.capture_base.said.clone().unwrap();
-        self.overlays.iter_mut().for_each(|overlay| {
-            overlay.calculate_said(&cb_said);
-        });
-        self.fill_said();
+    pub fn fill_digest(&mut self) {
+        let said = self.compute_digest();
+        match said {
+            Ok(said) => {
+                let digest = said.clone();
+                self.digest = Some(digest);
+                info!("OCABundle SAID computed: {:?}", self.digest);
+            }
+            Err(e) => {
+                info!("Failed to compute OCABundle SAID: {}", e);
+            }
+        }
+
+
     }
+
+    fn compute_digest(&mut self) -> Result<said::SelfAddressingIdentifier, OCABundleSerializationError> {
+        self.capture_base.fill_digest();
+        let cb_said = self.capture_base.digest.clone();
+        self.overlays.iter_mut().for_each(|overlay| {
+            overlay.capture_base_said = cb_said.clone();
+            overlay.fill_digest();
+        });
+
+        let oca_bundle = OCABundle::from(self.clone());
+        let json = oca_bundle.to_json().unwrap();
+        let said: SelfAddressingIdentifier = serde_json::from_str(&json)
+            .map_err(|_| OCABundleSerializationError::SerializationError("Failed to parse OCABundle JSON".to_string()))
+            .and_then(|v: Value| {
+                v.get("digest")
+                    .and_then(|d| d.as_str())
+                    .ok_or_else(|| OCABundleSerializationError::SerializationError("Missing digest in OCABundle JSON".to_string()))
+                    .and_then(|s| s.parse().map_err(|_| OCABundleSerializationError::SerializationError("Failed to parse SAID".to_string())))
+            }).unwrap();
+        Ok(said)
+    }
+}
+#[derive(Error, Debug)]
+pub enum OCABundleSerializationError {
+    #[error("Failed to serialize OCA bundle")]
+    SerializationError(String),
+
 }
 
 #[cfg(test)]
@@ -227,11 +286,10 @@ ADD Overlay ENTRY
         let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
         let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
 
-        println!("OCA AST: {:#?}", oca_ast);
-
         let bundle_json = r#"
         {
-  "digest": "EHm2AW4F6kh3HVYDlq7X8h4zHMHy4UoGLfhFF0tA5BIH",
+  "v": "OCAS02JSON000940_",
+  "digest": "EEObcwCDURXRbDQcPxXm-UFD6cauIlarxWBxP8cadmV0",
   "capture_base": {
     "digest": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
     "type": "capture_base/2.0.0",
@@ -258,7 +316,7 @@ ADD Overlay ENTRY
   },
   "overlays": [
     {
-      "digest": "EL_0PrkT0C914YZ2wsrqultjUpUeSCwxjhM3kQdzCsHn",
+      "digest": "EJJapYdgZ61TX5V7sbcXP_7ob5UCiRdWKeK5pmqUqByW",
       "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
       "type": "Meta/2.0.0",
       "language": "en",
@@ -267,7 +325,7 @@ ADD Overlay ENTRY
       "name": "Entrance credential"
     },
     {
-      "digest": "EDb0-3T9elDEOk5mrbI-Dd58dnQrWAyQxywlpYxRwrQo",
+      "digest": "EFU0g81U1SDrAuJG2pbgmPq22KaSHwEhPNLu5_tRS7Rp",
       "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
       "type": "Character_Encoding/2.0.0",
       "attribute_character_encoding": {
@@ -282,7 +340,7 @@ ADD Overlay ENTRY
       }
     },
     {
-      "digest": "EHV4aoto43PHxIEu9xnyCmKN3shbiOAb970GQ61DWtP4",
+      "digest": "EC_yBQRqY4NNdgLi2yAmZ0KYruG4mB9Bdk-LcfZD1V6k",
       "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
       "type": "conformance/2.0.0",
       "attribute_conformance": {
@@ -297,7 +355,7 @@ ADD Overlay ENTRY
       }
     },
     {
-      "digest": "EAc3v_t8LTZZfL5TAuC0DZNvtMCYCgFi0yFOfFtUvbXf",
+      "digest": "EMw3ldrzC9jlIzHVtBKME7wq2BSJXOQXA6avmWwqFBfu",
       "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
       "type": "label/2.0.0",
       "attr_labels": {
@@ -314,7 +372,7 @@ ADD Overlay ENTRY
       }
     },
     {
-      "digest": "EKX3BzX4RbqHqo38kjtFbM7oKnAtd6586JDpnozCHyfJ",
+      "digest": "EBvwOhLmNkRbrSDlFRFFUZMX__OuCTbJNLybliFEd3GQ",
       "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
       "type": "format/2.0.0",
       "attribute_formats": {
@@ -325,7 +383,7 @@ ADD Overlay ENTRY
       }
     },
     {
-      "digest": "ENLaH1nmt6Kkq_q-qYY5FSoO3nKSgt351FtD_tWsR6VL",
+      "digest": "EGldBR6aO9x58qBzmmkMHL6Kfbaa2MKV_JzUP8LaTc-7",
       "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
       "type": "unit/2.0.0",
       "attribute_units": {
@@ -338,7 +396,7 @@ ADD Overlay ENTRY
       }
     },
     {
-      "digest": "EBkhQh3X5-b9DWArEDElzU9BdVZ4vqHxf7UpdkmFq-8o",
+      "digest": "EBOhsb4M15hQJRGLuUJJak4xHJ1AKwwaIs3uF09ePMAF",
       "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
       "type": "cardinality/2.0.0",
       "attr_cardinality": {
@@ -349,7 +407,7 @@ ADD Overlay ENTRY
       }
     },
     {
-      "digest": "EN7SBx8PFcJsOr2TIkhnik_eObQ4I9US6h2apn2v9SDO",
+      "digest": "ECmMD5tfJxOBxMzO8zIq9mvxpUjMxnI97sBcenCeu8zR",
       "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
       "type": "ENTRY_CODE/2.0.0",
       "attribute_entry_codes": {
@@ -370,7 +428,7 @@ ADD Overlay ENTRY
       }
     },
     {
-      "digest": "EBaxpD_M1vs25VRgs8CokqfpLd_o_uLtilniBTrxkc_2",
+      "digest": "EBFvEURPLR3FrcXhsksdzynGKxm1wnenvGM208FtE6h0",
       "capture_base": "ECUpSbGNlOKbqOqqW9640x-ev-flOKZ6Q-_h97DKehdY",
       "type": "ENTRY/2.0.0",
       "attribute_entrires": {
@@ -386,16 +444,25 @@ ADD Overlay ENTRY
   ]
 }
 "#;
-        let reference_json: Value = serde_json::from_str(bundle_json).unwrap();
-        let oca_bundle = from_ast(None, &oca_ast).unwrap().oca_bundle;
-        let oca_bundle2 = from_ast(None, &oca_ast).unwrap().oca_bundle;
-        let said = oca_bundle.clone().said;
-        let oca_bundle_json = serde_json::to_string_pretty(&oca_bundle).unwrap();
+        let reference_json: serde_json::Value = serde_json::from_str(bundle_json).unwrap();
+        let mut oca_bundle = from_ast(None, &oca_ast).unwrap().oca_bundle;
+        let mut oca_bundle2 = from_ast(None, &oca_ast).unwrap().oca_bundle;
+        oca_bundle.compute_digest();
+        oca_bundle2.compute_digest();
+        let overlay_model = oca_bundle.overlays.first().unwrap();
+        let overlay = Overlay::from(&overlay_model.clone());
+        let meta_overlay: serde_json::Value = serde_json::from_str(&overlay.to_json().unwrap()).unwrap();
+        let meta_said = "EJJapYdgZ61TX5V7sbcXP_7ob5UCiRdWKeK5pmqUqByW";
+        assert_eq!(meta_overlay.get("digest").unwrap().as_str().unwrap(), meta_said.to_string());
+
+        let said = oca_bundle.clone().digest;
+        let bundle = OCABundle::from(oca_bundle.clone());
+        let oca_bundle_json = bundle.to_json().unwrap();
         assert_eq!(
-            serde_json::from_str::<Value>(&oca_bundle_json).unwrap(),
+            serde_json::from_str::<serde_json::Value>(&oca_bundle_json).unwrap(),
             reference_json
         );
-        let said2 = oca_bundle2.said;
+        let said2 = oca_bundle2.digest;
         // Check if process is deterministic and gives always same SAID
         assert_eq!(said, said2);
     }
