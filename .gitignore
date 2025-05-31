@@ -2,3 +2,4 @@ oca/rust-analyzer.toml
 target
 Session.vim
 */db_test
+.ignore
