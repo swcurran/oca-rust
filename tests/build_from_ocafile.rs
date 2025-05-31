@@ -24,11 +24,11 @@ ADD Overlay CHARACTER_ENCODING
    i="utf-8"
    passed="utf-8"
 ADD Overlay CONFORMANCE
-    d=M
-    i=M
-    passed=M
+    d="M"
+    i="M"
+    passed="M"
 ADD Overlay LABEL
- language=en
+ language="en"
  d="Schema digest"
  i="Credential Issuee"
  passed="Passed"
@@ -41,12 +41,12 @@ ADD Overlay LABEL
 
         assert_eq!(
             result.digest.clone().unwrap().to_string(),
-            "EL7Qhl-wWldmBoJ0-sx35EL4gRXDQixm69zOphfwySfG"
+            "EK6E0o2evY4xSpGAO2T10bU0atMBaT9HeCzxUes-JIAv"
         );
 
         let oca_bundle_encoded = result.to_json().unwrap();
         let oca_bundle_version = oca_bundle_encoded[6..23].to_string();
-        assert_eq!(oca_bundle_version, "OCAS20JSON0004ce_");
+        assert_eq!(oca_bundle_version, "OCAS02JSON000426_");
 
         let search_result = facade.search_oca_bundle(None, "Ent".to_string(), 10, 1);
         assert_eq!(search_result.metadata.total, 1);
@@ -55,23 +55,36 @@ ADD Overlay LABEL
 
     #[test]
     fn build_from_other_bundle() -> Result<(), Error> {
+        let _ = env_logger::builder().is_test(true).try_init();
         let db = InMemoryDataStorage::new();
         let db_cache = InMemoryDataStorage::new();
         let cache_storage_config = SQLiteConfig::build().unwrap();
         let mut facade = Facade::new(Box::new(db), Box::new(db_cache), cache_storage_config);
         let other_ocafile = r#"
 ADD ATTRIBUTE d=Text i=Text passed=Boolean
-ADD META en PROPS name="Entrance credential" description="Entrance credential"
-ADD CHARACTER_ENCODING ATTRS d=utf-8 i=utf-8 passed=utf-8
-ADD CONFORMANCE ATTRS d=M i=M passed=M
-ADD LABEL en ATTRS d="Schema digest" i="Credential Issuee" passed="Passed"
+ADD OVERLAY META
+  language="en"
+  name="Entrance credential"
+  description="Entrance credential"
+ADD OVERLAY CHARACTER_ENCODING
+  d="utf-8"
+  i="utf-8"
+  passed="utf-8"
+ADD OVERLAY CONFORMANCE
+  d="M"
+  i="M"
+  passed="M"
+ADD OVERLAY LABEL
+  language="en"
+  d="Schema digest"
+  i="Credential Issuee" passed="Passed"
 "#
         .to_string();
         let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
         facade.build_from_ocafile(other_ocafile, registry.clone())?;
 
         let ocafile = r#"
-FROM EObIQDZX7SGy2oPOZue8qCdLWKSq10pXqMWdrXpBXIDa
+FROM EK6E0o2evY4xSpGAO2T10bU0atMBaT9HeCzxUes-JIAv
 ADD ATTRIBUTE x=Text
 "#
         .to_string();
@@ -79,7 +92,7 @@ ADD ATTRIBUTE x=Text
 
         assert_eq!(
             result.digest.unwrap().to_string(),
-            "EAXRzHPTRUtNVi-9Stb6vPwiMdZu5_kISQD93YaSHSHV"
+            "EE7764ppESbfBMAY5S_2yq-wrN1029B0W--j7xIHx1B-"
         );
         Ok(())
     }
@@ -99,6 +112,7 @@ ADD ATTRIBUTE b=Text
         let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
         facade.build_from_ocafile(second_ocafile, registry.clone())?;
 
+
         let third_ocafile = r#"
 -- name=second
 ADD ATTRIBUTE c=Text
@@ -108,20 +122,20 @@ ADD ATTRIBUTE c=Text
         facade.build_from_ocafile(third_ocafile, registry.clone())?;
 
         let ocafile = r#"
-ADD ATTRIBUTE A=refs:EI_5ohTYptgOrXldUfZujgd7vcXK9zwa6aNqk4-UDWzq
+ADD ATTRIBUTE A=refs:EMLVHOLXBCiSJ4mXbpFWzKyyxy0a59flf-P-Ok0Fv0ZC
 ADD ATTRIBUTE B=refn:first
-ADD ATTRIBUTE C=Array[refn:second]
+ADD ATTRIBUTE C=[refn:second]
 "#
         .to_string();
         let result = facade.build_from_ocafile(ocafile, registry.clone())?;
 
         assert_eq!(
             result.digest.unwrap().to_string(),
-            "EPUejWOHzKRj78qY0sbtQvDZQzKPQ405Iv8L0QM66fVU"
+            "EKnpyX8mk8nRGKS9PDXAWH4bfwA_xWdBlSEXFNNzvH66"
         );
 
         let from_ocafile = r#"
-FROM EKtnSYGee8OwkYKryA_ZEWaYPgJRdncBQrFxaqrFwK1y
+FROM EKnpyX8mk8nRGKS9PDXAWH4bfwA_xWdBlSEXFNNzvH66
 ADD ATTRIBUTE x=Text
 "#
         .to_string();
@@ -129,14 +143,14 @@ ADD ATTRIBUTE x=Text
         let result = facade.build_from_ocafile(from_ocafile, registry.clone())?;
         assert_eq!(
             result.digest.unwrap().to_string(),
-            "EAXRzHPTRUtNVi-9Stb6vPwiMdZu5_kISQD93YaSHSHV"
+            "EIQL6cd0lyyc78Hu5RKcwjig4pvR72JU-jx4riQiYrpn"
         );
         let refs = facade.fetch_all_refs().unwrap();
 
         assert_eq!(refs.len(), 2);
         assert_eq!(
             refs.get("second").unwrap(),
-            "EIutIGQ4LDtZK_ungE7VZJVAw23hGnESEIZivWHFY1Cn"
+            "EBQDQa2GSKY9AnuyTNt_g8UBzBsOPWKb8Q1w8Zh7_1jX"
         );
 
         Ok(())
@@ -185,7 +199,7 @@ ADD LINK refn:first ATTRS b=a
         let ocafile = r#"
 ADD ATTRIBUTE A=refs:EI_5ohTYptgOrXldUfZujgd7vcXK9zwa6aNqk4-UDWzq
 ADD ATTRIBUTE B=refn:second
-ADD ATTRIBUTE C=Array[refn:third]
+ADD ATTRIBUTE C=[refn:third]
 "#
         .to_string();
         let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();

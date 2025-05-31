@@ -163,6 +163,8 @@ fn format_nested_value(value: &ast::NestedValue, indent: usize) -> String {
                     let formatted_value = format_nested_value(v, indent + 2);
                     if v.is_object() {
                         format!("{}{}\n{}", " ".repeat(indent), k, formatted_value)
+                    } else if v.is_array() {
+                        format!("{}{}={}", " ".repeat(indent), k, formatted_value)
                     } else {
                         format!("{}{}=\"{}\"", " ".repeat(indent), k, formatted_value)
                     }
@@ -333,7 +335,7 @@ ADD Overlay ENTRY
         assert_eq!(oca_ast.meta.get("name").unwrap(), "プラスウルトラ");
         assert_eq!(oca_ast.commands.len(), 15);
         let character_encoding_overlay = oca_ast.commands[6].object_kind.clone();
-        assert_eq!(character_encoding_overlay.overlay_content().unwrap().overlay_name, "CHARACTER_ENCODING".to_string());
+        assert_eq!(character_encoding_overlay.overlay_content().unwrap().overlay_name, "Character_Encoding/2.0.0".to_string());
 
     }
 
@@ -401,13 +403,11 @@ ADD Overlay ENTRY
 "#;
         let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
 
-        println!("OCA AST: {:?}", oca_ast);
-
         let ocafile = generate_from_ast(&oca_ast);
+        println!("Generated OCA file:\n{}", ocafile);
+        let oca_ast2 = parse_from_string(ocafile.clone(), &registry).unwrap();
         assert_eq!(
-            ocafile, unparsed_file,
-            "left:\n{} \n right:\n {}",
-            ocafile, unparsed_file
+            oca_ast, oca_ast2,
         );
     }
 

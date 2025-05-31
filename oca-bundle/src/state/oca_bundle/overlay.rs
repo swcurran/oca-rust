@@ -6,6 +6,7 @@ use said::make_me_happy;
 use serde::{Deserialize, Serialize, Serializer};
 use thiserror::Error;
 use std::cmp::Ordering;
+use std::collections::BTreeMap;
 use log::{debug, info};
 
 pub type OverlayName = String;
@@ -100,10 +101,11 @@ impl Serialize for OverlayModel {
         map.serialize_entry("unique_keys", &self.unique_keys)?;
         map.serialize_entry("overlay_def", &self.overlay_def)?;
 
+        let mut props = BTreeMap::new();
         // Use overlay definition to serialize elements in the correct order
         for element in self.overlay_def.as_ref().unwrap().elements.iter() {
             if let Some(value) = self.properties.as_ref().and_then(|props| props.get(&element.name)) {
-                map.serialize_entry(&element.name, value)?;
+                props.insert(element.name.clone(), value.clone());
             }
         }
 
@@ -112,9 +114,12 @@ impl Serialize for OverlayModel {
             let mut sorted_properties: Vec<_> = properties.iter().collect();
             sorted_properties.sort_by(|(a, _), (b, _)| a.cmp(b));
             for (key, value) in sorted_properties {
-                map.serialize_entry(key, value)?;
+                if !props.contains_key(key) {
+                    props.insert(key.clone(), value.clone());
+                }
             }
         }
+        map.serialize_entry("properties", &props)?;
 
         map.end()
     }

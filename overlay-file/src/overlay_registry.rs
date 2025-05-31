@@ -112,7 +112,7 @@ mod tests {
     #[test]
     fn test_overlay_registry() {
         let registry = OverlayLocalRegistry::from_dir("core_overlays").unwrap();
-        assert_eq!(registry.list_all().len(), 1);
+        assert_eq!(registry.list_all().len(), 9);
         assert_eq!(registry.get_by_filename("semantic").is_some(), true);
         assert_eq!(registry.get_by_fqn("label/2.0.0").unwrap().unwrap().name, "label");
 

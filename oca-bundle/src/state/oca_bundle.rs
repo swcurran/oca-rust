@@ -204,12 +204,8 @@ impl OCABundleModel {
         let cb_said = self.capture_base.digest.clone();
         info!("Capture base SAID: {:?}", cb_said);
         self.overlays.iter_mut().for_each(|overlay| {
-            let old_said = overlay.digest.clone();
             overlay.capture_base_said = cb_said.clone();
             overlay.fill_digest();
-            let new_said = overlay.digest.clone();
-            info!(" >>>>> Overlay '{}' SAID changed: {:?} -> {:?}", overlay.name, old_said, new_said);
-
         });
 
         let oca_bundle = OCABundle::from(self.clone());

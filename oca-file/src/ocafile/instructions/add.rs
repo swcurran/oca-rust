@@ -330,7 +330,7 @@ mod tests {
                                     .to_lowercase()
                                     .as_str()
                                 {
-                                    "label" | "entry_code" | "format" | "character_encoding" => {
+                                    "label/2.0.0" | "entry_code/2.0.0" | "format/2.0.0" | "character_encoding/2.0.0" => {
                                         println!("Parsed overlay label: {:?}", content);
                                     }
                                     _ => {

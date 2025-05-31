@@ -10,8 +10,9 @@ use std::{collections::HashMap, path::PathBuf};
 /// OCAReferences - References to OCA objects
 pub enum Namespace {
     OCA,
-    /// Represents the namespace for OCA bundles in JSON format
+    /// Represents the namespace for OCA Bundle Model in JSON format
     OCABundlesJSON,
+    /// Represents the namespace for OCA Objects (overlays and capture bases) in JSON format
     OCAObjectsJSON,
     CoreModel,
     OCARelations,

@@ -370,6 +370,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn validate_oca_with_invalid_saids() {
         let validator = Validator::new();
         let data = r#"

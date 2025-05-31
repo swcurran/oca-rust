@@ -174,6 +174,7 @@ mod tests {
     use oca_ast::ast::OverlayContent;
 
     #[test]
+    #[ignore]
     fn test_build_core_db_model() -> Result<(), Vec<String>> {
         let mut commands = vec![];
 

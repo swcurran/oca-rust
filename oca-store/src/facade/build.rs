@@ -1,3 +1,4 @@
+use super::fetch::get_oca_bundle_model;
 use super::Facade;
 use crate::data_storage::{DataStorage, Namespace};
 #[cfg(feature = "local-references")]
@@ -9,7 +10,8 @@ use crate::repositories::{
 };
 #[cfg(feature = "local-references")]
 use log::debug;
-use oca_ast::ast::OCAAst;
+use log::info;
+use oca_ast::ast::{OCAAst, ObjectKind, RefValue, ReferenceAttrType};
 use oca_bundle::build::{OCABuild, OCABuildStep};
 use oca_bundle::state::oca_bundle::{OCABundle, OCABundleModel};
 use oca_dag::build_core_db_model;
@@ -117,6 +119,7 @@ impl Facade {
 
     pub fn build(&mut self, oca_build: &mut OCABuild) -> Result<OCABundleModel, Error> {
         self.build_cache(&oca_build.oca_bundle);
+        self.build_meta(&oca_build.oca_bundle);
 
         oca_build
             .steps
@@ -155,52 +158,52 @@ impl Facade {
             return Err(errors);
         }
 
-        // TODO if there is FROM command it should create base model
         let mut base: Option<OCABundleModel> = None;
         // TODO it does only the reference FROM command check how we do it now
         // TODO this should be avoided if the ast is passed for further processing, the base is
         // checked again in generate bundle
-        // if let Some(first_command) = oca_ast.commands.first() {
-        //     if let (oca_ast::ast::CommandType::From, ObjectKind::OCABundle(content)) = (
-        //         first_command.clone().kind,
-        //         first_command.clone().object_kind,
-        //     ) {
-        //         match content.said {
-        //             ReferenceAttrType::Reference(refs) => {
-        //                 match refs {
-        //                     RefValue::Said(said) => {
-        //                         match get_oca_bundle(storage, said, false) {
-        //                             Ok(oca_bundle) => {
-        //                                 // TODO
-        //                                 base = Some(oca_bundle.bundle.clone());
-        //                             }
-        //                             Err(e) => {
-        //                                 let default_command_meta =
-        //                                     oca_ast::ast::CommandMeta {
-        //                                         line_number: 0,
-        //                                         raw_line: "unknown".to_string(),
-        //                                     };
-        //                                 let command_meta = oca_ast
-        //                                     .commands_meta
-        //                                     .get(&0)
-        //                                     .unwrap_or(&default_command_meta);
-        //                                 e.iter().for_each(|e| {
-        //                                     errors.push(ValidationError::InvalidCommand {
-        //                                         line_number: command_meta.line_number,
-        //                                         raw_line: command_meta.raw_line.clone(),
-        //                                         message: e.clone(),
-        //                                     })
-        //                                 });
-        //                             }
-        //                         }
-        //                     }
-        //                     RefValue::Name(_) => todo!(),
-        //                 }
-        //             }
-        //         }
-        //         oca_ast.commands.remove(0);
-        //     }
-        // };
+        if let Some(first_command) = oca_ast.commands.first() {
+            if let (oca_ast::ast::CommandType::From, ObjectKind::OCABundle(content)) = (
+                first_command.clone().kind,
+                first_command.clone().object_kind,
+            ) {
+                match content.said {
+                    ReferenceAttrType::Reference(refs) => {
+                        match refs {
+                            RefValue::Said(said) => {
+                                match get_oca_bundle_model(storage, said) {
+                                    Ok(oca_bundle) => {
+                                        info!(" ****** Base OCABundle found: {:?}", oca_bundle);
+                                        base = Some(oca_bundle.clone());
+                                    }
+                                    Err(e) => {
+                                        let default_command_meta =
+                                            oca_ast::ast::CommandMeta {
+                                                line_number: 0,
+                                                raw_line: "unknown".to_string(),
+                                            };
+                                        let command_meta = oca_ast
+                                            .commands_meta
+                                            .get(&0)
+                                            .unwrap_or(&default_command_meta);
+                                        e.iter().for_each(|e| {
+                                            errors.push(ValidationError::InvalidCommand {
+                                                line_number: command_meta.line_number,
+                                                raw_line: command_meta.raw_line.clone(),
+                                                message: e.clone(),
+                                            })
+                                        });
+                                        return Err(errors);
+                                    }
+                                }
+                            }
+                            RefValue::Name(_) => todo!(),
+                        }
+                    }
+                }
+                oca_ast.commands.remove(0);
+            }
+        };
         Ok((base, oca_ast))
     }
 
