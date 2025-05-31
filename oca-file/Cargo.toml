@@ -18,7 +18,7 @@ pest = "2.5.1"
 pest_derive = "2.5.1"
 pretty_assertions = "1.3.0"
 thiserror = "1.0.38"
-said = { version = "0.4.1", features = ["macros"] }
+said = { version = "0.5.0", path = "../../cesrox/said" }
 log = "0.4.20"
 env_logger = "0.10.0"
 serde_json = { version = "1.0", features = ["preserve_order"] }

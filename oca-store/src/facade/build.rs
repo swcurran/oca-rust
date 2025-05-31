@@ -1,25 +1,20 @@
 use super::Facade;
 use crate::data_storage::{DataStorage, Namespace};
-use crate::facade::fetch::get_oca_bundle;
 #[cfg(feature = "local-references")]
 use crate::local_references;
 #[cfg(feature = "local-references")]
 pub use crate::local_references::References;
 use crate::repositories::{
     CaptureBaseCacheRecord, CaptureBaseCacheRepo, OCABundleCacheRecord, OCABundleCacheRepo,
-    OCABundleFTSRecord, OCABundleFTSRepo,
 };
 #[cfg(feature = "local-references")]
 use log::debug;
-use oca_ast::ast::{OCAAst, ObjectKind, RefValue, ReferenceAttrType};
+use oca_ast::ast::OCAAst;
 use oca_bundle::build::{OCABuild, OCABuildStep};
-use oca_bundle::state::oca_bundle::OCABundle;
-use oca_bundle::Encode;
+use oca_bundle::state::oca_bundle::{OCABundle, OCABundleModel};
 use oca_dag::build_core_db_model;
 use oca_file::ocafile;
 use overlay_file::overlay_registry::OverlayLocalRegistry;
-use said::derivation::HashFunctionCode;
-use said::sad::SerializationFormats;
 
 #[derive(thiserror::Error, Debug, serde::Serialize)]
 #[serde(untagged)]
@@ -79,10 +74,11 @@ pub fn build_from_ocafile(ocafile: String, registry: OverlayLocalRegistry) -> Re
         })
         .map_err(Error::ValidationError)?;
 
-    Ok(oca_build.oca_bundle)
+    let bundle = OCABundle::from(oca_build.oca_bundle.clone());
+    Ok(bundle)
 }
 
-pub fn parse_oca_bundle_to_ocafile(bundle: &OCABundle, registry: OverlayLocalRegistry) -> String {
+pub fn parse_oca_bundle_to_ocafile(bundle: &OCABundleModel, registry: OverlayLocalRegistry) -> String {
     ocafile::generate_from_ast(&bundle.to_ast(registry))
 }
 
@@ -120,7 +116,7 @@ impl Facade {
         Self::oca_ast_to_oca_build_with_references(base, oca_ast, &mut self.db)
     }
 
-    pub fn build(&mut self, oca_build: &OCABuild) -> Result<OCABundle, Error> {
+    pub fn build(&mut self, oca_build: &OCABuild) -> Result<OCABundleModel, Error> {
         self.build_cache(&oca_build.oca_bundle);
 
         oca_build
@@ -135,7 +131,7 @@ impl Facade {
         Ok(oca_build.oca_bundle.clone())
     }
 
-    pub fn build_from_ocafile(&mut self, ocafile: String, registry: OverlayLocalRegistry) -> Result<OCABundle, Error> {
+    pub fn build_from_ocafile(&mut self, ocafile: String, registry: OverlayLocalRegistry) -> Result<OCABundleModel, Error> {
         let oca_build = self
             .validate_ocafile(ocafile, registry)
             .map_err(Error::ValidationError)?;
@@ -147,7 +143,7 @@ impl Facade {
         storage: &dyn DataStorage,
         ocafile: String,
         registry: OverlayLocalRegistry,
-    ) -> Result<(Option<OCABundle>, OCAAst), Vec<ValidationError>> {
+    ) -> Result<(Option<OCABundleModel>, OCAAst), Vec<ValidationError>> {
         let mut errors: Vec<ValidationError> = vec![];
         let mut oca_ast = ocafile::parse_from_string(ocafile, &registry).map_err(|e| {
             vec![ValidationError::OCAFileParse(
@@ -159,7 +155,7 @@ impl Facade {
             return Err(errors);
         }
 
-        let mut base: Option<OCABundle> = None;
+        let mut base: Option<OCABundleModel> = None;
         // TODO it does only the reference FROM command check how we do it now
         // TODO this should be avoided if the ast is passed for further processing, the base is
         // checked again in generate bundle
@@ -209,7 +205,7 @@ impl Facade {
 
     #[cfg(feature = "local-references")]
     fn oca_ast_to_oca_build_with_references<R: References>(
-        base: Option<OCABundle>,
+        base: Option<OCABundleModel>,
         mut oca_ast: OCAAst,
         references: &mut R,
     ) -> Result<OCABuild, Vec<ValidationError>> {
@@ -228,14 +224,14 @@ impl Facade {
 
         if schema_name.is_some() {
             let schema_name = schema_name.unwrap();
-            println!("Said: {:?}", oca_build.oca_bundle.said);
-            let said = oca_build.oca_bundle.said.clone().unwrap().to_string();
+            println!("Said: {:?}", oca_build.oca_bundle.digest);
+            let said = oca_build.oca_bundle.digest.clone().unwrap().to_string();
             references.save(schema_name, said.clone());
         };
         Ok(oca_build)
     }
 
-    fn build_cache(&self, oca_bundle: &OCABundle) {
+    fn build_cache(&self, oca_bundle: &OCABundleModel) {
         let oca_bundle_cache_repo = OCABundleCacheRepo::new(self.connection());
         let oca_bundle_cache_record = OCABundleCacheRecord::new(oca_bundle);
         oca_bundle_cache_repo.insert(oca_bundle_cache_record);
@@ -263,20 +259,16 @@ impl Facade {
         self.db
             .insert(
                 Namespace::OCA,
-                &format!("oca.{}.operation", result_bundle.said.clone().unwrap()),
+                &format!("oca.{}.operation", result_bundle.digest.clone().unwrap()),
                 &input,
-            )
-            .unwrap();
+            );
 
-        let code = HashFunctionCode::Blake3_256;
-        let format = SerializationFormats::JSON;
         self.db_cache
             .insert(
                 Namespace::OCABundlesJSON,
-                &result_bundle.said.clone().unwrap().to_string(),
-                &result_bundle.encode(&code, &format).unwrap(),
-            )
-            .unwrap();
+                &result_bundle.digest.clone().unwrap().to_string(),
+                &serde_json::to_string(&result_bundle).unwrap().into_bytes(),
+            );
         self.db_cache
             .insert(
                 Namespace::OCAObjectsJSON,

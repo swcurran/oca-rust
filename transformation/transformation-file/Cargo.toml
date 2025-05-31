@@ -14,7 +14,7 @@ path = "src/lib.rs"
 [dependencies]
 indexmap = { version = "1.8.0", features = ["serde"]}
 oca-ast-transformation = { version = "2.0.0-rc2", path = "../ast" }
-said = { version = "0.4.1", features = ["macros"] }
+said = { version = "0.5.0", path = "../../../cesrox/said/" }
 serde = { version = "1.0", features = ["derive"] }
 serde-value = "0.7.0"
 serde_json = { version = "1.0", features = ["preserve_order"] }

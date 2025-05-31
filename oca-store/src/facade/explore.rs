@@ -1,6 +1,6 @@
 use crate::data_storage::Namespace;
 use oca_ast::ast::{BundleContent, CaptureContent, OverlayContent, ObjectKind, RefValue};
-use oca_bundle::state::oca_bundle::OCABundle;
+use oca_bundle::state::oca_bundle::OCABundleModel;
 use serde::{ser::SerializeStruct, Serialize};
 use std::collections::HashSet;
 
@@ -22,10 +22,10 @@ impl Facade {
         }
     }
 
-    fn insert_oca_objects_metadata(&mut self, oca_bundle: OCABundle) -> Result<(), String> {
+    fn insert_oca_objects_metadata(&mut self, oca_bundle: OCABundleModel) -> Result<(), String> {
         self.db.insert(
             Namespace::OCARelations,
-            &format!("{}.metadata", oca_bundle.said.clone().unwrap()),
+            &format!("{}.metadata", oca_bundle.digest.clone().unwrap()),
             &[u8::from(ObjectKind::OCABundle(BundleContent {
                 said: oca_ast::ast::ReferenceAttrType::Reference(RefValue::Name(
                     "".to_string(),
@@ -34,7 +34,7 @@ impl Facade {
         )?;
         self.db.insert(
             Namespace::OCARelations,
-            &format!("{}.metadata", oca_bundle.capture_base.said.clone().unwrap()),
+            &format!("{}.metadata", oca_bundle.capture_base.digest.clone().unwrap()),
             &[u8::from(ObjectKind::CaptureBase(CaptureContent {
                 attributes: None,
                 properties: None,
@@ -56,11 +56,11 @@ impl Facade {
         Ok(())
     }
 
-    pub fn add_relations(&mut self, oca_bundle: OCABundle) -> Result<(), String> {
+    pub fn add_relations(&mut self, oca_bundle: OCABundleModel) -> Result<(), String> {
         self.insert_oca_objects_metadata(oca_bundle.clone())?;
 
-        let oca_bundle_said = oca_bundle.said.clone().unwrap().to_string();
-        let capture_base_said = oca_bundle.capture_base.said.clone().unwrap().to_string();
+        let oca_bundle_said = oca_bundle.digest.clone().unwrap().to_string();
+        let capture_base_said = oca_bundle.capture_base.digest.clone().unwrap().to_string();
 
         let mut oca_bundle_rel =
             self.explore(oca_bundle_said.clone())

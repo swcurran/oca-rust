@@ -75,7 +75,7 @@ impl Validator {
         self
     }
 
-    pub fn validate(self, oca_bundle: &OCABundle) -> Result<(), Vec<Error>> {
+    pub fn validate(self, oca_bundle: &OCABundleModel) -> Result<(), Vec<Error>> {
         let enforced_langs: HashSet<_> = self.enforced_translations.iter().collect();
         let mut errors: Vec<Error> = vec![];
 

@@ -7,15 +7,10 @@ use crate::{
     repositories::{OCABundleCacheRepo, OCABundleFTSRepo},
 };
 use oca_ast::ast::{self, OCAAst, ObjectKind, RefValue};
-use oca_bundle::{build::OCABuildStep, state::oca_bundle::overlay::Overlay};
+use oca_bundle::{build::OCABuildStep, state::oca_bundle::{overlay::Overlay, OCABundleModel}};
 use oca_bundle::state::oca_bundle::{capture_base::CaptureBase, OCABundle};
 use oca_file::ocafile;
-use said::{
-    derivation::HashFunctionCode,
-    sad::{SerializationFormats, SAD},
-    version::SerializationInfo,
-    SelfAddressingIdentifier,
-};
+use said::SelfAddressingIdentifier;
 
 use serde::Serialize;
 use std::borrow::Borrow;
@@ -75,8 +70,8 @@ pub struct AllCaptureBaseResult {
     pub metadata: AllCaptureBaseMetadata,
 }
 
-#[derive(SAD, Debug, Serialize)]
-#[version(protocol = "OCAA", major = 1, minor = 1)]
+#[derive(Debug, Serialize)]
+// #[version(protocol = "OCAA", major = 1, minor = 1)]
 pub struct BundleWithDependencies {
     pub bundle: String,
     pub dependencies: Vec<String>,
@@ -326,7 +321,7 @@ impl Facade {
             let oca_bundle_json = self.get_oca_bundle(s, false).unwrap().bundle.clone();
 
             // Deserialize OCA BUNDLE JSON to store it in history
-            let oca_bundle: Result<OCABundle, Vec<String>> = serde_json::from_str(&oca_bundle_json)
+            let oca_bundle: Result<OCABundleModel, Vec<String>> = serde_json::from_str(&oca_bundle_json)
                 .map_err(|e| vec![format!("Failed to parse oca bundle: {}", e)]);
             history.push(OCABuildStep {
                 parent_said: parent_said.clone().parse().ok(),
@@ -379,7 +374,7 @@ impl Facade {
         Ok(oca_ast)
     }
 
-    pub fn parse_oca_bundle_to_ocafile(&self, bundle: &OCABundle, registry: overlay_file::overlay_registry::OverlayLocalRegistry) -> Result<String, Vec<String>> {
+    pub fn parse_oca_bundle_to_ocafile(&self, bundle: &OCABundleModel, registry: overlay_file::overlay_registry::OverlayLocalRegistry) -> Result<String, Vec<String>> {
         let oca_ast = bundle.to_ast(registry);
         Ok(ocafile::generate_from_ast(&oca_ast))
     }
@@ -436,7 +431,7 @@ pub fn get_oca_bundle(
 ///
 /// # Return
 /// * `Vec<String>` - Vector of all SAID references
-fn retrive_all_references(bundle: OCABundle) -> Vec<SelfAddressingIdentifier> {
+fn retrive_all_references(bundle: OCABundleModel) -> Vec<SelfAddressingIdentifier> {
     let mut refs: Vec<SelfAddressingIdentifier> = vec![];
 
     for (_, value) in bundle.capture_base.attributes {

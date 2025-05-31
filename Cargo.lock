@@ -877,7 +877,7 @@ dependencies = [
  "overlay-file",
  "recursion",
  "regex",
- "said 0.4.1",
+ "said",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
@@ -895,7 +895,7 @@ dependencies = [
  "indexmap 1.9.3",
  "log",
  "recursion",
- "said 0.4.1",
+ "said",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
@@ -928,7 +928,7 @@ dependencies = [
  "paste",
  "piccolo",
  "regex",
- "said 0.4.2",
+ "said",
  "serde",
  "serde-value",
  "serde_json",
@@ -947,7 +947,7 @@ dependencies = [
  "isolang",
  "oca-ast",
  "oca-bundle",
- "said 0.4.2",
+ "said",
  "serde",
  "serde_json",
  "sled",
@@ -968,7 +968,7 @@ dependencies = [
  "pest_derive",
  "pretty_assertions",
  "recursion",
- "said 0.4.1",
+ "said",
  "serde",
  "serde_json",
  "sled",
@@ -989,7 +989,7 @@ dependencies = [
  "pest_derive",
  "pretty_assertions",
  "recursion",
- "said 0.4.1",
+ "said",
  "serde",
  "serde_json",
  "sled",
@@ -1010,7 +1010,7 @@ dependencies = [
  "overlay-file",
  "regex",
  "rusqlite",
- "said 0.4.2",
+ "said",
  "serde",
  "serde_json",
  "sled",
@@ -1364,42 +1364,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
 
 [[package]]
-name = "sad_macros"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02d74f6f559db762afc219c839817ecccfc378d3e281050b13acec9563367a31"
-dependencies = [
- "quote",
- "syn 2.0.101",
-]
-
-[[package]]
 name = "said"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10379812d1d27a4e2cf8857c73ca01178b14845a79a3e96070d87043c8f6e1a2"
-dependencies = [
- "base64",
- "blake2",
- "blake3",
- "cesrox",
- "clap 3.2.25",
- "indexmap 2.9.0",
- "nom",
- "rmp-serde 0.15.5",
- "sad_macros",
- "serde",
- "serde_cbor",
- "serde_derive",
- "serde_json",
- "sha2 0.9.9",
- "sha3",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "said"
-version = "0.4.2"
+version = "0.5.0"
 dependencies = [
  "base64",
  "blake2",
@@ -1716,7 +1682,7 @@ version = "2.0.0-rc2"
 dependencies = [
  "indexmap 1.9.3",
  "oca-ast-transformation",
- "said 0.4.1",
+ "said",
  "serde",
  "serde-value",
  "serde_json",
