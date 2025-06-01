@@ -200,7 +200,7 @@ overlay_header    =  _{ ^"ADD OVERLAY" ~ ws+ ~ overlay_name ~ ws* ~ NEWLINE }
 /// Overlay name including namespace
 overlay_name      = @{ (ASCII_ALPHANUMERIC | ":" | "_")+ }
 overlay_body      =  _{ overlay_version ~ unique_keys_command? ~ overlay_entry+ }
-overlay_entry      =  _{ ( overlay_object | overlay_attributes)+ }
+overlay_entry      =  _{ ( overlay_object | overlay_array | overlay_attributes)+ }
 /// The version of the overlay
 overlay_version   =  _{ iws ~ ^"VERSION" ~ ws+ ~ version ~ ws* ~ NEWLINE }
 
@@ -210,13 +210,16 @@ unique_key = { attr_name }
 unique_keys = { "[" ~ (arg_ws? ~ unique_key ~ arg_ws?)+ ~ "]" }
 
 overlay_object = { overlay_object_header ~ overlay_object_body }
-
 overlay_object_header = { iws ~ ^"ADD OBJECT" ~ ws+ ~ attr_name ~ ws* ~ NEWLINE* }
-
 overlay_object_body = {
     iws+ ~ ^"WITH KEYS" ~ ws+ ~ key_type ~ ws* ~ NEWLINE
     ~ iws+ ~ ^"WITH VALUES" ~ ws+ ~ value_type ~ ws* ~ NEWLINE*
 }
+
+overlay_array = { overlay_array_header ~ overlay_array_body }
+overlay_array_header = { iws ~ ^"ADD ARRAY" ~ ws+ ~ attr_name ~ ws* ~ NEWLINE* }
+overlay_array_body = { iws+ ~ ^"WITH VALUES" ~ ws+ ~ value_type ~ ws* ~ NEWLINE* }
+
 
 overlay_attributes = { iws ~ ^"ADD ATTRIBUTES" ~ ws* ~ (key_pair+ | (ARRAY_TYPE ~ NEWLINE+ ~ keys_with_values)) }
 keys_with_values = { iws* ~ ^"WITH VALUES" ~ ws* ~ value_type ~ ws* ~ NEWLINE* }
@@ -244,7 +247,7 @@ ARRAY_TYPE      = { "[" ~ arg_ws* ~ key_item ~ ("," ~ ws* ~ key_item)* ~ trailin
 key_item      = { attr_name }
 trailing_ellipsis = { "," ~ ws* ~ "..." }
 
-value_type = { ANY_TYPE | LANG_TYPE | TEXT_TYPE | ARRAY_TYPE | object_type | REF_TYPE | complex_value_type }
+value_type = { ATTR_NAMES_TYPE | ANY_TYPE | LANG_TYPE | TEXT_TYPE | ARRAY_TYPE | object_type | REF_TYPE | complex_value_type }
 object_type = _ { "OBJECT" ~ NEWLINE ~ overlay_object_body }
 
 complex_value_type = {

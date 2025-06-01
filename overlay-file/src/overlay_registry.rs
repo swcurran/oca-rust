@@ -33,6 +33,7 @@ impl OverlayLocalRegistry {
             if path.extension().and_then(|s| s.to_str()) == Some("overlayfile") {
                 if let Some(name) = Self::overlay_name_from_path(&path) {
                     let content = fs::read_to_string(&path)?;
+                    debug!("Parsing overlay file: {}", path.display());
                     let schema = parse_from_string(content);
                     overlays.insert(name, schema.unwrap());
                 }
@@ -122,8 +123,9 @@ mod tests {
 
     #[test]
     fn test_overlay_registry() {
+        let _ = env_logger::builder().is_test(true).try_init();
         let registry = OverlayLocalRegistry::from_dir("core_overlays").unwrap();
-        assert_eq!(registry.list_all().len(), 9);
+        assert_eq!(registry.list_all().len(), 11);
         assert!(registry.get_by_filename("semantic").is_some());
         assert_eq!(
             registry.get_by_fqn("label/2.0.0").unwrap().unwrap().name,
@@ -132,7 +134,7 @@ mod tests {
 
         // TODO file can include more then one overlay
         let semantic_overlay_file = registry.get_by_filename("semantic").unwrap();
-        assert_eq!(semantic_overlay_file.overlays_def.len(), 9);
+        assert_eq!(semantic_overlay_file.overlays_def.len(), 11);
         let label_overlay = semantic_overlay_file.overlays_def.first().unwrap();
         assert_eq!(label_overlay.name, "label");
     }

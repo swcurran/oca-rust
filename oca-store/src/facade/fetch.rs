@@ -6,16 +6,18 @@ use crate::{
     repositories::{OCABundleCacheRepo, OCABundleFTSRepo},
 };
 use crate::{data_storage::Namespace, repositories::OCABundleFTSRecord};
+use log::info;
 use oca_ast::ast::{self, NestedValue, OCAAst, ObjectKind, RefValue};
-use oca_bundle::state::oca_bundle::{capture_base::CaptureBase, OCABundle};
+use oca_bundle::{state::oca_bundle::{capture_base::CaptureBase, OCABundle}, HashFunctionCode};
 use oca_bundle::{
     build::OCABuildStep,
     state::oca_bundle::{overlay::Overlay, OCABundleModel},
 };
 use oca_file::ocafile;
-use said::SelfAddressingIdentifier;
+use said::{make_me_sad, ProtocolVersion, SelfAddressingIdentifier};
 
-use serde::Serialize;
+use serde::{ser::Error, Serialize};
+use serde_json::Value;
 use std::borrow::Borrow;
 #[cfg(feature = "local-references")]
 use std::collections::HashMap;
@@ -57,7 +59,7 @@ pub struct SearchMetadata {
 
 #[derive(Debug, Serialize)]
 pub struct AllOCABundleResult {
-    pub records: Vec<OCABundle>,
+    pub records: Vec<OCABundleModel>,
     pub metadata: AllOCABundleMetadata,
 }
 
@@ -78,6 +80,25 @@ pub struct AllCaptureBaseResult {
 pub struct BundleWithDependencies {
     pub bundle: String,
     pub dependencies: Vec<String>,
+}
+
+impl BundleWithDependencies {
+
+    pub fn to_json(&self) -> Result<String, serde_json::Error> {
+        let code = HashFunctionCode::Blake3_256;
+        let serialized_bundle = serde_json::to_string(&self)
+            .map_err(|_| serde_json::Error::custom("Failed to serialize OCABundleModel"))?;
+        let version = ProtocolVersion::new("OCAA", 2, 0).unwrap();
+        let input = serialized_bundle.as_str();
+        match make_me_sad(input, code, version, None) {
+            Ok(sad) => {
+                Ok(sad)
+            }
+            Err(_) => Err(serde_json::Error::custom(
+                "Failed to compute digest for oca bundle",
+            )),
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -331,6 +352,20 @@ impl Facade {
         with_dep: bool,
     ) -> Result<BundleWithDependencies, Vec<String>> {
         get_oca_bundle(self.db_cache.borrow(), said, with_dep)
+    }
+
+    /// Retrive OCA Bundle Model from local storage by its SAID
+    /// # Arguments
+    /// * `said` - Said of the OCA bundle model
+    ///
+    /// # Return
+    /// * `Result<OCABundleModel, Vec<String>>` - OCA bundle model or vector of errors
+    ///
+    pub fn get_oca_bundle_model(
+        &self,
+        said: SelfAddressingIdentifier,
+    ) -> Result<OCABundleModel, Vec<String>> {
+        get_oca_bundle_model(self.db_cache.borrow(), said)
     }
 
     pub fn get_oca_bundle_steps(

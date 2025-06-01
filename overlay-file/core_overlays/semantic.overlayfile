@@ -58,4 +58,15 @@ ADD Overlay ENTRY
     with keys attr-names
     with values object|ref
 
+ADD Overlay Information
+  version 2.0.0
+  add object attribute_information
+    with keys attr-names
+    with values Text
+
+ADD overlay sensitive
+  version 2.0.0
+  add array attributes
+    with values attr-names
+
 

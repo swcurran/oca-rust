@@ -433,7 +433,7 @@ mod tests {
 
         let overlay_registry =
             OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
-        assert_eq!(overlay_registry.list_all().len(), 9);
+        assert_eq!(overlay_registry.list_all().len(), 11);
 
         let label_overlay_def = overlay_registry.get_by_fqn("Label/2.0.0").unwrap().unwrap();
         assert_eq!(label_overlay_def.get_full_name(), "label/2.0.0");

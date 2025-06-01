@@ -3,7 +3,7 @@
 // insignificant whitespace, not repeated
 ws = _{ " " | "\t" }
 
-meta_attr_key = ${ "name" | "version" | "precompiler" }
+meta_attr_key = ${ "name" | "version" | "overlay-set" }
 meta_attr_value = ${ string | char+}
 meta_key_pair = @{ meta_attr_key ~ arg_ws? ~ "=" ~ arg_ws?  ~ meta_attr_value }
 meta_comment = @{ "--" ~ ws* ~ (!NEWLINE ~ meta_key_pair)* }

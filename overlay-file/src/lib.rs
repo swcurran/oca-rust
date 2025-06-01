@@ -1,6 +1,7 @@
 pub mod error;
 pub mod overlay_registry;
 use self::error::ParseError;
+use log::debug;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -189,6 +190,7 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                         let mut name: Option<String> = None;
                         let mut keys: Option<KeyType> = None;
                         let mut values: Option<ElementType> = None;
+                        debug!("Parsing overlay object: {:?}", attr);
 
                         for e in attr.into_inner() {
                             match e.as_rule() {
@@ -292,6 +294,38 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                                 overlay_def.elements.push(element);
                             }
                         }
+                    }
+                    Rule::overlay_array => {
+                        let mut name: Option<String> = None;
+                        let mut values: Option<ElementType> = None;
+                        debug!("Parsing overlay array: {:?}", attr);
+                        for a in attr.into_inner() {
+                            match a.as_rule() {
+                                Rule::attr_name => {
+                                    name = Some(a.as_str().to_string());
+                                }
+                                Rule::value_type => match a.into_inner().next() {
+                                    Some(v) => match v.as_rule() {
+                                        Rule::ARRAY_TYPE => {
+                                            values = Some(ElementType::Array(None));
+                                        }
+                                        _ => continue,
+                                    },
+                                    None => {
+                                        return Err(ParseError::MetaError(
+                                            "value type is empty".to_string(),
+                                        ));
+                                    }
+                                },
+                                _ => continue,
+                            }
+                        }
+                        let overlay_element = OverlayElementDef {
+                            name: name.clone().unwrap_or_default(),
+                            keys: KeyType::Text,
+                            values: values.clone().unwrap_or(ElementType::Object),
+                        };
+                        overlay_def.elements.push(overlay_element);
                     }
                     _ => {}
                 }
