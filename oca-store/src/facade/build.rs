@@ -1,4 +1,4 @@
-use super::fetch::{get_oca_bundle, get_oca_bundle_model};
+use super::fetch::{get_oca_bundle_model, get_oca_bundle_set};
 use super::Facade;
 use crate::data_storage::{DataStorage, Namespace};
 #[cfg(feature = "local-references")]
@@ -187,10 +187,10 @@ impl Facade {
             ) {
                 match content.said {
                     ReferenceAttrType::Reference(refs) => match refs {
-                        RefValue::Said(said) => match get_oca_bundle(storage, said, false) {
-                            Ok(bundle_set) => {
-                                info!("Base OCABundle found: {:?}", bundle_set.bundle.digest);
-                                base = Some(bundle_set.bundle.clone());
+                        RefValue::Said(said) => match get_oca_bundle_model(storage, said) {
+                            Ok(bundle_model) => {
+                                info!("Base OCABundle found: {:?}", bundle_model.digest);
+                                base = Some(bundle_model.clone());
                             }
                             Err(e) => {
                                 let default_command_meta = oca_ast::ast::CommandMeta {

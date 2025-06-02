@@ -2,7 +2,7 @@
 mod test {
     use oca_store::{
         data_storage::{DataStorage, InMemoryDataStorage},
-        facade::{build::Error, build::ValidationError},
+        facade::build::{Error, ValidationError},
         repositories::SQLiteConfig,
         Facade,
     };
@@ -37,16 +37,14 @@ ADD Overlay LABEL
         let mut facade = Facade::new(Box::new(db), Box::new(db_cache), cache_storage_config);
 
         let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
-        let result = facade.build_from_ocafile(ocafile, registry)?;
+        let oca_bundle_model = facade.build_from_ocafile(ocafile, registry)?;
 
         assert_eq!(
-            result.digest.clone().unwrap().to_string(),
+            oca_bundle_model.digest.clone().unwrap().to_string(),
             "EK6E0o2evY4xSpGAO2T10bU0atMBaT9HeCzxUes-JIAv"
         );
 
-        let oca_bundle_encoded = result.to_json().unwrap();
-        let oca_bundle_version = oca_bundle_encoded[6..23].to_string();
-        assert_eq!(oca_bundle_version, "OCAS02JSON000426_");
+        assert_eq!(oca_bundle_model.version, "OCAS02JSON000426_");
 
         let search_result = facade.search_oca_bundle(None, "Ent".to_string(), 10, 1);
         assert_eq!(search_result.metadata.total, 1);

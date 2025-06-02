@@ -7,7 +7,7 @@ use crate::{
 };
 use crate::{data_storage::Namespace, repositories::OCABundleFTSRecord};
 use oca_ast::ast::{self, NestedValue, OCAAst, ObjectKind, RefValue};
-use oca_bundle::{state::oca_bundle::capture_base::CaptureBase, HashFunctionCode};
+use oca_bundle::{state::oca_bundle::{capture_base::CaptureBase, OCABundle}, HashFunctionCode};
 use oca_bundle::{
     build::OCABuildStep,
     state::oca_bundle::{overlay::Overlay, OCABundleModel},
@@ -73,11 +73,11 @@ pub struct AllCaptureBaseResult {
     pub metadata: AllCaptureBaseMetadata,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Clone)]
 // #[version(protocol = "OCAA", major = 1, minor = 1)]
 pub struct BundleWithDependencies {
-    pub bundle: OCABundleModel,
-    pub dependencies: Vec<OCABundleModel>,
+    pub bundle: OCABundle,
+    pub dependencies: Vec<OCABundle>,
 }
 
 impl BundleWithDependencies {
@@ -96,6 +96,16 @@ impl BundleWithDependencies {
                 "Failed to compute digest for oca bundle",
             )),
         }
+    }
+}
+
+impl Serialize for BundleWithDependencies {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let json = self.to_json().map_err(S::Error::custom)?;
+        serializer.serialize_str(&json)
     }
 }
 
@@ -121,9 +131,8 @@ impl Facade {
             .map(|record| SearchRecord {
                 // TODO
                 oca_bundle: self
-                    .get_oca_bundle_set(record.oca_bundle_said.clone(), false)
+                    .get_oca_bundle_model(record.oca_bundle_said.clone())
                     .unwrap()
-                    .bundle
                     .clone(),
                 metadata: SearchRecordMetadata {
                     phrase: record.metadata.phrase.clone(),
@@ -286,7 +295,7 @@ impl Facade {
         })
     }
 
-    /// Retrive OCA object from local storage by its SAID
+    /// Retrive OCA object (capture_base or overlay) from local storage by its SAID
     /// # Arguments
     /// * `saids` - Vector of SAIDs to retrive OCA objects
     ///
@@ -344,12 +353,16 @@ impl Facade {
         Ok(result)
     }
 
+    /// Retrive OCA Bundle Set (bundle + dependencies) from local storage by its SAID
+    /// # Arguments
+    /// * `said` - Said of the OCA bundle Set
+    /// # return
+    /// * `Result<BundleWithDependencies, Vec<String>>` - OCA bundle set or vector of errors
     pub fn get_oca_bundle_set(
         &self,
         said: SelfAddressingIdentifier,
-        with_dep: bool,
     ) -> Result<BundleWithDependencies, Vec<String>> {
-        get_oca_bundle(self.db_cache.borrow(), said, with_dep)
+        get_oca_bundle_set(self.db_cache.borrow(), said, true)
     }
 
     /// Retrive OCA Bundle Model from local storage by its SAID
@@ -363,8 +376,8 @@ impl Facade {
         &self,
         said: SelfAddressingIdentifier,
     ) -> Result<OCABundleModel, Vec<String>> {
-        let bundle_set = get_oca_bundle(self.db_cache.borrow(), said, false).unwrap();
-        Ok(bundle_set.bundle)
+        let bundle_model = get_oca_bundle_model(self.db_cache.borrow(), said).unwrap();
+        Ok(bundle_model)
     }
 
     pub fn get_oca_bundle_steps(
@@ -405,7 +418,7 @@ impl Facade {
                 return Err(vec![format!("Malformed history")]);
             }
             let s = SelfAddressingIdentifier::from_str(&said).unwrap(); // TODO
-            let oca_bundle = self.get_oca_bundle_set(s, false).unwrap().bundle.clone();
+            let oca_bundle = self.get_oca_bundle_model(s).unwrap().clone();
 
             history.push(OCABuildStep {
                 parent_said: parent_said.clone().parse().ok(),
@@ -477,21 +490,32 @@ impl Facade {
 /// * `said` - SAID of the OCA Bundle
 /// # Return
 /// * `Result<OCABundleModel, Vec<String>>` - OCA Bundle Model or vector of errors
-pub fn get_oca_bundle_model(
+pub(crate) fn get_oca_bundle_model(
     storage: &dyn DataStorage,
     said: SelfAddressingIdentifier,
 ) -> Result<OCABundleModel, Vec<String>> {
-    let bundle_set = get_oca_bundle(storage, said, false)?;
+    let r = storage
+        .get(Namespace::OCABundlesJSON, &said.to_string())
+        .map_err(|e| vec![format!("{}", e)])?;
+    let oca_bundle_json = String::from_utf8(
+        r.ok_or_else(|| vec![format!("No OCA Bundle found for said: {}", said)])?,
+    )
+    .unwrap();
 
-    Ok(bundle_set.bundle)
+    // Retrive ocabundle to extract potential references
+    let oca_bundle: Result<OCABundleModel, Vec<String>> = serde_json::from_str(&oca_bundle_json)
+        .map_err(|e| vec![format!("Failed to parse oca bundle: {}", e)]);
+
+    Ok(oca_bundle.unwrap())
 }
+
 /// Retrive OCA Bundle JSON with dependencies Return a JSON String of the bundle and Vec of
 /// dependencies where there is JSON of each referenced bundle
 /// # Arguments
 /// * `storage` - Data storage to retrive OCA Bundle
 /// * `said` - SAID of the OCA Bundle
 /// * `with_dep` - If true, retrive all dependencies of the OCA Bundle, it works recursively fetching all nested references as well
-pub fn get_oca_bundle(
+pub(crate) fn get_oca_bundle_set(
     storage: &dyn DataStorage,
     said: SelfAddressingIdentifier,
     with_dep: bool,
@@ -505,21 +529,21 @@ pub fn get_oca_bundle(
     .unwrap();
 
     // Retrive ocabundle to extract potential references
-    let oca_bundle: Result<OCABundleModel, Vec<String>> = serde_json::from_str(&oca_bundle_json)
+    let oca_bundle_model: Result<OCABundleModel, Vec<String>> = serde_json::from_str(&oca_bundle_json)
         .map_err(|e| vec![format!("Failed to parse oca bundle: {}", e)]);
 
-    match oca_bundle {
-        Ok(oca_bundle) => {
+    match oca_bundle_model {
+        Ok(oca_bundle_model) => {
             let mut dep_bundles = vec![];
             if with_dep {
-                for refs in retrive_all_references(oca_bundle.clone()) {
-                    let bundle_set = get_oca_bundle(storage, refs, true)?;
+                for refs in retrive_all_references(oca_bundle_model.clone()) {
+                    let bundle_set = get_oca_bundle_set(storage, refs, true)?;
                     dep_bundles.push(bundle_set.bundle);
                     dep_bundles.extend(bundle_set.dependencies);
                 }
             }
             let result = BundleWithDependencies {
-                bundle: oca_bundle,
+                bundle: OCABundle::from(oca_bundle_model),
                 dependencies: dep_bundles,
             };
 

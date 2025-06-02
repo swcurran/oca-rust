@@ -1,6 +1,5 @@
 use crate::state::attribute::Attribute;
 use indexmap::IndexMap;
-use log::info;
 use oca_ast::ast::NestedAttrType;
 use said::{derivation::HashFunctionCode, make_me_happy, SelfAddressingIdentifier};
 use serde::{ser::SerializeMap, Deserialize, Serialize, Serializer};
@@ -80,28 +79,6 @@ impl CaptureBase {
         Ok(())
     }
 
-    /// Serializes the CaptureBase to JSON and computes its SAID.
-    /// we do not relay on filled said since this process needs to be atomic
-    pub fn to_json(&self) -> Result<String, CaptureBaseSerializationError> {
-        let code = HashFunctionCode::Blake3_256;
-        let serialized_overlay = serde_json::to_string(&self)
-            .map_err(|_| CaptureBaseSerializationError::SerializationError())?;
-        let said_field = Some("digest");
-        let input = serialized_overlay.as_str();
-        match make_me_happy(input, code, said_field) {
-            Ok(sad) => {
-                let json: serde_json::Value = serde_json::from_str(&sad).unwrap();
-                let str = json.get("digest").unwrap().as_str();
-                let said: SelfAddressingIdentifier = str.unwrap().parse().unwrap();
-                info!(
-                    "Capture base serialized successfully with digest: {:?}",
-                    said
-                );
-                Ok(sad)
-            }
-            Err(_) => Err(CaptureBaseSerializationError::DeriveSaidError()),
-        }
-    }
 }
 
 #[derive(Error, Debug)]

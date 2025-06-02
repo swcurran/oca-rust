@@ -137,7 +137,7 @@ pub fn apply_command(
         (ast::CommandType::Modify, ast::ObjectKind::Overlay(_)) => todo!(),
     }
     // Calculate and fill digest for bundle, capture base and overlays
-    base.fill_digest();
+    base.compute_and_fill_digest();
     base.fill_attributes();
     if errors.is_empty() {
         Ok(base)
@@ -388,11 +388,12 @@ ADD Overlay ENTRY
         let oca_bundle = OCABundleModel::default();
 
         let mut oca_bundle = from_ast(Some(oca_bundle), &oca_ast).unwrap().oca_bundle;
-        oca_bundle.fill_digest();
+        oca_bundle.compute_and_fill_digest();
         assert_eq!(oca_bundle.overlays.len(), 9);
         assert_eq!(oca_bundle.capture_base.attributes.len(), 9);
         assert!(oca_bundle.digest.is_some());
         let oca_bundle = OCABundle::from(oca_bundle);
-        println!("Bundle: {}", oca_bundle.to_json().unwrap());
+        let json = serde_json::to_string_pretty(&oca_bundle).unwrap();
+        println!("Bundle: {}", json);
     }
 }
