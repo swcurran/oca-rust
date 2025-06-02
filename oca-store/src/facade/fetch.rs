@@ -6,6 +6,7 @@ use crate::{
     repositories::{OCABundleCacheRepo, OCABundleFTSRepo},
 };
 use crate::{data_storage::Namespace, repositories::OCABundleFTSRecord};
+use log::info;
 use oca_ast::ast::{self, NestedValue, OCAAst, ObjectKind, RefValue};
 use oca_bundle::{state::oca_bundle::{capture_base::CaptureBase, OCABundle}, HashFunctionCode};
 use oca_bundle::{
@@ -15,8 +16,8 @@ use oca_bundle::{
 use oca_file::ocafile;
 use said::{make_me_sad, ProtocolVersion, SelfAddressingIdentifier};
 
-use serde::{ser::Error, Serialize};
-use std::borrow::Borrow;
+use serde::{ser::{Error, SerializeStruct}, Serialize};
+use std::{borrow::Borrow, collections::HashSet};
 #[cfg(feature = "local-references")]
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -80,32 +81,15 @@ pub struct BundleWithDependencies {
     pub dependencies: Vec<OCABundle>,
 }
 
-impl BundleWithDependencies {
-
-    pub fn to_json(&self) -> Result<String, serde_json::Error> {
-        let code = HashFunctionCode::Blake3_256;
-        let serialized_bundle = serde_json::to_string(&self)
-            .map_err(|_| serde_json::Error::custom("Failed to serialize OCABundleModel"))?;
-        let version = ProtocolVersion::new("OCAA", 2, 0).unwrap();
-        let input = serialized_bundle.as_str();
-        match make_me_sad(input, code, version, None) {
-            Ok(sad) => {
-                Ok(sad)
-            }
-            Err(_) => Err(serde_json::Error::custom(
-                "Failed to compute digest for oca bundle",
-            )),
-        }
-    }
-}
-
 impl Serialize for BundleWithDependencies {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        let json = self.to_json().map_err(S::Error::custom)?;
-        serializer.serialize_str(&json)
+        let mut state = serializer.serialize_struct("BundleWithDependencies", 2)?;
+        state.serialize_field("bundle", &self.bundle)?;
+        state.serialize_field("dependencies", &self.dependencies)?;
+        state.end()
     }
 }
 
@@ -362,7 +346,8 @@ impl Facade {
         &self,
         said: SelfAddressingIdentifier,
     ) -> Result<BundleWithDependencies, Vec<String>> {
-        get_oca_bundle_set(self.db_cache.borrow(), said, true)
+        let seen = &mut HashSet::new();
+        get_oca_bundle_set(self.db_cache.borrow(), said, true, seen)
     }
 
     /// Retrive OCA Bundle Model from local storage by its SAID
@@ -519,6 +504,7 @@ pub(crate) fn get_oca_bundle_set(
     storage: &dyn DataStorage,
     said: SelfAddressingIdentifier,
     with_dep: bool,
+    seen: &mut HashSet<SelfAddressingIdentifier>,
 ) -> Result<BundleWithDependencies, Vec<String>> {
     let r = storage
         .get(Namespace::OCABundlesJSON, &said.to_string())
@@ -537,9 +523,13 @@ pub(crate) fn get_oca_bundle_set(
             let mut dep_bundles = vec![];
             if with_dep {
                 for refs in retrive_all_references(oca_bundle_model.clone()) {
-                    let bundle_set = get_oca_bundle_set(storage, refs, true)?;
-                    dep_bundles.push(bundle_set.bundle);
-                    dep_bundles.extend(bundle_set.dependencies);
+                    if seen.insert(refs.clone()) {
+                        let bundle_set = get_oca_bundle_set(storage, refs, true, seen)?;
+                        dep_bundles.push(bundle_set.bundle);
+                        dep_bundles.extend(bundle_set.dependencies);
+                    } else {
+                        info!("Skipping already seen SAID: {}", refs);
+                    }
                 }
             }
             let result = BundleWithDependencies {
