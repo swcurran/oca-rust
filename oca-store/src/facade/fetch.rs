@@ -8,15 +8,15 @@ use crate::{
 use crate::{data_storage::Namespace, repositories::OCABundleFTSRecord};
 use log::info;
 use oca_ast::ast::{self, NestedValue, OCAAst, ObjectKind, RefValue};
-use oca_bundle::{state::oca_bundle::{capture_base::CaptureBase, OCABundle}, HashFunctionCode};
+use oca_bundle::state::oca_bundle::{capture_base::CaptureBase, OCABundle};
 use oca_bundle::{
     build::OCABuildStep,
     state::oca_bundle::{overlay::Overlay, OCABundleModel},
 };
 use oca_file::ocafile;
-use said::{make_me_sad, ProtocolVersion, SelfAddressingIdentifier};
+use said::SelfAddressingIdentifier;
 
-use serde::{ser::{Error, SerializeStruct}, Serialize};
+use serde::{ser::SerializeStruct, Serialize};
 use std::{borrow::Borrow, collections::HashSet};
 #[cfg(feature = "local-references")]
 use std::collections::HashMap;
@@ -115,8 +115,9 @@ impl Facade {
             .map(|record| SearchRecord {
                 // TODO
                 oca_bundle: self
-                    .get_oca_bundle_model(record.oca_bundle_said.clone())
+                    .get_oca_bundle(record.oca_bundle_said.clone())
                     .unwrap()
+                    .model
                     .clone(),
                 metadata: SearchRecordMetadata {
                     phrase: record.metadata.phrase.clone(),
@@ -350,19 +351,20 @@ impl Facade {
         get_oca_bundle_set(self.db_cache.borrow(), said, true, seen)
     }
 
-    /// Retrive OCA Bundle Model from local storage by its SAID
+    /// Retrive OCA Bundle from local storage by its SAID
     /// # Arguments
     /// * `said` - Said of the OCA bundle model
     ///
     /// # Return
     /// * `Result<OCABundleModel, Vec<String>>` - OCA bundle model or vector of errors
     ///
-    pub fn get_oca_bundle_model(
+    pub fn get_oca_bundle(
         &self,
         said: SelfAddressingIdentifier,
-    ) -> Result<OCABundleModel, Vec<String>> {
+    ) -> Result<OCABundle, Vec<String>> {
         let bundle_model = get_oca_bundle_model(self.db_cache.borrow(), said).unwrap();
-        Ok(bundle_model)
+        let bundle = OCABundle::from(bundle_model);
+        Ok(bundle)
     }
 
     pub fn get_oca_bundle_steps(
@@ -403,12 +405,12 @@ impl Facade {
                 return Err(vec![format!("Malformed history")]);
             }
             let s = SelfAddressingIdentifier::from_str(&said).unwrap(); // TODO
-            let oca_bundle = self.get_oca_bundle_model(s).unwrap().clone();
+            let oca_bundle = self.get_oca_bundle(s).unwrap().clone();
 
             history.push(OCABuildStep {
                 parent_said: parent_said.clone().parse().ok(),
                 command,
-                result: oca_bundle,
+                result: oca_bundle.model,
             });
             said = parent_said;
 
