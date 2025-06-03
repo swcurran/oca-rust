@@ -304,7 +304,9 @@ mod tests {
 -- version=2.0.0
 -- name=プラスウルトラ
 ADD ATTRIBUTE remove=Text
-ADD ATTRIBUTE name=Text age=Numeric car=[refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu]
+ADD ATTRIBUTE name=Text
+    age=Numeric
+    car=[refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu]
 REMOVE ATTRIBUTE remove
 ADD ATTRIBUTE incidentals_spare_parts=[[refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu]]
 ADD ATTRIBUTE d=Text i=Text passed=Boolean

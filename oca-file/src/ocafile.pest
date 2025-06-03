@@ -181,7 +181,7 @@ attr_type = ${ base_attr_type | array_attr_type | ref_said | ref_alias }
 /// Capture base attribute key=type pair
 attr_pair = @{attr_key ~ arg_ws? ~ "=" ~ arg_ws?  ~ attr_type}
 /// List of capture base attributes
-attr_pairs = ${ (arg_ws ~ attr_pair)+}
+attr_pairs = ${ (arg_ws ~ attr_pair)+ ~ NEWLINE*}
 
 // TODO add support for lang ISO
 lang = ${ ASCII_ALPHA{2} ~ ("-" ~ ASCII_ALPHA{2})? }
