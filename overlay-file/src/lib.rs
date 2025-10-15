@@ -1,6 +1,10 @@
+
+pub mod validator;
 pub mod error;
 pub mod overlay_registry;
+
 use self::error::ParseError;
+use self::validator::{OverlayValidator, ValidationError};
 use log::debug;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
@@ -338,7 +342,16 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
         }
     }
 
-    Ok(overlays_file)
+    let overlays_file = OverlayFile {
+        overlays_def: overlays_file.overlays_def,
+        meta: overlays_file.meta,
+    };
+
+    // Validate the parsed OverlayFile
+    match OverlayValidator::validate(&overlays_file) {
+        Ok(_) => Ok(overlays_file),
+        Err(validation_errors) => Err(ParseError::ValidationError(validation_errors)),
+    }
 }
 #[cfg(test)]
 mod tests {
@@ -440,5 +453,26 @@ ADD OVERLAY hcf:Meta
         );
 
         assert_eq!(result.overlays_def.len(), 3);
+    }
+}
+
+#[test]
+fn test_overlay_validation() {
+    let input = r#"
+ADD OVERLAY TestOverlay
+  VERSION 1.0.0
+  ADD OBJECT invalid_object
+    WITH KEYS invalid-key-type
+    WITH VALUES InvalidValueType
+"#;
+
+    let result = parse_from_string(input.to_string());
+    assert!(result.is_err());
+
+    if let Err(ParseError::ValidationError(errors)) = result {
+        assert_eq!(errors.len(), 2);
+        // Add more specific assertions based on the expected validation errors
+    } else {
+        panic!("Expected ValidationError, got: {:?}", result);
     }
 }

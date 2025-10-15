@@ -1,3 +1,5 @@
+use crate::validator::ValidationError;
+
 #[derive(thiserror::Error, Debug, serde::Serialize)]
 #[serde(untagged)]
 pub enum ParseError {
@@ -17,4 +19,7 @@ pub enum ParseError {
 
     #[error("{0}")]
     Custom(String),
+
+    #[error("{0:?}")]
+    ValidationError(Vec<ValidationError>),
 }
