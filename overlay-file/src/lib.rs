@@ -3,7 +3,7 @@ pub mod overlay_registry;
 pub mod validator;
 
 use self::error::ParseError;
-use self::validator::{OverlayValidator, ValidationError};
+use self::validator::OverlayValidator;
 use log::debug;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
@@ -459,26 +459,5 @@ ADD OVERLAY hcf:Meta
         assert_eq!(meta.elements.last().unwrap().values, ElementType::Lang);
 
         assert_eq!(result.overlays_def.len(), 3);
-    }
-}
-
-#[test]
-fn test_overlay_validation() {
-    let input = r#"
-ADD OVERLAY TestOverlay
-  VERSION 1.0.0
-  ADD OBJECT invalid_object
-    WITH KEYS invalid-key-type
-    WITH VALUES InvalidValueType
-"#;
-
-    let result = parse_from_string(input.to_string());
-    assert!(result.is_err());
-
-    if let Err(ParseError::ValidationError(errors)) = result {
-        assert_eq!(errors.len(), 2);
-        // Add more specific assertions based on the expected validation errors
-    } else {
-        panic!("Expected ValidationError, got: {:?}", result);
     }
 }

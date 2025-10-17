@@ -474,6 +474,7 @@ impl Facade {
 /// * `said` - SAID of the OCA Bundle
 /// # Return
 /// * `Result<OCABundleModel, Vec<String>>` - OCA Bundle Model or vector of errors
+// TODO check if possible to replace by get_oca_bundle
 pub(crate) fn get_oca_bundle_model(
     storage: &dyn DataStorage,
     said: SelfAddressingIdentifier,
@@ -486,15 +487,14 @@ pub(crate) fn get_oca_bundle_model(
     )
     .unwrap();
 
-    // Retrive ocabundle to extract potential references
     let oca_bundle: Result<OCABundleModel, Vec<String>> = serde_json::from_str(&oca_bundle_json)
         .map_err(|e| vec![format!("Failed to parse oca bundle: {}", e)]);
 
     Ok(oca_bundle.unwrap())
 }
 
-/// Retrive OCA Bundle JSON with dependencies Return a JSON String of the bundle and Vec of
-/// dependencies where there is JSON of each referenced bundle
+/// Retrive OCA Bundle Set (Bundle JSON + Dependencies if specified) Return a JSON String of the bundle and Vec of
+/// dependencies (empty if with_dep = false) where there is JSON of each referenced bundle
 /// # Arguments
 /// * `storage` - Data storage to retrive OCA Bundle
 /// * `said` - SAID of the OCA Bundle

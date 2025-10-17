@@ -1,4 +1,4 @@
-use super::fetch::{get_oca_bundle_model, get_oca_bundle_set};
+use super::fetch::get_oca_bundle_model;
 use super::Facade;
 use crate::data_storage::{DataStorage, Namespace};
 #[cfg(feature = "local-references")]
@@ -239,8 +239,7 @@ impl Facade {
         let schema_name = oca_ast.meta.get("name");
         debug!("Schema name found: {:?}", schema_name);
 
-        if schema_name.is_some() {
-            let schema_name = schema_name.unwrap();
+        if let Some(schema_name) = schema_name {
             debug!("Said of new bundle: {:?}", oca_build.oca_bundle.digest);
             let said = oca_build.oca_bundle.digest.clone().unwrap().to_string();
             references.save(schema_name, said.clone());
@@ -272,13 +271,13 @@ impl Facade {
 
         let command_str = serde_json::to_string(&step.command).unwrap();
         input.extend(command_str.as_bytes());
-        self.db.insert(
+        let _ = self.db.insert(
             Namespace::OCA,
             &format!("oca.{}.operation", step.result.digest.clone().unwrap()),
             &input,
         );
 
-        self.db_cache.insert(
+        let _ = self.db_cache.insert(
             Namespace::OCABundlesJSON,
             &step.result.digest.clone().unwrap().to_string(),
             &serde_json::to_string(&step.result).unwrap().into_bytes(),

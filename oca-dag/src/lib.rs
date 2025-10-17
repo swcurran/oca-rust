@@ -113,11 +113,11 @@ fn apply_step(state: State, step: &oca_bundle::build::OCABuildStep) -> (State, R
             current_state.capture_base = Some(capture_base_model.capture_base_said.clone());
         }
         ast::ObjectKind::Overlay(content) => {
-            let mut lang = None;
             // match &content.properties {
             if let Some(properties) = &content.properties {
+                // TODO find out what is going on here and where it should be used
                 if let Some(ast::NestedValue::Value(lang_value)) = properties.get("lang") {
-                    lang = isolang::Language::from_639_1(lang_value);
+                    isolang::Language::from_639_1(lang_value);
                 }
             }
 

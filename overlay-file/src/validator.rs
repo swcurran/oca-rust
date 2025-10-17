@@ -42,18 +42,17 @@ impl OverlayValidator {
     }
 
     fn validate_element(element: &OverlayElementDef) -> Vec<ValidationError> {
-        let mut errors = Vec::new();
+        let errors = Vec::new();
 
         // Validate key type
         match element.keys {
             KeyType::AttrNames | KeyType::Text => {}
-            _ => errors.push(ValidationError::InvalidKeyType(element.name.clone())),
         }
 
         // Validate value type
         match &element.values {
             ElementType::Object | ElementType::Text | ElementType::Binary | ElementType::Ref => {}
-            ElementType::Array(constraints) => {
+            ElementType::Array(_constraints) => {
                 // Add additional validation for array constraints if needed
             }
             ElementType::Lang => {

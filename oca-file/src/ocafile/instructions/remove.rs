@@ -52,27 +52,27 @@ impl RemoveInstruction {
 }
 
 /// TODO do zaorania...
-fn extract_properties_pairs(object: Pair) -> IndexMap<String, NestedValue> {
+fn extract_properties_pairs(_object: Pair) -> IndexMap<String, NestedValue> {
     let properties: IndexMap<String, NestedValue> = IndexMap::new();
     properties
 }
 
-fn extract_attribute_pairs(object: Pair) -> IndexMap<String, NestedValue> {
-    let mut attributes: IndexMap<String, NestedValue> = IndexMap::new();
-    for attr_pairs in object.into_inner() {
-        match attr_pairs.as_rule() {
-            Rule::attr_key => {
-                debug!("Parsed attribute: {:?}", attr_pairs);
-                // TODO find out how to parse nested objects
-                attributes.insert(
-                    attr_pairs.as_str().to_string(),
-                    NestedValue::Value("".to_string()),
-                );
-            }
-            _ => {
-                return attributes;
-            }
-        }
-    }
-    attributes
-}
+// fn extract_attribute_pairs(object: Pair) -> IndexMap<String, NestedValue> {
+//     let mut attributes: IndexMap<String, NestedValue> = IndexMap::new();
+//     for attr_pairs in object.into_inner() {
+//         match attr_pairs.as_rule() {
+//             Rule::attr_key => {
+//                 debug!("Parsed attribute: {:?}", attr_pairs);
+//                 // TODO find out how to parse nested objects
+//                 attributes.insert(
+//                     attr_pairs.as_str().to_string(),
+//                     NestedValue::Value("".to_string()),
+//                 );
+//             }
+//             _ => {
+//                 return attributes;
+//             }
+//         }
+//     }
+//     attributes
+// }

@@ -10,7 +10,7 @@ fn create_oca() {
     //     // ..add_meta(Language::Eng, "description".to_string(), "Test case OCA".to_string());
     // };
 
-    let attribute = cascade! {
+    let _attribute = cascade! {
         Attribute::new("name".to_string());
         ..set_attribute_type(oca_ast::ast::NestedAttrType::Value(AttributeType::Text));
         // ..set_encoding(Encoding::Utf8);
@@ -32,7 +32,7 @@ fn create_oca() {
 
     //oca.add_attribute(attribute);
 
-    let attribute_2 = cascade! {
+    let _attribute_2 = cascade! {
         Attribute::new("age".to_string());
         ..set_attribute_type(oca_ast::ast::NestedAttrType::Value(AttributeType::Numeric));
         // ..set_encoding(Encoding::Utf8);
@@ -66,7 +66,7 @@ fn create_oca() {
     //
     // assert_eq!(oca_bundle.overlays.len(), 10);
 
-    let sample = {
+    let _sample = {
         r#"{
   "v": "OCAS20JSON0009c7_",
   "digest": "EJGdam92dtQt4xuycxsofie56L_IbMkOYjbSXR6ofM1M",

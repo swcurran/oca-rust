@@ -135,6 +135,7 @@ impl OCABundleModel {
     /// structures instead of the internal Models i.e. OCABundle vs OCABundleModel
     /// Arguments:
     /// * `self` - OCABundleModel to compute digest for
+    ///
     /// Returns:
     /// * `Result<said::SelfAddressingIdentifier, OCABundleSerializationError>` - Result with computed
     ///   SAID or an error if serialization or digest computation fails.

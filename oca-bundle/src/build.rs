@@ -136,7 +136,7 @@ pub fn apply_command(
         (ast::CommandType::Modify, ast::ObjectKind::Overlay(_)) => todo!(),
     }
     // Calculate and fill digest for bundle, capture base and overlays
-    base.compute_and_fill_digest();
+    let _ = base.compute_and_fill_digest();
     base.fill_attributes();
     if errors.is_empty() {
         Ok(base)
@@ -147,6 +147,8 @@ pub fn apply_command(
 
 #[cfg(test)]
 mod tests {
+    use std::io::Error;
+
     use crate::state::oca_bundle::OCABundle;
 
     use super::*;
@@ -308,10 +310,7 @@ mod tests {
                 }
                 Err(errors) => {
                     println!("Error applying command: {:?}", errors);
-                    return Err(Box::new(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        format!("{:?}", errors),
-                    )));
+                    return Err(Box::new(Error::other(format!("{:?}", errors))));
                 }
             }
         }
@@ -387,7 +386,7 @@ ADD Overlay ENTRY
         let oca_bundle = OCABundleModel::default();
 
         let mut oca_bundle = from_ast(Some(oca_bundle), &oca_ast).unwrap().oca_bundle;
-        oca_bundle.compute_and_fill_digest();
+        let _ = oca_bundle.compute_and_fill_digest();
         assert_eq!(oca_bundle.overlays.len(), 9);
         assert_eq!(oca_bundle.capture_base.attributes.len(), 9);
         assert!(oca_bundle.digest.is_some());

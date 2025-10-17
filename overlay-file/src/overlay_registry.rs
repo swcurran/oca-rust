@@ -1,11 +1,7 @@
 use crate::OverlayFile;
 use crate::{parse_from_string, OverlayDef};
 use log::debug;
-use std::{
-    collections::HashMap,
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, fs, path::Path};
 
 pub trait OverlayRegistry {
     fn get_by_filename(&self, name: &str) -> Option<&OverlayFile>;
@@ -43,7 +39,7 @@ impl OverlayLocalRegistry {
         Ok(OverlayLocalRegistry { overlays })
     }
 
-    fn overlay_name_from_path(path: &PathBuf) -> Option<String> {
+    fn overlay_name_from_path(path: &Path) -> Option<String> {
         path.file_stem()
             .and_then(|s| s.to_str())
             .map(|s| s.to_string())
@@ -53,6 +49,12 @@ impl OverlayLocalRegistry {
         OverlayLocalRegistry {
             overlays: HashMap::new(),
         }
+    }
+}
+
+impl Default for OverlayLocalRegistry {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -112,7 +114,7 @@ impl OverlayRegistry for OverlayLocalRegistry {
             .collect::<Vec<String>>()
     }
 
-    fn list_by_namespace(&self, namespace: &str) -> Vec<&OverlayFile> {
+    fn list_by_namespace(&self, _namespace: &str) -> Vec<&OverlayFile> {
         todo!()
     }
 }

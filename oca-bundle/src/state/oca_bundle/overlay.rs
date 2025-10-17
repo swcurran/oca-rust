@@ -5,7 +5,6 @@ use overlay_file::OverlayDef;
 use said::make_me_happy;
 use said::{derivation::HashFunctionCode, SelfAddressingIdentifier};
 use serde::{Deserialize, Serialize, Serializer};
-use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use thiserror::Error;
 
@@ -177,27 +176,27 @@ impl OverlayModel {
 }
 
 // TODO not used? it should be used in all nested values for serialization, check it.
-fn sort_nested_value(value: &mut NestedValue) {
-    match value {
-        NestedValue::Object(map) => {
-            for (_, v) in map.iter_mut() {
-                sort_nested_value(v);
-            }
-            map.sort_keys();
-        }
-        NestedValue::Array(arr) => {
-            for v in arr.iter_mut() {
-                sort_nested_value(v);
-            }
-            arr.sort_by(|a, b| match (a, b) {
-                (NestedValue::Value(a), NestedValue::Value(b)) => a.cmp(b),
-                _ => Ordering::Equal,
-            });
-        }
-        _ => {}
-    }
-}
-
+// fn sort_nested_value(value: &mut NestedValue) {
+//     match value {
+//         NestedValue::Object(map) => {
+//             for (_, v) in map.iter_mut() {
+//                 sort_nested_value(v);
+//             }
+//             map.sort_keys();
+//         }
+//         NestedValue::Array(arr) => {
+//             for v in arr.iter_mut() {
+//                 sort_nested_value(v);
+//             }
+//             arr.sort_by(|a, b| match (a, b) {
+//                 (NestedValue::Value(a), NestedValue::Value(b)) => a.cmp(b),
+//                 _ => Ordering::Equal,
+//             });
+//         }
+//         _ => {}
+//     }
+// }
+//
 #[derive(Error, Debug)]
 pub enum OverlaySerializationError {
     #[error("No overlay definition found for overlay type: {0}")]
