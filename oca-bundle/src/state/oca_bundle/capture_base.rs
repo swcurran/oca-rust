@@ -78,7 +78,6 @@ impl CaptureBase {
         self.digest = Some(said);
         Ok(())
     }
-
 }
 
 #[derive(Error, Debug)]

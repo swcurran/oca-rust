@@ -54,6 +54,7 @@ ADD OVERLAY ENTRY_CODE
 
 ADD Overlay ENTRY
   version 2.0.0
+  ADD ATTRIBUTES language=Lang
   add object attribute_entries
     with keys attr-names
     with values object|ref

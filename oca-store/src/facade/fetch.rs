@@ -17,10 +17,10 @@ use oca_file::ocafile;
 use said::SelfAddressingIdentifier;
 
 use serde::{ser::SerializeStruct, Serialize};
-use std::{borrow::Borrow, collections::HashSet};
 #[cfg(feature = "local-references")]
 use std::collections::HashMap;
 use std::str::FromStr;
+use std::{borrow::Borrow, collections::HashSet};
 
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
@@ -358,10 +358,7 @@ impl Facade {
     /// # Return
     /// * `Result<OCABundleModel, Vec<String>>` - OCA bundle model or vector of errors
     ///
-    pub fn get_oca_bundle(
-        &self,
-        said: SelfAddressingIdentifier,
-    ) -> Result<OCABundle, Vec<String>> {
+    pub fn get_oca_bundle(&self, said: SelfAddressingIdentifier) -> Result<OCABundle, Vec<String>> {
         let bundle_model = get_oca_bundle_model(self.db_cache.borrow(), said).unwrap();
         let bundle = OCABundle::from(bundle_model);
         Ok(bundle)
@@ -517,8 +514,9 @@ pub(crate) fn get_oca_bundle_set(
     .unwrap();
 
     // Retrive ocabundle to extract potential references
-    let oca_bundle_model: Result<OCABundleModel, Vec<String>> = serde_json::from_str(&oca_bundle_json)
-        .map_err(|e| vec![format!("Failed to parse oca bundle: {}", e)]);
+    let oca_bundle_model: Result<OCABundleModel, Vec<String>> =
+        serde_json::from_str(&oca_bundle_json)
+            .map_err(|e| vec![format!("Failed to parse oca bundle: {}", e)]);
 
     match oca_bundle_model {
         Ok(oca_bundle_model) => {

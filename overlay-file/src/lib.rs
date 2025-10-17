@@ -1,7 +1,6 @@
-
-pub mod validator;
 pub mod error;
 pub mod overlay_registry;
+pub mod validator;
 
 use self::error::ParseError;
 use self::validator::{OverlayValidator, ValidationError};
@@ -93,6 +92,8 @@ pub enum ElementType {
     Array(Option<Vec<ConstraintKind>>),
     Binary,
     Text,
+    /// Language code according to ISO 639-1 or ISO 639-3
+    Lang,
     /// Reference in form of SAID to another object
     Ref,
 }
@@ -281,6 +282,7 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                                         "Ref" => key_pair.kind = ElementType::Ref,
                                         "Binary" => key_pair.kind = ElementType::Binary,
                                         "Array" => key_pair.kind = ElementType::Array(None),
+                                        "Lang" => key_pair.kind = ElementType::Lang,
                                         _ => {}
                                     },
                                     _ => {
@@ -409,7 +411,7 @@ ADD OVERLAY ReferenceValues
 
 ADD OVERLAY hcf:Information
   VERSION 1.2.2
-  ADD ATTRIBUTES language=Text
+  ADD ATTRIBUTES language=Lang
   ADD OBJECT attr
     WITH KEYS Text
     WITH VALUES Text
@@ -419,14 +421,13 @@ ADD OVERLAY hcf:Information
 
 ADD OVERLAY hcf:Meta
   VERSION 1.2.2
-  ADD ATTRIBUTES name=Text description=Text photo=Binary
+  ADD ATTRIBUTES name=Text description=Text photo=Binary language=Lang
 "#;
 
         let result = parse_from_string(input.to_string()).unwrap();
 
         let ref_overlay = result.overlays_def.first().unwrap();
         let information = result.overlays_def.get(1).unwrap();
-        println!("{:#?}", result);
         let meta = result.overlays_def.last().unwrap();
         assert_eq!(ref_overlay.name, "ReferenceValues");
         assert_eq!(ref_overlay.version, "1.0.1");
@@ -437,12 +438,15 @@ ADD OVERLAY hcf:Meta
         assert_eq!(ref_overlay.elements[0].values, ElementType::Object);
 
         assert_eq!(information.version, "1.2.2");
+        assert_eq!(information.namespace.clone().unwrap(), "hcf".to_string());
+        assert_eq!(information.elements[0].name, "language");
+        assert_eq!(information.elements[0].values, ElementType::Lang);
         assert_eq!(information.elements[2].name, "attribute_information");
         assert_eq!(information.elements.len(), 3);
         assert_eq!(information.name, "Information");
 
         assert_eq!(meta.version, "1.2.2");
-        assert_eq!(meta.elements.len(), 3);
+        assert_eq!(meta.elements.len(), 4);
         assert_eq!(
             meta.elements
                 .iter()
@@ -451,6 +455,8 @@ ADD OVERLAY hcf:Meta
                 .values,
             ElementType::Text
         );
+        assert_eq!(meta.elements.last().unwrap().name, "language");
+        assert_eq!(meta.elements.last().unwrap().values, ElementType::Lang);
 
         assert_eq!(result.overlays_def.len(), 3);
     }

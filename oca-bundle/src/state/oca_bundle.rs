@@ -20,8 +20,7 @@ pub struct OCABundle {
     pub model: OCABundleModel,
 }
 
-#[derive(Serialize, Debug, Deserialize, Clone)]
-#[derive(Default)]
+#[derive(Serialize, Debug, Deserialize, Clone, Default)]
 pub struct OCABundleModel {
     /// CESR version of the OCA Bundle with OCAS prefix
     #[serde(rename = "v")]
@@ -32,7 +31,6 @@ pub struct OCABundleModel {
     // Storing attributes in different model for easy read access
     pub attributes: Option<HashMap<String, Attribute>>,
 }
-
 
 impl From<OCABundleModel> for OCABundle {
     fn from(model: OCABundleModel) -> Self {
@@ -134,7 +132,7 @@ impl OCABundleModel {
 
     /// This method will compute digest for OCABundle and all it's members (capture_base and each
     /// overlay) filling as well capture_base digest into overlays. It would use external
-    /// structures instead of the internal Models i.e. OCABundle vs OCABUndleModel
+    /// structures instead of the internal Models i.e. OCABundle vs OCABundleModel
     /// Arguments:
     /// * `self` - OCABundleModel to compute digest for
     /// Returns:
@@ -143,13 +141,16 @@ impl OCABundleModel {
     pub fn compute_and_fill_digest(
         &mut self,
     ) -> Result<said::SelfAddressingIdentifier, OCABundleSerializationError> {
-
         // Compute digest for all objects
         info!("Computing digest for OCABundle");
         // TODO change to compute and fill
         match self.capture_base.fill_digest() {
             Ok(_) => info!("Capture base digest filled successfully"),
-            Err(e) => return Err(OCABundleSerializationError::SerializationError(e.to_string())),
+            Err(e) => {
+                return Err(OCABundleSerializationError::SerializationError(
+                    e.to_string(),
+                ))
+            }
         }
         let cb_said = self.capture_base.digest.clone();
         info!("Capture base SAID: {:?}", cb_said);
@@ -164,11 +165,12 @@ impl OCABundleModel {
                     ))
                 }
             }
-        };
+        }
 
         let oca_bundle = OCABundle::from(self.clone());
         let serialized_bundle = serde_json::to_string(&oca_bundle)
-            .map_err(|_| serde_json::Error::custom("Failed to serialize OCABundleModel")).unwrap();
+            .map_err(|_| serde_json::Error::custom("Failed to serialize OCABundleModel"))
+            .unwrap();
 
         let code = HashFunctionCode::Blake3_256;
         let said_field = Some("digest");
@@ -183,20 +185,20 @@ impl OCABundleModel {
                     version: String,
                 }
 
-                let bundle: OCABundlePartial = serde_json::from_str(&sad).map_err(|e| {
-                    OCABundleSerializationError::SerializationError(e.to_string()) })?;
+                let bundle: OCABundlePartial = serde_json::from_str(&sad)
+                    .map_err(|e| OCABundleSerializationError::SerializationError(e.to_string()))?;
                 let said: SelfAddressingIdentifier = bundle.digest.parse().map_err(|_| {
-                    OCABundleSerializationError::SerializationError("Failed to parse SAID".to_string())
+                    OCABundleSerializationError::SerializationError(
+                        "Failed to parse SAID".to_string(),
+                    )
                 })?;
                 self.digest = Some(said.clone());
                 self.version = bundle.version;
                 Ok(said)
             }
-            Err(_) => {
-                Err(OCABundleSerializationError::SerializationError(
-                    "Failed to compute digest for OCABundle".to_string(),
-                ))
-            }
+            Err(_) => Err(OCABundleSerializationError::SerializationError(
+                "Failed to compute digest for OCABundle".to_string(),
+            )),
         }
     }
 }
@@ -406,10 +408,7 @@ ADD Overlay ENTRY
         }
         let meta_said = overlay_model.digest.clone().unwrap();
         let ref_said = "EEZ0Rj_FzN4Bms8WOg5yrKd06USAZ3k6NI7vxjwH8njp";
-        assert_eq!(
-            meta_said.to_string(),
-            ref_said.to_string()
-        );
+        assert_eq!(meta_said.to_string(), ref_said.to_string());
         assert_eq!(oca_bundle.version, "OCAS02JSON000930_");
 
         let said = oca_bundle.digest.clone().unwrap();

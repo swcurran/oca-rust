@@ -1,4 +1,4 @@
-use crate::{OverlayFile, OverlayDef, OverlayElementDef, KeyType, ElementType};
+use crate::{ElementType, KeyType, OverlayDef, OverlayElementDef, OverlayFile};
 use std::collections::HashSet;
 
 pub struct OverlayValidator;
@@ -56,9 +56,11 @@ impl OverlayValidator {
             ElementType::Array(constraints) => {
                 // Add additional validation for array constraints if needed
             }
+            ElementType::Lang => {
+                //TODO Additional validation for language element
+            }
         }
 
         errors
     }
 }
-
