@@ -6,6 +6,7 @@ use said::make_me_happy;
 use said::{derivation::HashFunctionCode, SelfAddressingIdentifier};
 use serde::{Deserialize, Serialize, Serializer};
 use std::collections::BTreeMap;
+use std::collections::HashSet;
 use thiserror::Error;
 
 pub type OverlayName = String;
@@ -45,15 +46,21 @@ impl Serialize for Overlay {
         map.serialize_entry("capture_base", &self.model.capture_base_said)?;
         map.serialize_entry("type", &self.model.name)?;
 
+        // Create a set to keep track of serialized keys
+        let mut serialized_keys = std::collections::HashSet::new();
+
         // Serialize attributes in the order defined in the overlay definition
-        for element in self.model.overlay_def.as_ref().unwrap().elements.iter() {
-            if let Some(value) = self
-                .model
-                .properties
-                .as_ref()
-                .and_then(|props| props.get(&element.name))
-            {
-                map.serialize_entry(&element.name, value)?;
+        if let Some(overlay_def) = &self.model.overlay_def {
+            for element in overlay_def.elements.iter() {
+                if let Some(value) = self
+                    .model
+                    .properties
+                    .as_ref()
+                    .and_then(|props| props.get(&element.name))
+                {
+                    map.serialize_entry(&element.name, value)?;
+                    serialized_keys.insert(&element.name);
+                }
             }
         }
 
@@ -62,7 +69,9 @@ impl Serialize for Overlay {
             let mut sorted_properties: Vec<_> = properties.iter().collect();
             sorted_properties.sort_by(|(a, _), (b, _)| a.cmp(b));
             for (key, value) in sorted_properties {
-                map.serialize_entry(key, value)?;
+                if !serialized_keys.contains(key) {
+                    map.serialize_entry(key, value)?;
+                }
             }
         }
 
