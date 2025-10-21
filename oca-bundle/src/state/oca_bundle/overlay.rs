@@ -1,12 +1,11 @@
 use indexmap::IndexMap;
-use log::{debug, info};
+use log::debug;
 use oca_ast::ast::{NestedValue, OverlayContent};
 use overlay_file::OverlayDef;
 use said::make_me_happy;
 use said::{derivation::HashFunctionCode, SelfAddressingIdentifier};
 use serde::{Deserialize, Serialize, Serializer};
 use std::collections::BTreeMap;
-use std::collections::HashSet;
 use thiserror::Error;
 
 pub type OverlayName = String;

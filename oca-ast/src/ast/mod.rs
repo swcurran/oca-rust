@@ -53,6 +53,94 @@ pub enum ObjectKind {
     Overlay(OverlayContent),
 }
 
+impl fmt::Display for Command {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} ", self.kind)?;
+
+        match &self.object_kind {
+            ObjectKind::CaptureBase(content) => {
+                write!(f, "ATTRIBUTE")?;
+                if let Some(attributes) = &content.attributes {
+                    for (key, value) in attributes {
+                        write!(f, " {}={}", key, value)?;
+                    }
+                }
+                if let Some(properties) = &content.properties {
+                    for (key, value) in properties {
+                        write!(f, " {}={}", key, value)?;
+                    }
+                }
+            }
+            ObjectKind::OCABundle(content) => {
+                write!(f, "OCABUNDLE {}", content.said)?;
+            }
+            ObjectKind::Overlay(content) => {
+                write!(f, "OVERLAY {}", content.overlay_name)?;
+                if let Some(properties) = &content.properties {
+                    for (key, value) in properties {
+                        write!(f, " {}={}", key, value)?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+// Implement Display for CommandType
+impl fmt::Display for CommandType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CommandType::Add => write!(f, "ADD"),
+            CommandType::Remove => write!(f, "REMOVE"),
+            CommandType::Modify => write!(f, "MODIFY"),
+            CommandType::From => write!(f, "FROM"),
+        }
+    }
+}
+
+// Implement Display for NestedAttrType
+impl fmt::Display for NestedAttrType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            NestedAttrType::Value(attr_type) => write!(f, "{}", attr_type),
+            NestedAttrType::Array(nested) => write!(f, "[{}]", nested),
+            NestedAttrType::Null => write!(f, "Null"),
+            NestedAttrType::Reference(ref_value) => write!(f, "reference {}", ref_value),
+        }
+    }
+}
+
+// Implement Display for NestedValue
+impl fmt::Display for NestedValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            NestedValue::Reference(ref_value) => write!(f, "{}", ref_value),
+            NestedValue::Value(value) => write!(f, "{}", value),
+            NestedValue::Object(object) => {
+                write!(f, "{{")?;
+                for (i, (key, value)) in object.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "\"{}\": {}", key, value)?;
+                }
+                write!(f, "}}")
+            }
+            NestedValue::Array(array) => {
+                write!(f, "[")?;
+                for (i, value) in array.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", value)?;
+                }
+                write!(f, "]")
+            }
+        }
+    }
+}
+
 impl Serialize for ObjectKind {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -256,6 +344,14 @@ pub struct OverlayContent {
 /// References: supports ref said and ref name
 pub enum ReferenceAttrType {
     Reference(RefValue),
+}
+
+impl fmt::Display for ReferenceAttrType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ReferenceAttrType::Reference(ref_value) => write!(f, "reference {}", ref_value),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Eq)]

@@ -3,7 +3,7 @@ pub mod overlay_registry;
 pub mod validator;
 
 use self::error::ParseError;
-use self::validator::OverlayValidator;
+use self::validator::OverlayfileValidator;
 use log::debug;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
@@ -350,7 +350,7 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
     };
 
     // Validate the parsed OverlayFile
-    match OverlayValidator::validate(&overlays_file) {
+    match OverlayfileValidator::validate(&overlays_file) {
         Ok(_) => Ok(overlays_file),
         Err(validation_errors) => Err(ParseError::ValidationError(validation_errors)),
     }

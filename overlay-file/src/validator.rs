@@ -1,7 +1,10 @@
 use crate::{ElementType, KeyType, OverlayDef, OverlayElementDef, OverlayFile};
 use std::collections::HashSet;
 
-pub struct OverlayValidator;
+pub struct OverlayfileValidator;
+
+// TODO create validation rules for overlay definition file
+// TODO create validation rules for ocafile against overlay definition file
 
 #[derive(Debug, serde::Serialize)]
 pub enum ValidationError {
@@ -11,7 +14,7 @@ pub enum ValidationError {
     DuplicateElement(String),
 }
 
-impl OverlayValidator {
+impl OverlayfileValidator {
     pub fn validate(overlay_file: &OverlayFile) -> Result<(), Vec<ValidationError>> {
         let mut errors = Vec::new();
 
