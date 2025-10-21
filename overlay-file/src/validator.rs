@@ -1,3 +1,5 @@
+use log::debug;
+
 use crate::{ElementType, KeyType, OverlayDef, OverlayElementDef, OverlayFile};
 use std::collections::HashSet;
 
@@ -35,6 +37,7 @@ impl OverlayfileValidator {
 
         for element in &overlay_def.elements {
             if !element_names.insert(&element.name) {
+                debug!("duplicated {:?}", element);
                 errors.push(ValidationError::DuplicateElement(element.name.clone()));
             }
 

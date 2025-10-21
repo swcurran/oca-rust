@@ -221,7 +221,7 @@ overlay_array_header = { iws ~ ^"ADD ARRAY" ~ ws+ ~ attr_name ~ ws* ~ NEWLINE* }
 overlay_array_body = { iws+ ~ ^"WITH VALUES" ~ ws+ ~ value_type ~ ws* ~ NEWLINE* }
 
 
-overlay_attributes = { iws ~ ^"ADD ATTRIBUTES" ~ ws* ~ (key_pair+ | (ARRAY_TYPE ~ NEWLINE+ ~ keys_with_values)) }
+overlay_attributes = { iws ~ ^"ADD ATTRIBUTES" ~ ws* ~ (key_pair+ | ATTR_ARRAY) }
 keys_with_values = { iws* ~ ^"WITH VALUES" ~ ws* ~ value_type ~ ws* ~ NEWLINE* }
 key_pair = { ws* ~ attr_name ~ ws* ~ "=" ~ ws* ~ attr_value_type ~ ws* ~ NEWLINE* }
 attr_value_type = { "Text" | "Binary" | "Number" | "Boolean" | "DateTime" | "Array" | LANG_TYPE | ANY_TYPE }
@@ -243,9 +243,12 @@ REF_TYPE       = @{ ^"REF" }
 ANY_TYPE       = @{ ^"Any" }
 /// ISO 639-3 language code
 LANG_TYPE      = @{ ^"Lang" }
-ARRAY_TYPE      = { "[" ~ arg_ws* ~ key_item ~ ("," ~ ws* ~ key_item)* ~ trailing_ellipsis? ~ ws* ~ "]" }
-key_item      = { attr_name }
-trailing_ellipsis = { "," ~ ws* ~ "..." }
+ATTR_ARRAY = { ARRAY_TYPE ~ NEWLINE+ ~ keys_with_values }
+ARRAY_TYPE = { "[" ~ arg_ws* ~ array_content ~ arg_ws* ~ "]" }
+array_content = { (array_items ~ trailing_ellipsis?) | trailing_ellipsis }
+array_items = { key_item ~ (arg_ws* ~ "," ~ arg_ws* ~ key_item)* }
+trailing_ellipsis = { "..." }
+key_item = { attr_name }
 
 value_type = { ATTR_NAMES_TYPE | ANY_TYPE | LANG_TYPE | TEXT_TYPE | ARRAY_TYPE | object_type | REF_TYPE | complex_value_type }
 object_type = _ { "OBJECT" ~ NEWLINE ~ overlay_object_body }

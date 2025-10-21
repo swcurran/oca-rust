@@ -128,9 +128,7 @@ fn validate(ast: &OCAAst, command: Command) -> Result<bool, Error> {
 }
 
 /// Check rules of overlay definition against the provided command
-fn validate_against_overlay_def(
-    command: &Command,
-) -> Result<bool, Error> {
+fn validate_against_overlay_def(command: &Command) -> Result<bool, Error> {
     let mut errors = Vec::new();
 
     if let ObjectKind::Overlay(overlay_content) = &command.object_kind {
@@ -144,10 +142,7 @@ fn validate_against_overlay_def(
     }
 }
 
-fn validate_overlay(
-    overlay_content: &OverlayContent,
-    errors: &mut Vec<Error>,
-) {
+fn validate_overlay(overlay_content: &OverlayContent, errors: &mut Vec<Error>) {
     let new_properties = IndexMap::new();
     let properties = overlay_content
         .properties
@@ -156,7 +151,12 @@ fn validate_overlay(
 
     // Validate property names against the overlay definition
     for (prop_name, prop_value) in properties.iter() {
-        if let Some(element) = overlay_content.overlay_def.elements.iter().find(|e| e.name == *prop_name) {
+        if let Some(element) = overlay_content
+            .overlay_def
+            .elements
+            .iter()
+            .find(|e| e.name == *prop_name)
+        {
             // Check if the property value matches the expected type
             match is_valid_property_value(prop_value, &element.values) {
                 Ok(true) => {}
@@ -561,7 +561,7 @@ mod tests {
                     }),
                     "language".to_string() => NestedValue::Value("en-UK".to_string()),
                 }),
-            overlay_def: overlay_def.clone(),
+                overlay_def: overlay_def.clone(),
             }),
         };
 
