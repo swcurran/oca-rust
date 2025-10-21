@@ -29,7 +29,6 @@ pub struct Command {
     pub kind: CommandType,
     #[serde(flatten)]
     pub object_kind: ObjectKind,
-    pub overlay_def: Option<OverlayDef>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -75,7 +74,7 @@ impl fmt::Display for Command {
                 write!(f, "OCABUNDLE {}", content.said)?;
             }
             ObjectKind::Overlay(content) => {
-                write!(f, "OVERLAY {}", content.overlay_name)?;
+                write!(f, "OVERLAY {}", content.overlay_def.get_full_name())?;
                 if let Some(properties) = &content.properties {
                     for (key, value) in properties {
                         write!(f, " {}={}", key, value)?;
@@ -209,7 +208,7 @@ impl From<u8> for ObjectKind {
             }),
             2 => ObjectKind::Overlay(OverlayContent {
                 properties: None,
-                overlay_name: "".to_string(),
+                overlay_def: OverlayDef::default(),
             }),
             _ => panic!("Invalid ObjectKind value"),
         }
@@ -242,7 +241,7 @@ impl Hash for ObjectKind {
             }
             // TODO hash over content as well?
             ObjectKind::Overlay(content) => {
-                content.overlay_name.hash(state);
+                content.overlay_def.hash(state);
                 if let Some(properties) = &content.properties {
                     for (key, value) in properties {
                         key.hash(state);
@@ -334,7 +333,7 @@ pub struct CaptureContent {
 pub struct OverlayContent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub properties: Option<IndexMap<String, NestedValue>>,
-    pub overlay_name: String,
+    pub overlay_def: OverlayDef,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Eq, Hash)]
@@ -524,14 +523,13 @@ mod tests {
                 attributes: Some(attributes),
                 properties: Some(properties),
             }),
-            overlay_def: None,
         };
 
         let overlay_registry =
             OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
         assert_eq!(overlay_registry.list_all().len(), 11);
 
-        let label_overlay_def = overlay_registry.get_by_fqn("Label/2.0.0").unwrap().unwrap();
+        let label_overlay_def = overlay_registry.get_by_fqn("Label/2.0.0").unwrap();
         assert_eq!(label_overlay_def.get_full_name(), "label/2.0.0");
 
         let mut label_props = IndexMap::new();
@@ -548,9 +546,8 @@ mod tests {
             kind: CommandType::Add,
             object_kind: ObjectKind::Overlay(OverlayContent {
                 properties: Some(label_props),
-                overlay_name: label_overlay_def.clone().name,
+                overlay_def: label_overlay_def.clone(),
             }),
-            overlay_def: Some(label_overlay_def.clone()),
         };
 
         let mut ocaast = OCAAst::new();
@@ -566,7 +563,7 @@ mod tests {
 
         assert_eq!(
             serialized,
-            r#"{"version":"2.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"},"properties":{"test":"test"}},"overlay_def":null},{"type":"Add","object_kind":"Overlay","content":{"properties":{"language":"pl-PL","attribute_labels":{"allowed":"Dopuszczony"}},"overlay_name":"label"},"overlay_def":{"namespace":null,"name":"label","version":"2.0.0","elements":[{"name":"language","keys":"Text","values":"Text"},{"name":"attr_labels","keys":"AttrNames","values":"Text"}]}}],"commands_meta":{},"meta":{}}"#
+            r#"{"version":"2.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"},"properties":{"test":"test"}}},{"type":"Add","object_kind":"Overlay","content":{"properties":{"language":"pl-PL","attribute_labels":{"allowed":"Dopuszczony"}},"overlay_def":{"namespace":null,"name":"label","version":"2.0.0","elements":[{"name":"language","keys":"Text","values":"Text"},{"name":"attr_labels","keys":"AttrNames","values":"Text"}]}}}],"commands_meta":{},"meta":{}}"#
         );
 
         let ast = serde_json::from_str::<OCAAst>(&serialized).unwrap();
@@ -579,8 +576,9 @@ mod tests {
                 .object_kind
                 .overlay_content()
                 .unwrap()
-                .overlay_name,
-            "label"
+                .overlay_def
+                .get_full_name(),
+            "label/2.0.0"
         );
         let content = ocaast
             .commands

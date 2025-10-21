@@ -2,6 +2,7 @@ use indexmap::IndexMap;
 use log::info;
 use overlay::{Overlay, OverlayModel};
 use overlay_file::overlay_registry::OverlayLocalRegistry;
+use overlay_file::OverlayDef;
 pub use said::derivation::{HashFunction, HashFunctionCode};
 pub use said::error;
 pub use said::{make_me_sad, ProtocolVersion, SelfAddressingIdentifier};
@@ -85,19 +86,17 @@ impl OCABundleModel {
                 attributes: Some(self.capture_base.attributes.clone()),
                 properties,
             }),
-            overlay_def: None,
         };
         ast.commands.push(command);
 
         self.overlays.iter().for_each(|overlay| {
             let overlay_content = OverlayContent {
-                overlay_name: overlay.name.clone(),
+                overlay_def: OverlayDef::default(),
                 properties: overlay.properties.clone(),
             };
             let overlay_command = Command {
                 kind: CommandType::Add,
                 object_kind: ObjectKind::Overlay(overlay_content),
-                overlay_def: None,
             };
             ast.commands.push(overlay_command);
         });

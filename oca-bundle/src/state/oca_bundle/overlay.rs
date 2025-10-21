@@ -28,7 +28,7 @@ pub struct OverlayModel {
     /// allowed per bundle.
     pub unique_keys: Option<Vec<String>>,
     pub properties: Option<IndexMap<String, NestedValue>>,
-    pub overlay_def: Option<OverlayDef>,
+    pub overlay_def: OverlayDef,
 }
 
 impl Serialize for Overlay {
@@ -49,17 +49,15 @@ impl Serialize for Overlay {
         let mut serialized_keys = std::collections::HashSet::new();
 
         // Serialize attributes in the order defined in the overlay definition
-        if let Some(overlay_def) = &self.model.overlay_def {
-            for element in overlay_def.elements.iter() {
-                if let Some(value) = self
-                    .model
-                    .properties
-                    .as_ref()
-                    .and_then(|props| props.get(&element.name))
-                {
-                    map.serialize_entry(&element.name, value)?;
-                    serialized_keys.insert(&element.name);
-                }
+        for element in self.model.overlay_def.elements.iter() {
+            if let Some(value) = self
+                .model
+                .properties
+                .as_ref()
+                .and_then(|props| props.get(&element.name))
+            {
+                map.serialize_entry(&element.name, value)?;
+                serialized_keys.insert(&element.name);
             }
         }
 
@@ -96,7 +94,7 @@ impl Serialize for OverlayModel {
 
         let mut props = BTreeMap::new();
         // Use overlay definition to serialize elements in the correct order
-        for element in self.overlay_def.as_ref().unwrap().elements.iter() {
+        for element in self.overlay_def.elements.iter() {
             if let Some(value) = self
                 .properties
                 .as_ref()
@@ -142,11 +140,11 @@ impl OverlayModel {
     pub fn new(content: OverlayContent) -> Self {
         Self {
             digest: None,
-            name: content.overlay_name,
+            name: content.overlay_def.get_name().to_string(),
             unique_keys: None,
             capture_base_said: None,
             properties: content.properties,
-            overlay_def: None,
+            overlay_def: content.overlay_def,
         }
     }
 

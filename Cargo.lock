@@ -930,6 +930,7 @@ dependencies = [
  "isolang",
  "oca-ast",
  "oca-bundle",
+ "overlay-file",
  "said",
  "serde",
  "serde_json",

@@ -118,7 +118,7 @@ pub fn apply_command(
         }
         (ast::CommandType::Add, ast::ObjectKind::Overlay(content)) => {
             let mut overlay = OverlayModel::new(content.clone());
-            overlay.overlay_def = Some(op.overlay_def.clone().unwrap());
+            overlay.overlay_def = content.overlay_def.clone();
             base.overlays.push(overlay);
         }
         (ast::CommandType::Add, ast::ObjectKind::OCABundle(_)) => todo!(),
@@ -183,7 +183,6 @@ mod tests {
                 attributes: Some(attributes),
                 properties: None,
             }),
-            overlay_def: None,
         });
 
         let mut properties = IndexMap::new();
@@ -204,9 +203,8 @@ mod tests {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(ast::OverlayContent {
                 properties: Some(properties),
-                overlay_name: "Label/2.0.0".to_string(),
+                overlay_def: meta_ov_def.clone(),
             }),
-            overlay_def: meta_ov_def.cloned(),
         });
 
         let mut properties = IndexMap::new();
@@ -236,9 +234,8 @@ mod tests {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(ast::OverlayContent {
                 properties: Some(attr_labels),
-                overlay_name: "Label/2.0.0".to_string(),
+                overlay_def: label_ov_def.clone(),
             }),
-            overlay_def: label_ov_def.cloned(),
         });
 
         let mut attributes = IndexMap::new();
@@ -278,9 +275,8 @@ mod tests {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(ast::OverlayContent {
                 properties: Some(properties),
-                overlay_name: "Character_Encoding/2.0.0".to_string(),
+                overlay_def: character_encoding_ov_def.clone(),
             }),
-            overlay_def: character_encoding_ov_def.cloned(),
         });
 
         let mut properties = IndexMap::new();
@@ -295,9 +291,8 @@ mod tests {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(ast::OverlayContent {
                 properties: Some(properties),
-                overlay_name: "Conformance/2.0.0".to_string(),
+                overlay_def: conformance_ov_def.clone(),
             }),
-            overlay_def: conformance_ov_def.cloned(),
         });
 
         // todo test if references with name are working

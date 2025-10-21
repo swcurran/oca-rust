@@ -1,6 +1,7 @@
 use crate::data_storage::Namespace;
 use oca_ast::ast::{BundleContent, CaptureContent, ObjectKind, OverlayContent, RefValue};
 use oca_bundle::state::oca_bundle::OCABundleModel;
+use overlay_file::OverlayDef;
 use serde::{ser::SerializeStruct, Serialize};
 use std::collections::HashSet;
 
@@ -47,7 +48,7 @@ impl Facade {
                 &format!("{}.metadata", overlay.digest.clone().unwrap()),
                 &[u8::from(ObjectKind::Overlay(OverlayContent {
                     properties: None,
-                    overlay_name: overlay.name.clone(),
+                    overlay_def: OverlayDef::default(), // TODO fix this and think what we should store and how to get it
                 }))],
             );
         });

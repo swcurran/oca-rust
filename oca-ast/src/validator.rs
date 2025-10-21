@@ -5,7 +5,7 @@ use crate::{
 use indexmap::{indexmap, IndexMap};
 use isolang::Language;
 use log::debug;
-use overlay_file::{ElementType, OverlayDef};
+use overlay_file::ElementType;
 use regex::Regex;
 
 type CaptureAttributes = IndexMap<String, NestedAttrType>;
@@ -128,19 +128,13 @@ fn validate(ast: &OCAAst, command: Command) -> Result<bool, Error> {
 }
 
 /// Check rules of overlay definition against the provided command
-fn validate_against_overlay_def(command: &Command) -> Result<bool, Error> {
+fn validate_against_overlay_def(
+    command: &Command,
+) -> Result<bool, Error> {
     let mut errors = Vec::new();
 
-    let overlay_def = match &command.overlay_def {
-        Some(def) => def,
-        None => {
-            errors.push(Error::MissingOverlayDef(command.to_string()));
-            return Err(Error::Validation(errors));
-        }
-    };
-
     if let ObjectKind::Overlay(overlay_content) = &command.object_kind {
-        validate_overlay(overlay_content, overlay_def, &mut errors);
+        validate_overlay(overlay_content, &mut errors);
     }
 
     if errors.is_empty() {
@@ -152,7 +146,6 @@ fn validate_against_overlay_def(command: &Command) -> Result<bool, Error> {
 
 fn validate_overlay(
     overlay_content: &OverlayContent,
-    overlay_def: &OverlayDef,
     errors: &mut Vec<Error>,
 ) {
     let new_properties = IndexMap::new();
@@ -161,17 +154,9 @@ fn validate_overlay(
         .as_ref()
         .unwrap_or(&new_properties);
 
-    // Check if the overlay name matches the overlay definition
-    if overlay_content.overlay_name != overlay_def.name {
-        errors.push(Error::InvalidOverlayName(format!(
-            "Overlay name '{}' does not match the overlay definition name '{}'",
-            overlay_content.overlay_name, overlay_def.name
-        )));
-    }
-
     // Validate property names against the overlay definition
     for (prop_name, prop_value) in properties.iter() {
-        if let Some(element) = overlay_def.elements.iter().find(|e| e.name == *prop_name) {
+        if let Some(element) = overlay_content.overlay_def.elements.iter().find(|e| e.name == *prop_name) {
             // Check if the property value matches the expected type
             match is_valid_property_value(prop_value, &element.values) {
                 Ok(true) => {}
@@ -418,7 +403,6 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
-            overlay_def: None,
         };
 
         let command2 = Command {
@@ -430,7 +414,6 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
-            overlay_def: None,
         };
 
         let remove_command = Command {
@@ -442,7 +425,6 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
-            overlay_def: None,
         };
 
         let add_command = Command {
@@ -453,7 +435,6 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
-            overlay_def: None,
         };
 
         let valid_command = Command {
@@ -465,7 +446,6 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
-            overlay_def: None,
         };
 
         let invalid_command = Command {
@@ -476,7 +456,6 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
-            overlay_def: None,
         };
 
         let mut ocaast = OCAAst::new();
@@ -503,7 +482,6 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
-            overlay_def: None,
         };
 
         let command2 = Command {
@@ -515,7 +493,6 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
-            overlay_def: None,
         };
 
         let valid_command = Command {
@@ -527,7 +504,6 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
-            overlay_def: None,
         };
 
         let invalid_command = Command {
@@ -539,7 +515,6 @@ mod tests {
                 }),
                 properties: Some(indexmap! {}),
             }),
-            overlay_def: None,
         };
 
         let mut ocaast = OCAAst::new();
@@ -579,7 +554,6 @@ mod tests {
         let valid_overlay = Command {
             kind: CommandType::Add,
             object_kind: ObjectKind::Overlay(OverlayContent {
-                overlay_name: "Label".to_string(),
                 properties: Some(indexmap! {
                     "attr_labels".to_string() => NestedValue::Object(indexmap! {
                         "attr1".to_string() => NestedValue::Value("value1".to_string()),
@@ -587,8 +561,8 @@ mod tests {
                     }),
                     "language".to_string() => NestedValue::Value("en-UK".to_string()),
                 }),
+            overlay_def: overlay_def.clone(),
             }),
-            overlay_def: Some(overlay_def.clone()),
         };
 
         let result = validate_against_overlay_def(&valid_overlay);
@@ -604,13 +578,12 @@ mod tests {
         let invalid_overlay_missing_field = Command {
             kind: CommandType::Add,
             object_kind: ObjectKind::Overlay(OverlayContent {
-                overlay_name: "TestOverlay".to_string(),
+                overlay_def: overlay_def.clone(),
                 properties: Some(indexmap! {
                     "language".to_string() => NestedValue::Value("snieg".to_string()),
                     "field1".to_string() => NestedValue::Value("Some text".to_string()),
                 }),
             }),
-            overlay_def: Some(overlay_def.clone()),
         };
 
         let result = validate_against_overlay_def(&invalid_overlay_missing_field);
@@ -620,14 +593,13 @@ mod tests {
                 "Overlay with missing required field should fail validation"
             ),
             Err(Error::Validation(errors)) => {
-                assert_eq!(errors.len(), 3);
-                assert_eq!(errors[0].to_string(), "Invalid Overlay Name: Overlay name 'TestOverlay' does not match the overlay definition name 'Label'");
+                assert_eq!(errors.len(), 2);
                 assert_eq!(
-                    errors[1].to_string(),
+                    errors[0].to_string(),
                     "Invalid Property Value: Property 'language': Invalid language code: 'snieg'"
                 );
                 assert_eq!(
-                    errors[2].to_string(),
+                    errors[1].to_string(),
                     "Invalid Property: Property 'field1' is not allowed by the overlay definition"
                 );
             }

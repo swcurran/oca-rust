@@ -36,13 +36,24 @@ impl Default for OverlayFile {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Hash, Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct OverlayDef {
     pub namespace: Option<String>,
     pub name: String,
     pub version: String,
     /// enahnce attributes from capture base with semantic information
     pub elements: Vec<OverlayElementDef>,
+}
+
+impl Default for OverlayDef {
+    fn default() -> Self {
+        OverlayDef {
+            namespace: None,
+            name: String::new(),
+            version: "1.0.0".to_string(),
+            elements: Vec::new(),
+        }
+    }
 }
 
 impl OverlayDef {
@@ -61,6 +72,9 @@ impl OverlayDef {
     pub fn get_full_name(&self) -> String {
         format!("{}/{}", self.name, self.version)
     }
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -69,14 +83,14 @@ pub struct KeyPair {
     pub kind: ElementType,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Hash, Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct OverlayElementDef {
     pub name: String,
     pub keys: KeyType,
     pub values: ElementType,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Hash, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 /// Type of the keys allowed for Overlay Object
 pub enum KeyType {
     /// Keys names needs to correspond to the attribute names from Capture Base
@@ -85,7 +99,7 @@ pub enum KeyType {
     Text,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Hash, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 /// Type of the values allowed for Overlay Object
 pub enum ElementType {
     Object,
@@ -98,7 +112,7 @@ pub enum ElementType {
     Ref,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Hash, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum ConstraintKind {
     /// Only defined values are allowed
     Closed(Option<Vec<String>>),

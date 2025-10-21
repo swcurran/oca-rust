@@ -30,9 +30,6 @@ pub enum Error {
     #[error("Missing required attribute in Overlay: {0}")]
     MissingRequiredAttribute(String),
 
-    #[error("Invalid Overlay Name: {0}")]
-    InvalidOverlayName(String),
-
     #[error("Invalid Property Value: {0}")]
     InvalidPropertyValue(String),
 

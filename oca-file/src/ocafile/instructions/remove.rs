@@ -4,6 +4,7 @@ use log::debug;
 use oca_ast::ast::{
     CaptureContent, Command, CommandType, NestedAttrType, NestedValue, ObjectKind, OverlayContent,
 };
+use overlay_file::OverlayDef;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RemoveInstruction {}
@@ -16,11 +17,10 @@ impl RemoveInstruction {
         for object in record.into_inner() {
             match object.as_rule() {
                 Rule::remove_overlay => {
-                    let name = object.as_str();
-
+                    // TODO how to fill overlay definition? see ADD instruction for example
                     object_kind = Some(ObjectKind::Overlay(OverlayContent {
                         properties: Some(extract_properties_pairs(object)),
-                        overlay_name: name.to_string(),
+                        overlay_def: OverlayDef::default(),
                     }));
                 }
                 Rule::remove_attribute => {
@@ -46,7 +46,6 @@ impl RemoveInstruction {
         Ok(Command {
             kind: CommandType::Remove,
             object_kind: object_kind.unwrap(),
-            overlay_def: None,
         })
     }
 }

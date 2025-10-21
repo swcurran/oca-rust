@@ -122,7 +122,7 @@ fn apply_step(state: State, step: &oca_bundle::build::OCABuildStep) -> (State, R
             }
 
             let overlay = step.result.overlays.iter().find(|overlay| {
-                overlay.name.eq(&content.overlay_name) // TODO fetch UNIQUE ATTR AND use here && overlay.language() == lang.as_ref()
+                overlay.name.eq(&content.overlay_def.get_name()) // TODO fetch UNIQUE ATTR AND use here && overlay.language() == lang.as_ref()
             });
 
             if let Some(overlay) = overlay {
@@ -172,6 +172,7 @@ mod tests {
     use super::*;
     use indexmap::{indexmap, IndexMap};
     use oca_ast::ast::OverlayContent;
+    use overlay_file::OverlayDef;
 
     #[test]
     #[ignore]
@@ -187,7 +188,6 @@ mod tests {
                 }),
                 properties: None,
             }),
-            overlay_def: None,
         });
 
         // 2. add label en abc "ble"
@@ -198,9 +198,8 @@ mod tests {
                     "lang".to_string() => ast::NestedValue::Value("en".to_string()),
                     "abc".to_string() => ast::NestedValue::Value("ble".to_string())
                 }),
-                overlay_name: "Label/2.0.0".to_string(),
+                overlay_def: OverlayDef::default(),
             }),
-            overlay_def: None,
         });
 
         // 3. add attr def
@@ -212,7 +211,6 @@ mod tests {
                 }),
                 properties: None,
             }),
-            overlay_def: None,
         });
 
         // 4. add label fr abc "ble"
@@ -223,9 +221,8 @@ mod tests {
                     "lang".to_string() => ast::NestedValue::Value("fr".to_string()),
                     "abc".to_string() => ast::NestedValue::Value("ble".to_string())
                 }),
-                overlay_name: "Label/2.0.0".to_string(),
+                overlay_def: OverlayDef::default(),
             }),
-            overlay_def: None,
         });
 
         // 5. update attr "en" abc "bererg"

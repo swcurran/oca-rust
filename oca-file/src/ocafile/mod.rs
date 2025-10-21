@@ -219,13 +219,7 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                     }
                     ast::ObjectKind::Overlay(content) => {
                         line.push_str("Overlay ");
-                        let (name, _) = content
-                            .overlay_name
-                            .split_once("/")
-                            .ok_or({
-                                "Invalid overlay name format: version not found or in wrong format"
-                            })
-                            .unwrap();
+                        let name = content.overlay_def.get_name();
                         line.push_str(name.to_case(Case::UpperSnake).as_str());
                         if let Some(content) = command.object_kind.overlay_content() {
                             if let Some(ref properties) = content.properties {
@@ -363,7 +357,8 @@ ADD Overlay ENTRY
             character_encoding_overlay
                 .overlay_content()
                 .unwrap()
-                .overlay_name,
+                .overlay_def
+                .get_name(),
             "Character_Encoding/2.0.0".to_string()
         );
     }

@@ -131,9 +131,8 @@ impl AddInstruction {
         let kind = CommandType::Add;
         let mut content = OverlayContent {
             properties: None,
-            overlay_name: "".to_string(),
+            overlay_def: OverlayDef::default(),
         };
-        let mut overlay_def: Option<OverlayDef> = None;
 
         debug!("Parsing add instruction from the record: {:?}", record);
         for object in record.into_inner() {
@@ -151,15 +150,11 @@ impl AddInstruction {
                                             let name = header.as_str();
                                             match resolve_overlay_def(registry, name) {
                                                 Ok(od) => {
-                                                    overlay_def = Some(od.clone());
+                                                    content.overlay_def = od.clone();
                                                     info!(
                                                         "Found overlay definition: {:?}",
-                                                        overlay_def
+                                                        content.overlay_def
                                                     );
-                                                    content.overlay_name = overlay_def
-                                                        .clone()
-                                                        .unwrap()
-                                                        .get_full_name();
                                                 }
                                                 Err(e) => {
                                                     return Err(InstructionError::Parser(
@@ -180,7 +175,7 @@ impl AddInstruction {
                             Rule::overlay_body => {
                                 debug!("Parsing overlay body: {:?}", overlay);
                                 content.properties =
-                                    Some(parse_overlay_body(overlay, overlay_def.clone().unwrap()));
+                                    Some(parse_overlay_body(overlay, content.overlay_def.clone()));
                             }
                             _ => {
                                 return Err(InstructionError::UnexpectedToken(format!(
@@ -233,7 +228,6 @@ impl AddInstruction {
         Ok(Command {
             kind,
             object_kind: object_kind.unwrap(),
-            overlay_def,
         })
     }
 }
@@ -349,7 +343,8 @@ mod tests {
                             assert_eq!(instruction.kind, CommandType::Add);
                             match instruction.object_kind {
                                 ObjectKind::Overlay(content) => match content
-                                    .overlay_name
+                                    .overlay_def
+                                    .get_full_name()
                                     .to_lowercase()
                                     .as_str()
                                 {
@@ -360,7 +355,10 @@ mod tests {
                                         println!("Parsed overlay label: {:?}", content);
                                     }
                                     _ => {
-                                        println!("Unknown overlay type: {}", content.overlay_name);
+                                        println!(
+                                            "Unknown overlay type: {}",
+                                            content.overlay_def.get_full_name()
+                                        );
                                         assert!(!is_valid, "Instruction is not valid");
                                     }
                                 },
