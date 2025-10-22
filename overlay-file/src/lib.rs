@@ -4,7 +4,7 @@ pub mod validator;
 
 use self::error::ParseError;
 use self::validator::OverlayfileValidator;
-use log::debug;
+use log::{debug, info};
 use pest::Parser;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -97,6 +97,8 @@ pub enum KeyType {
     AttrNames,
     /// Keys are any arbitrary string
     Text,
+    /// Key type for attribtues which are simple pairs, and do not have keys
+    None,
 }
 
 #[derive(Hash, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -110,6 +112,7 @@ pub enum ElementType {
     Lang,
     /// Reference in form of SAID to another object
     Ref,
+    Complex(Vec<ElementType>),
 }
 
 #[derive(Hash, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -237,7 +240,7 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                                                     Rule::TEXT_TYPE => {
                                                         keys_type = Some(KeyType::Text)
                                                     }
-                                                    Rule::ARRAY_TYPE => todo!(),
+                                                    Rule::ARRAY_KEY_TYPE => todo!(),
                                                     _ => continue,
                                                 },
                                                 None => {
@@ -260,7 +263,26 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                                                     Rule::REF_TYPE => {
                                                         values_type = Some(ElementType::Ref);
                                                     }
-                                                    _ => continue,
+                                                    Rule::LANG_TYPE => {
+                                                        values_type = Some(ElementType::Lang);
+                                                    }
+                                                    Rule::complex_value_type => {
+                                                        let mut complex_types = Vec::new();
+                                                        for complex_type in k.into_inner() {
+                                                            match complex_type.as_rule() {
+                                                                Rule::ARRAY_TYPE => complex_types.push(ElementType::Array(None)),
+                                                                Rule::OBJECT_TYPE => complex_types.push(ElementType::Object),
+                                                                Rule::REF_TYPE => complex_types.push(ElementType::Ref),
+                                                                Rule::TEXT_TYPE => complex_types.push(ElementType::Text),
+                                                                Rule::LANG_TYPE => complex_types.push(ElementType::Lang),
+                                                                _ => {}
+                                                            }
+                                                        }
+                                                        values_type = Some(ElementType::Complex(complex_types));
+                                                    }
+                                                    _ => {
+                                                        todo!("Value type not supported yet: {:?}",k)
+                                                    }
                                                 },
                                                 None => {
                                                     return Err(ParseError::MetaError(
@@ -367,7 +389,7 @@ fn process_attributes_array(attr: Pair) -> Vec<OverlayElementDef> {
     // Parse the list of attributes from array
     for array in attr.into_inner() {
         match array.as_rule() {
-            Rule::ARRAY_TYPE => {
+            Rule::ARRAY_KEY_TYPE => {
                 for item in array.into_inner() {
                     match item.as_rule() {
                         Rule::array_content => {

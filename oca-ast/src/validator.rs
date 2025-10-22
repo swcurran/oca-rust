@@ -2,10 +2,10 @@ use crate::{
     ast::{Command, CommandType, NestedAttrType, NestedValue, OCAAst, ObjectKind, OverlayContent},
     errors::Error,
 };
-use indexmap::{indexmap, IndexMap};
+use indexmap::{indexmap, IndexMap, IndexSet};
 use isolang::Language;
 use log::debug;
-use overlay_file::ElementType;
+use overlay_file::{ElementType, KeyType};
 use regex::Regex;
 
 type CaptureAttributes = IndexMap<String, NestedAttrType>;
@@ -89,7 +89,7 @@ fn validate(ast: &OCAAst, command: Command) -> Result<bool, Error> {
             }
         }
         (CommandType::Add, ObjectKind::Overlay(_)) => {
-            match validate_against_overlay_def(&command) {
+            match validate_against_overlay_def(ast, &command) {
                 Ok(result) => {
                     if !result {
                         valid = result;
@@ -128,11 +128,12 @@ fn validate(ast: &OCAAst, command: Command) -> Result<bool, Error> {
 }
 
 /// Check rules of overlay definition against the provided command
-fn validate_against_overlay_def(command: &Command) -> Result<bool, Error> {
+fn validate_against_overlay_def(ast: &OCAAst, command: &Command) -> Result<bool, Error> {
     let mut errors = Vec::new();
 
     if let ObjectKind::Overlay(overlay_content) = &command.object_kind {
-        validate_overlay(overlay_content, &mut errors);
+        let cb_attrs = extract_attributes(ast);
+        validate_overlay(overlay_content, &cb_attrs, &mut errors);
     }
 
     if errors.is_empty() {
@@ -142,12 +143,19 @@ fn validate_against_overlay_def(command: &Command) -> Result<bool, Error> {
     }
 }
 
-fn validate_overlay(overlay_content: &OverlayContent, errors: &mut Vec<Error>) {
+fn validate_overlay(
+    overlay_content: &OverlayContent,
+    capture_base_attrs: &CaptureAttributes,
+    errors: &mut Vec<Error>,
+) {
     let new_properties = IndexMap::new();
     let properties = overlay_content
         .properties
         .as_ref()
         .unwrap_or(&new_properties);
+
+    let mut found_elements = IndexSet::new();
+
 
     // Validate property names against the overlay definition
     for (prop_name, prop_value) in properties.iter() {
@@ -156,10 +164,23 @@ fn validate_overlay(overlay_content: &OverlayContent, errors: &mut Vec<Error>) {
             .elements
             .iter()
             .find(|e| e.name == *prop_name)
+            .or_else(|| {
+                overlay_content
+                    .overlay_def
+                    .elements
+                    .iter()
+                    .find(|e| e.name.is_empty())
+            })
         {
-            // Check if the property value matches the expected type
-            match is_valid_property_value(prop_value, &element.values) {
-                Ok(true) => {}
+            println!("Element: {:?}", element);
+            found_elements.insert(prop_name.clone());
+            match is_valid_property_type(prop_value, &element.values) {
+                Ok(true) => {
+                    // If element type is AttrNames, validate attribute names against the capture base attributes
+                    if element.keys == KeyType::AttrNames {
+                        validate_attr_names(prop_value, capture_base_attrs, prop_name, errors);
+                    }
+                }
                 Ok(false) => {
                     errors.push(Error::InvalidPropertyValue(format!(
                         "Property '{}' has an invalid value type",
@@ -179,10 +200,40 @@ fn validate_overlay(overlay_content: &OverlayContent, errors: &mut Vec<Error>) {
                 prop_name
             )));
         }
+
+    }
+    // Check for missing required properties
+    for element in &overlay_content.overlay_def.elements {
+        if !element.name.is_empty() && !found_elements.contains(&element.name) {
+            errors.push(Error::MissingRequiredAttribute(element.name.clone()));
+        }
     }
 }
 
-fn is_valid_property_value(
+fn validate_attr_names(
+    prop_value: &NestedValue,
+    capture_base_attributes: &CaptureAttributes,
+    prop_name: &str,
+    errors: &mut Vec<Error>,
+) {
+    if let NestedValue::Object(attr_names) = prop_value {
+        for attr_name in attr_names.keys() {
+            if !capture_base_attributes.contains_key(attr_name) {
+                errors.push(Error::InvalidProperty(format!(
+                    "Attribute '{}' in '{}' is not present in the capture base",
+                    attr_name, prop_name
+                )));
+            }
+        }
+    } else {
+        errors.push(Error::InvalidPropertyValue(format!(
+            "Property '{}' should be an object for AttrNames type",
+            prop_name
+        )));
+    }
+}
+
+fn is_valid_property_type(
     value: &NestedValue,
     expected_type: &ElementType,
 ) -> Result<bool, String> {
@@ -195,10 +246,35 @@ fn is_valid_property_value(
                 Err(format!("Invalid language code: '{}'", s))
             }
         }
-        (NestedValue::Object(_), ElementType::Object) => Ok(true),
+        (NestedValue::Object(object), et) => {
+            for (_, v) in object {
+                is_valid_property_type(v, et)?;
+            }
+            Ok(true)
+        }
         (NestedValue::Array(_), ElementType::Array(_)) => Ok(true),
         (NestedValue::Reference(_), ElementType::Ref) => Ok(true),
         (NestedValue::Value(_), ElementType::Binary) => Ok(true),
+        (_, ElementType::Complex(types)) => {
+            let mut any_valid = false;
+            for t in types {
+                match is_valid_property_type(value, t) {
+                    Ok(true) => {
+                        any_valid = true;
+                        break;
+                    }
+                    _ => continue,
+                }
+            }
+            if any_valid {
+                Ok(true)
+            } else {
+                Err(format!(
+                    "No valid value {:?} found for complex element: {:?}",
+                    value, types
+                ))
+            }
+        }
         _ => Err(format!(
             "Mismatched value type: expected {:?}, got {:?}",
             expected_type, value
@@ -389,7 +465,9 @@ mod tests {
     use overlay_file::KeyType;
 
     use super::*;
-    use crate::ast::{AttributeType, CaptureContent, Command, CommandType, OCAAst, ObjectKind};
+    use crate::ast::{
+        AttributeType, CaptureContent, Command, CommandType, OCAAst, ObjectKind, RefValue,
+    };
 
     #[test]
     fn test_rule_remove_if_exist() {
@@ -531,24 +609,97 @@ mod tests {
     fn test_validate_overlay_against_definition() {
         use overlay_file::{ElementType, OverlayDef, OverlayElementDef};
 
-        // Create an overlay definition
-        let overlay_def = OverlayDef {
+        let label_overlay_def = OverlayDef {
             name: "Label".to_string(),
             elements: vec![
                 OverlayElementDef {
                     name: "attr_labels".to_string(),
-                    values: ElementType::Object,
+                    values: ElementType::Text,
                     keys: KeyType::AttrNames,
                 },
                 OverlayElementDef {
                     name: "language".to_string(),
                     values: ElementType::Lang,
-                    keys: KeyType::Text,
+                    keys: KeyType::None,
                 },
             ],
             namespace: Some("hcf".to_string()),
             version: "2.0.0".to_string(),
         };
+
+        let meta_overlay_def = OverlayDef {
+            name: "meta".to_string(),
+            elements: vec![
+                OverlayElementDef {
+                    name: "language".to_string(),
+                    values: ElementType::Lang,
+                    keys: KeyType::None,
+                },
+                OverlayElementDef {
+                    name: "description".to_string(),
+                    values: ElementType::Text,
+                    keys: KeyType::None,
+                },
+                OverlayElementDef {
+                    name: "name".to_string(),
+                    values: ElementType::Text,
+                    keys: KeyType::None,
+                },
+                // Empty name means that any name is allowed with specific types
+                OverlayElementDef {
+                    name: "".to_string(),
+                    values: ElementType::Text,
+                    keys: KeyType::None,
+                },
+            ],
+            namespace: Some("hcf".to_string()),
+            version: "2.0.0".to_string(),
+        };
+
+        let entry_overlay_def = OverlayDef {
+            name: "Entry".to_string(),
+            elements: vec![
+                OverlayElementDef {
+                    name: "attribute_entries".to_string(),
+                    values: ElementType::Complex(vec![ElementType::Ref, ElementType::Array(None)]),
+                    keys: KeyType::AttrNames,
+                },
+                OverlayElementDef {
+                    name: "language".to_string(),
+                    values: ElementType::Lang,
+                    keys: KeyType::None,
+                },
+            ],
+            namespace: Some("hcf".to_string()),
+            version: "2.0.0".to_string(),
+        };
+
+        let entry_code_overlay_def = OverlayDef {
+            name: "Entry_Code".to_string(),
+            elements: vec![OverlayElementDef {
+                name: "attribute_entry_codes".to_string(),
+                values: ElementType::Complex(vec![ElementType::Ref, ElementType::Array(None)]),
+                keys: KeyType::AttrNames,
+            }],
+            namespace: Some("hcf".to_string()),
+            version: "2.0.0".to_string(),
+        };
+
+        let capture_base = Command {
+            kind: CommandType::Add,
+            object_kind: ObjectKind::CaptureBase(CaptureContent {
+                attributes: Some(indexmap! {
+                    "first_name".to_string() => NestedAttrType::Value(AttributeType::Text),
+                    "last_name".to_string() => NestedAttrType::Value(AttributeType::Text),
+                    "address".to_string() => NestedAttrType::Value(AttributeType::Text),
+                    "sex".to_string() => NestedAttrType::Value(AttributeType::Text),
+                }),
+                properties: Some(indexmap! {}),
+            }),
+        };
+
+        let mut ocaast = OCAAst::new();
+        ocaast.commands.push(capture_base.clone());
 
         // Test case 1: Valid overlay
         let valid_overlay = Command {
@@ -556,16 +707,16 @@ mod tests {
             object_kind: ObjectKind::Overlay(OverlayContent {
                 properties: Some(indexmap! {
                     "attr_labels".to_string() => NestedValue::Object(indexmap! {
-                        "attr1".to_string() => NestedValue::Value("value1".to_string()),
-                        "attr2".to_string() => NestedValue::Value("value2".to_string()),
+                        "first_name".to_string() => NestedValue::Value("First name".to_string()),
+                        "last_name".to_string() => NestedValue::Value("Last name".to_string()),
                     }),
                     "language".to_string() => NestedValue::Value("en-UK".to_string()),
                 }),
-                overlay_def: overlay_def.clone(),
+                overlay_def: label_overlay_def.clone(),
             }),
         };
 
-        let result = validate_against_overlay_def(&valid_overlay);
+        let result = validate_against_overlay_def(&ocaast, &valid_overlay);
         match result {
             Ok(_) => assert!(true, "Valid overlay should pass validation"),
             Err(Error::Validation(errors)) => {
@@ -574,33 +725,132 @@ mod tests {
             Err(e) => assert!(false, "Unexpected error: {:?}", e),
         }
 
+        ocaast.commands.push(valid_overlay.clone());
+
         // Test case 2: Invalid overlay (missing required field and wrong types )
         let invalid_overlay_missing_field = Command {
             kind: CommandType::Add,
             object_kind: ObjectKind::Overlay(OverlayContent {
-                overlay_def: overlay_def.clone(),
+                overlay_def: label_overlay_def.clone(),
                 properties: Some(indexmap! {
-                    "language".to_string() => NestedValue::Value("snieg".to_string()),
-                    "field1".to_string() => NestedValue::Value("Some text".to_string()),
+                    "attr_labels".to_string() => NestedValue::Object(indexmap! {
+                        "address".to_string() => NestedValue::Reference(RefValue::Name("passport".to_string())),
+                    }),
+                    "lang".to_string() => NestedValue::Value("pl".to_string()),
                 }),
             }),
         };
 
-        let result = validate_against_overlay_def(&invalid_overlay_missing_field);
+        let result = validate_against_overlay_def(&ocaast, &invalid_overlay_missing_field);
         match result {
             Ok(_) => assert!(
                 false,
                 "Overlay with missing required field should fail validation"
             ),
             Err(Error::Validation(errors)) => {
-                assert_eq!(errors.len(), 2);
+                assert_eq!(errors.len(), 3);
+                assert_eq!(
+                    errors[2].to_string(),
+                    "Missing required attribute in Overlay: language"
+                );
                 assert_eq!(
                     errors[0].to_string(),
-                    "Invalid Property Value: Property 'language': Invalid language code: 'snieg'"
+                    "Invalid Property Value: Property 'attr_labels': Mismatched value type: expected Text, got Reference(Name(\"passport\"))"
                 );
                 assert_eq!(
                     errors[1].to_string(),
-                    "Invalid Property: Property 'field1' is not allowed by the overlay definition"
+                    "Invalid Property: Property 'lang' is not allowed by the overlay definition"
+                );
+            }
+            Err(e) => assert!(false, "Unexpected error: {:?}", e),
+        }
+
+        // Test case 3: validate custom fileds and check their values
+        let meta_overlay = Command {
+            kind: CommandType::Add,
+            object_kind: ObjectKind::Overlay(OverlayContent {
+                overlay_def: meta_overlay_def.clone(),
+                properties: Some(indexmap! {
+                    "language".to_string() => NestedValue::Value("en-UK".to_string()),
+                    "description".to_string() => NestedValue::Value("Some description".to_string()),
+                    "name".to_string() => NestedValue::Value("Some name".to_string()),
+                    "custom1".to_string() => NestedValue::Value("Custom value 1".to_string()),
+                    "custom2".to_string() => NestedValue::Array(vec![NestedValue::Value("Custom value 2".to_string()), NestedValue::Value("Custom value 3".to_string())]),
+                }),
+            }),
+        };
+
+        let result = validate_against_overlay_def(&ocaast, &meta_overlay);
+        match result {
+            Ok(_) => assert!(true, "Meta overlay should pass validation"),
+            Err(Error::Validation(errors)) => {
+                assert_eq!(
+                    errors[0].to_string(),
+                    "Invalid Property Value: Property 'custom2': Mismatched value type: expected Text, got Array([Value(\"Custom value 2\"), Value(\"Custom value 3\")])"
+                );
+            }
+            Err(e) => assert!(false, "Unexpected error: {:?}", e),
+        }
+
+        // Test case 4: validate complex types
+        let entry_code_overlay = Command {
+            kind: CommandType::Add,
+            object_kind: ObjectKind::Overlay(OverlayContent {
+                overlay_def: entry_code_overlay_def.clone(),
+                properties: Some(indexmap! {
+                    "attribute_entry_codes".to_string() => NestedValue::Object(indexmap! {
+                        "sex".to_string() => NestedValue::Array(vec![NestedValue::Value("Male".to_string()), NestedValue::Value("Female".to_string())]),
+                    }),
+                }),
+            }),
+        };
+
+        let result = validate_against_overlay_def(&ocaast, &entry_code_overlay);
+        match result {
+            Ok(_) => assert!(true, "Entry code overlay should pass validation"),
+            Err(e) => assert!(false, "Unexpected error: {:?}", e),
+        }
+
+        // Test case 5: validate complex types part 2 - refs
+        let entry_code_overlay = Command {
+            kind: CommandType::Add,
+            object_kind: ObjectKind::Overlay(OverlayContent {
+                overlay_def: entry_code_overlay_def.clone(),
+                properties: Some(indexmap! {
+                    "attribute_entry_codes".to_string() => NestedValue::Object(indexmap! {
+                        "sex".to_string() => NestedValue::Reference(RefValue::Name("nazwa".to_string())),
+                    }),
+                }),
+            }),
+        };
+
+        let result = validate_against_overlay_def(&ocaast, &entry_code_overlay);
+        match result {
+            Ok(_) => assert!(true, "Entry code overlay should pass validation"),
+            Err(e) => assert!(false, "Unexpected error: {:?}", e),
+        }
+        // Test case 5: validate complex types: Array
+        let entry_overlay = Command {
+            kind: CommandType::Add,
+            object_kind: ObjectKind::Overlay(OverlayContent {
+                overlay_def: entry_overlay_def.clone(),
+                properties: Some(indexmap! {
+                    "attribute_entries".to_string() => NestedValue::Object(indexmap! {
+                        "sex".to_string() => NestedValue::Array(vec![NestedValue::Reference(RefValue::Name("entry_code1".to_string())), NestedValue::Reference(RefValue::Name("entry_code2".to_string()))]),
+                    }),
+                    "language".to_string() => NestedValue::Value("en-UK".to_string()),
+                }),
+            }),
+        };
+
+        let result = validate_against_overlay_def(&ocaast, &entry_overlay);
+        match result {
+            Ok(_) => assert!(true, "Entry overlay should pass validation"),
+            Err(Error::Validation(errors)) => {
+                assert_eq!(errors.len(), 1);
+                assert_eq!(
+                    errors[0].to_string(),
+                    "Invalid Property Value: Property 'attribute_entries': Mismatched value type: expected Array([Reference(Name(\"entry_code1\")), Reference(Name(\"entry_code2\"))]), got Object({\"entry1\": Array([Reference(Name(\"entry_code1\")), Reference(Name(\"entry_code2\"))])})"
                 );
             }
             Err(e) => assert!(false, "Unexpected error: {:?}", e),

@@ -53,16 +53,20 @@ impl OverlayfileValidator {
         // Validate key type
         match element.keys {
             KeyType::AttrNames | KeyType::Text => {}
+            KeyType::None => {},
         }
 
         // Validate value type
         match &element.values {
             ElementType::Object | ElementType::Text | ElementType::Binary | ElementType::Ref => {}
             ElementType::Array(_constraints) => {
-                // Add additional validation for array constraints if needed
-            }
+                        // Add additional validation for array constraints if needed
+                    }
             ElementType::Lang => {
-                //TODO Additional validation for language element
+                        //TODO Additional validation for language element
+                    }
+            ElementType::Complex(element_types) => {
+                debug!("Validation of complex element for overlay");
             }
         }
 

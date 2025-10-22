@@ -235,24 +235,35 @@ version = @{ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+ }
 /// - "attr-names" - attribute from capture base,
 /// - "Text" - any string,
 /// - "array" - array of strings either fixed or with ellipsis allowing additional strings
-key_type   = { ATTR_NAMES_TYPE | TEXT_TYPE | ARRAY_TYPE }
+key_type   = { ATTR_NAMES_TYPE | TEXT_TYPE | ARRAY_KEY_TYPE }
 ATTR_NAMES_TYPE = @{ ^"attr-names" }
 TEXT_TYPE      = @{ ^"Text" }
 REF_TYPE       = @{ ^"REF" }
 /// Don't validate value of the key, just allow any type
 ANY_TYPE       = @{ ^"Any" }
-/// ISO 639-3 language code
+/// ISO 639-1 (+country code) or 639-3 language code
 LANG_TYPE      = @{ ^"Lang" }
-ATTR_ARRAY = { ARRAY_TYPE ~ NEWLINE+ ~ keys_with_values }
-ARRAY_TYPE = { "[" ~ arg_ws* ~ array_content ~ arg_ws* ~ "]" }
+ARRAY_TYPE = { ^"ARRAY" }
+OBJECT_TYPE = { ^"OBJECT" }
+ATTR_ARRAY = { ARRAY_KEY_TYPE ~ NEWLINE+ ~ keys_with_values }
+
+ARRAY_KEY_TYPE = { "[" ~ arg_ws* ~ array_content ~ arg_ws* ~ "]" }
 array_content = { (array_items ~ trailing_ellipsis?) | trailing_ellipsis }
 array_items = { key_item ~ (arg_ws* ~ "," ~ arg_ws* ~ key_item)* }
 trailing_ellipsis = { "..." }
 key_item = { attr_name }
 
-value_type = { ATTR_NAMES_TYPE | ANY_TYPE | LANG_TYPE | TEXT_TYPE | ARRAY_TYPE | object_type | REF_TYPE | complex_value_type }
-object_type = _ { "OBJECT" ~ NEWLINE ~ overlay_object_body }
+value_type = { complex_value_type | ATTR_NAMES_TYPE | ANY_TYPE | LANG_TYPE | TEXT_TYPE | ARRAY_TYPE | object_type | REF_TYPE}
+object_type = { "OBJECT" ~ NEWLINE ~ overlay_object_body }
 
 complex_value_type = {
-    ((^"ARRAY" | ^"OBJECT" | ^"REF" | ^"Text" ) ~ "|" ~ (^"ARRAY" | ^"OBJECT" | ^"REF" | ^"Text"))+
+    complex_type ~ ("|" ~ complex_type)+
 }
+complex_type = _{
+    ARRAY_TYPE |
+    OBJECT_TYPE |
+    REF_TYPE |
+    TEXT_TYPE |
+    LANG_TYPE
+}
+
