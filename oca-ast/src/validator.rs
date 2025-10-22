@@ -172,7 +172,6 @@ fn validate_overlay(
                     .find(|e| e.name.is_empty())
             })
         {
-            println!("Element: {:?}", element);
             found_elements.insert(prop_name.clone());
             match is_valid_property_type(prop_value, &element.values) {
                 Ok(true) => {
@@ -313,15 +312,11 @@ fn rule_remove_attr_if_exist(ast: &OCAAst, command_to_validate: Command) -> Resu
 
     let content = command_to_validate.object_kind.capture_content();
 
-    println!("attributes: {:?}", attributes);
-    println!("properties: {:?}", properties);
-
     match (
         content,
         content.as_ref().and_then(|c| c.attributes.as_ref()),
     ) {
         (Some(_content), Some(attrs_to_remove)) => {
-            println!("attr to remove: {:?}", attrs_to_remove);
             let valid = attrs_to_remove
                 .keys()
                 .all(|key| attributes.contains_key(key));

@@ -68,6 +68,9 @@ impl OverlayfileValidator {
             ElementType::Complex(element_types) => {
                 debug!("Validation of complex element for overlay");
             }
+            ElementType::Any => {
+                // Skip validation allow anything
+            }
         }
 
         errors

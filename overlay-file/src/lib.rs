@@ -4,7 +4,7 @@ pub mod validator;
 
 use self::error::ParseError;
 use self::validator::OverlayfileValidator;
-use log::{debug, info};
+use log::debug;
 use pest::Parser;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -113,6 +113,8 @@ pub enum ElementType {
     /// Reference in form of SAID to another object
     Ref,
     Complex(Vec<ElementType>),
+    /// Allow for any type
+    Any,
 }
 
 #[derive(Hash, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -384,7 +386,6 @@ fn process_overlay_attributes(attr: Pair) -> Vec<OverlayElementDef> {
 }
 
 fn process_attributes_array(attr: Pair) -> Vec<OverlayElementDef> {
-    debug!("Parsing overlay attribute array: {:?}", attr);
     let mut attributes: Vec<OverlayElementDef> = Vec::new();
     // Parse the list of attributes from array
     for array in attr.into_inner() {
@@ -407,11 +408,10 @@ fn process_attributes_array(attr: Pair) -> Vec<OverlayElementDef> {
                                         }
                                     }
                                     Rule::trailing_ellipsis => {
-                                        // TODO fix if we need it
                                         has_ellipsis = true;
                                     }
                                     _ => {
-                                        debug!(
+                                        panic!(
                                             "Unexpected rule in array content: {:?}",
                                             content.as_rule()
                                         );
@@ -422,8 +422,16 @@ fn process_attributes_array(attr: Pair) -> Vec<OverlayElementDef> {
                             for i in items {
                                 attributes.push(OverlayElementDef {
                                     name: i.clone(),
-                                    keys: KeyType::Text,
+                                    keys: KeyType::None,
                                     values: ElementType::Text, // Default value which would be overrided when we process WITH VALUES if present
+                                });
+                            }
+                            // if ellipsis is present in array we crate an empty string element in attributes list representing any element
+                            if has_ellipsis {
+                                attributes.push(OverlayElementDef {
+                                    name: "".to_string(),
+                                    keys: KeyType::None,
+                                    values: ElementType::Text,
                                 });
                             }
                         }
@@ -440,12 +448,13 @@ fn process_attributes_array(attr: Pair) -> Vec<OverlayElementDef> {
                         Rule::value_type => {
                             debug!("process value type for attribute array");
                             let mut value_type = ElementType::Text;
-                            match el.as_str() {
-                                "Text" => value_type = ElementType::Text,
-                                "Ref" => value_type = ElementType::Ref,
-                                "Binary" => value_type = ElementType::Binary,
-                                "Array" => value_type = ElementType::Array(None),
-                                "Lang" => value_type = ElementType::Lang,
+                            match el.as_str().to_lowercase().as_str() {
+                                "text" => value_type = ElementType::Text,
+                                "ref" => value_type = ElementType::Ref,
+                                "binary" => value_type = ElementType::Binary,
+                                "array" => value_type = ElementType::Array(None),
+                                "lang" => value_type = ElementType::Lang,
+                                "any" => value_type = ElementType::Any,
                                 _ => {}
                             }
                             for attribute in &mut attributes {
@@ -560,6 +569,8 @@ ADD OVERLAY hcf:Meta
   ADD ATTRIBUTES language=Lang photo=Binary
   ADD ATTRIBUTES [name, description]
     WITH VALUES TEXT
+  ADD ATTRIBUTES [...]
+    WITH VALUES ANY
 "#;
 
         let result = parse_from_string(input.to_string()).unwrap();
@@ -586,7 +597,7 @@ ADD OVERLAY hcf:Meta
         assert_eq!(information.name, "Information");
 
         assert_eq!(meta.version, "1.2.2");
-        assert_eq!(meta.elements.len(), 4);
+        assert_eq!(meta.elements.len(), 5);
         assert_eq!(
             meta.elements
                 .iter()
@@ -599,6 +610,8 @@ ADD OVERLAY hcf:Meta
         assert_eq!(meta.elements.first().unwrap().values, ElementType::Lang);
         assert_eq!(meta.elements.get(2).unwrap().name, "name");
         assert_eq!(meta.elements.get(2).unwrap().values, ElementType::Text);
+        assert_eq!(meta.elements.last().unwrap().name, "");
+        assert_eq!(meta.elements.last().unwrap().values, ElementType::Any);
 
         assert_eq!(result.overlays_def.len(), 3);
     }

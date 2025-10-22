@@ -248,10 +248,11 @@ OBJECT_TYPE = { ^"OBJECT" }
 ATTR_ARRAY = { ARRAY_KEY_TYPE ~ NEWLINE+ ~ keys_with_values }
 
 ARRAY_KEY_TYPE = { "[" ~ arg_ws* ~ array_content ~ arg_ws* ~ "]" }
-array_content = { (array_items ~ trailing_ellipsis?) | trailing_ellipsis }
+array_content = { (array_items ~ (arg_ws* ~ "," ~ arg_ws* ~ trailing_ellipsis)?) | trailing_ellipsis }
 array_items = { key_item ~ (arg_ws* ~ "," ~ arg_ws* ~ key_item)* }
 trailing_ellipsis = { "..." }
-key_item = { attr_name }
+key_item = { !("...") ~ attr_name }
+
 
 value_type = { complex_value_type | ATTR_NAMES_TYPE | ANY_TYPE | LANG_TYPE | TEXT_TYPE | ARRAY_TYPE | object_type | REF_TYPE}
 object_type = { "OBJECT" ~ NEWLINE ~ overlay_object_body }
