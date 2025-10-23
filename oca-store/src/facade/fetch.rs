@@ -141,7 +141,7 @@ impl Facade {
             .overlays
             .iter()
             .filter_map(|x| {
-                let (name, _) = x.name.split_once('/').unwrap();
+                let (name, _) = x.name.split_once('/').unwrap_or((x.name.as_str(), ""));
                 if name.eq_ignore_ascii_case("meta") {
                     Some(x.clone())
                 } else {
