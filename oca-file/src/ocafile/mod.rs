@@ -428,7 +428,6 @@ ADD Overlay ENTRY
         let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
 
         let ocafile = generate_from_ast(&oca_ast);
-        println!("Generated OCA file:\n{}", ocafile);
         let oca_ast2 = parse_from_string(ocafile.clone(), &registry).unwrap();
         assert_eq!(oca_ast, oca_ast2,);
     }

@@ -58,7 +58,7 @@ impl OverlayfileValidator {
 
         // Validate value type
         match &element.values {
-            ElementType::Object | ElementType::Text | ElementType::Binary | ElementType::Ref => {}
+            ElementType::Object(_) | ElementType::Text | ElementType::Binary | ElementType::Ref => {}
             ElementType::Array(_constraints) => {
                         // Add additional validation for array constraints if needed
                     }

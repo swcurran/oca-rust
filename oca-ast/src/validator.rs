@@ -5,7 +5,7 @@ use crate::{
 use indexmap::{indexmap, IndexMap, IndexSet};
 use isolang::Language;
 use log::debug;
-use overlay_file::{ElementType, KeyType};
+use overlay_file::{ElementType, KeyType, OverlayElementDef};
 use regex::Regex;
 
 type CaptureAttributes = IndexMap<String, NestedAttrType>;
@@ -156,7 +156,6 @@ fn validate_overlay(
 
     let mut found_elements = IndexSet::new();
 
-
     // Validate property names against the overlay definition
     for (prop_name, prop_value) in properties.iter() {
         if let Some(element) = overlay_content
@@ -199,7 +198,6 @@ fn validate_overlay(
                 prop_name
             )));
         }
-
     }
     // Check for missing required properties
     for element in &overlay_content.overlay_def.elements {
@@ -237,7 +235,11 @@ fn is_valid_property_type(
     expected_type: &ElementType,
 ) -> Result<bool, String> {
     match (value, expected_type) {
+        (NestedValue::Array(_), ElementType::Array(_)) => Ok(true),
+        (NestedValue::Reference(_), ElementType::Ref) => Ok(true),
+        (NestedValue::Value(_), ElementType::Any) => Ok(true),
         (NestedValue::Value(_), ElementType::Text) => Ok(true),
+        (NestedValue::Value(_), ElementType::Binary) => Ok(true),
         (NestedValue::Value(s), ElementType::Lang) => {
             if is_valid_language_code(s) {
                 Ok(true)
@@ -245,15 +247,6 @@ fn is_valid_property_type(
                 Err(format!("Invalid language code: '{}'", s))
             }
         }
-        (NestedValue::Object(object), et) => {
-            for (_, v) in object {
-                is_valid_property_type(v, et)?;
-            }
-            Ok(true)
-        }
-        (NestedValue::Array(_), ElementType::Array(_)) => Ok(true),
-        (NestedValue::Reference(_), ElementType::Ref) => Ok(true),
-        (NestedValue::Value(_), ElementType::Binary) => Ok(true),
         (_, ElementType::Complex(types)) => {
             let mut any_valid = false;
             for t in types {
@@ -273,6 +266,26 @@ fn is_valid_property_type(
                     value, types
                 ))
             }
+        }
+        (NestedValue::Object(object), ElementType::Object(inner)) => {
+            if  let Some(inner_def) = inner {
+
+                for (_, v) in object {
+                    is_valid_property_type(v, &inner_def.values)?;
+                }
+                Ok(true)
+            } else {
+                Err(format!(
+                    "No valid inner definition of the object {:?} found for complex type",
+                    value
+                ))
+            }
+        }
+        (NestedValue::Object(object), _) => {
+            for (_, v) in object {
+                is_valid_property_type(v, expected_type)?;
+            }
+            Ok(true)
         }
         _ => Err(format!(
             "Mismatched value type: expected {:?}, got {:?}",
@@ -656,7 +669,14 @@ mod tests {
             elements: vec![
                 OverlayElementDef {
                     name: "attribute_entries".to_string(),
-                    values: ElementType::Complex(vec![ElementType::Ref, ElementType::Array(None)]),
+                    values: ElementType::Complex(vec![
+                        ElementType::Ref,
+                        ElementType::Object(Some(Box::new(OverlayElementDef {
+                            name: "".to_string(),
+                            values: ElementType::Any,
+                            keys: KeyType::Text,
+                        }))),
+                    ]),
                     keys: KeyType::AttrNames,
                 },
                 OverlayElementDef {
@@ -824,14 +844,17 @@ mod tests {
             Ok(_) => assert!(true, "Entry code overlay should pass validation"),
             Err(e) => assert!(false, "Unexpected error: {:?}", e),
         }
-        // Test case 5: validate complex types: Array
+        // Test case 5: validate complex types: Object
         let entry_overlay = Command {
             kind: CommandType::Add,
             object_kind: ObjectKind::Overlay(OverlayContent {
                 overlay_def: entry_overlay_def.clone(),
                 properties: Some(indexmap! {
                     "attribute_entries".to_string() => NestedValue::Object(indexmap! {
-                        "sex".to_string() => NestedValue::Array(vec![NestedValue::Reference(RefValue::Name("entry_code1".to_string())), NestedValue::Reference(RefValue::Name("entry_code2".to_string()))]),
+                        "sex".to_string() => NestedValue::Object(indexmap! {
+                            "M".to_string() => NestedValue::Value("male".to_string()),
+                            "F".to_string() => NestedValue::Value("female".to_string()),
+                        }),
                     }),
                     "language".to_string() => NestedValue::Value("en-UK".to_string()),
                 }),
@@ -845,7 +868,7 @@ mod tests {
                 assert_eq!(errors.len(), 1);
                 assert_eq!(
                     errors[0].to_string(),
-                    "Invalid Property Value: Property 'attribute_entries': Mismatched value type: expected Array([Reference(Name(\"entry_code1\")), Reference(Name(\"entry_code2\"))]), got Object({\"entry1\": Array([Reference(Name(\"entry_code1\")), Reference(Name(\"entry_code2\"))])})"
+                    "Invalid Property Value: Property 'attribute_entries"
                 );
             }
             Err(e) => assert!(false, "Unexpected error: {:?}", e),

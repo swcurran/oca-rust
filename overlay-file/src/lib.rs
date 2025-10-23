@@ -104,7 +104,7 @@ pub enum KeyType {
 #[derive(Hash, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 /// Type of the values allowed for Overlay Object
 pub enum ElementType {
-    Object,
+    Object(Option<Box<OverlayElementDef>>),
     Array(Option<Vec<ConstraintKind>>),
     Binary,
     Text,
@@ -232,69 +232,7 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                                     });
                                 }
                                 Rule::overlay_object_body => {
-                                    for key in e.into_inner() {
-                                        match key.as_rule() {
-                                            Rule::key_type => match key.into_inner().next() {
-                                                Some(k) => match k.as_rule() {
-                                                    Rule::ATTR_NAMES_TYPE => {
-                                                        keys_type = Some(KeyType::AttrNames)
-                                                    }
-                                                    Rule::TEXT_TYPE => {
-                                                        keys_type = Some(KeyType::Text)
-                                                    }
-                                                    Rule::ARRAY_KEY_TYPE => todo!(),
-                                                    _ => continue,
-                                                },
-                                                None => {
-                                                    return Err(ParseError::MetaError(
-                                                        "key type is empty".to_string(),
-                                                    ));
-                                                }
-                                            },
-                                            Rule::value_type => match key.into_inner().next() {
-                                                Some(k) => match k.as_rule() {
-                                                    Rule::object_type => {
-                                                        values_type = Some(ElementType::Object);
-                                                    }
-                                                    Rule::ARRAY_TYPE => {
-                                                        todo!()
-                                                    }
-                                                    Rule::TEXT_TYPE => {
-                                                        values_type = Some(ElementType::Text);
-                                                    }
-                                                    Rule::REF_TYPE => {
-                                                        values_type = Some(ElementType::Ref);
-                                                    }
-                                                    Rule::LANG_TYPE => {
-                                                        values_type = Some(ElementType::Lang);
-                                                    }
-                                                    Rule::complex_value_type => {
-                                                        let mut complex_types = Vec::new();
-                                                        for complex_type in k.into_inner() {
-                                                            match complex_type.as_rule() {
-                                                                Rule::ARRAY_TYPE => complex_types.push(ElementType::Array(None)),
-                                                                Rule::OBJECT_TYPE => complex_types.push(ElementType::Object),
-                                                                Rule::REF_TYPE => complex_types.push(ElementType::Ref),
-                                                                Rule::TEXT_TYPE => complex_types.push(ElementType::Text),
-                                                                Rule::LANG_TYPE => complex_types.push(ElementType::Lang),
-                                                                _ => {}
-                                                            }
-                                                        }
-                                                        values_type = Some(ElementType::Complex(complex_types));
-                                                    }
-                                                    _ => {
-                                                        todo!("Value type not supported yet: {:?}",k)
-                                                    }
-                                                },
-                                                None => {
-                                                    return Err(ParseError::MetaError(
-                                                        "value type is empty".to_string(),
-                                                    ));
-                                                }
-                                            },
-                                            _ => continue,
-                                        };
-                                    }
+                                    (keys_type, values_type) = parse_object_body(e)?;
                                 }
                                 _ => {}
                             }
@@ -302,7 +240,7 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                         let overlay_element = OverlayElementDef {
                             name: name.clone().unwrap_or_default(),
                             keys: keys_type.clone().unwrap_or(KeyType::Text),
-                            values: values_type.clone().unwrap_or(ElementType::Object),
+                            values: values_type.clone().unwrap_or(ElementType::Object(None)),
                         };
                         overlay_def.elements.push(overlay_element);
                     }
@@ -338,7 +276,7 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                         let overlay_element = OverlayElementDef {
                             name: name.clone().unwrap_or_default(),
                             keys: KeyType::Text,
-                            values: values.clone().unwrap_or(ElementType::Object),
+                            values: values.clone().unwrap_or(ElementType::Object(None)),
                         };
                         overlay_def.elements.push(overlay_element);
                     }
@@ -383,6 +321,91 @@ fn process_overlay_attributes(attr: Pair) -> Vec<OverlayElementDef> {
         }
     }
     elements
+}
+
+fn parse_object_body(
+    object_body: Pair,
+) -> Result<(Option<KeyType>, Option<ElementType>), ParseError> {
+    let mut keys_type: Option<KeyType> = None;
+    let mut values_type: Option<ElementType> = None;
+
+    for key in object_body.into_inner() {
+        match key.as_rule() {
+            Rule::key_type => match key.into_inner().next() {
+                Some(k) => match k.as_rule() {
+                    Rule::ATTR_NAMES_TYPE => keys_type = Some(KeyType::AttrNames),
+                    Rule::TEXT_TYPE => keys_type = Some(KeyType::Text),
+                    Rule::ARRAY_KEY_TYPE => todo!(),
+                    _ => continue,
+                },
+                None => {
+                    return Err(ParseError::MetaError("key type is empty".to_string()));
+                }
+            },
+            Rule::value_type => match key.into_inner().next() {
+                Some(k) => match k.as_rule() {
+                    Rule::object_type => {
+                        let (nested_keys, nested_values) =
+                            parse_object_body(k.into_inner().next().unwrap())?;
+                        let nested_def = OverlayElementDef {
+                            name: "".to_string(), // Nested objects don't have a name in this context
+                            keys: nested_keys.unwrap_or(KeyType::Text),
+                            values: nested_values.unwrap_or(ElementType::Any),
+                        };
+                        values_type = Some(ElementType::Object(Some(Box::new(nested_def))));
+                    }
+                    Rule::ARRAY_TYPE => {
+                        todo!()
+                    }
+                    Rule::TEXT_TYPE => {
+                        values_type = Some(ElementType::Text);
+                    }
+                    Rule::REF_TYPE => {
+                        values_type = Some(ElementType::Ref);
+                    }
+                    Rule::LANG_TYPE => {
+                        values_type = Some(ElementType::Lang);
+                    }
+                    Rule::ANY_TYPE => {
+                        values_type = Some(ElementType::Any);
+                    }
+                    Rule::complex_value_type => {
+                        let mut complex_types = Vec::new();
+                        for complex_type in k.into_inner() {
+                            match complex_type.as_rule() {
+                                Rule::ARRAY_TYPE => complex_types.push(ElementType::Array(None)),
+                                Rule::object_type => {
+                                    let (nested_keys, nested_values) = parse_object_body(
+                                        complex_type.into_inner().next().unwrap(),
+                                    )?;
+                                    let nested_def = OverlayElementDef {
+                                        name: "".to_string(),
+                                        keys: nested_keys.unwrap_or(KeyType::Text),
+                                        values: nested_values.unwrap_or(ElementType::Any),
+                                    };
+                                    complex_types
+                                        .push(ElementType::Object(Some(Box::new(nested_def))));
+                                }
+                                Rule::REF_TYPE => complex_types.push(ElementType::Ref),
+                                Rule::TEXT_TYPE => complex_types.push(ElementType::Text),
+                                Rule::LANG_TYPE => complex_types.push(ElementType::Lang),
+                                _ => {}
+                            }
+                        }
+                        values_type = Some(ElementType::Complex(complex_types));
+                    }
+                    _ => {
+                        todo!("Value type not supported yet: {:?}", k)
+                    }
+                },
+                None => {
+                    return Err(ParseError::MetaError("value type is empty".to_string()));
+                }
+            },
+            _ => continue,
+        };
+    }
+    Ok((keys_type, values_type))
 }
 
 fn process_attributes_array(attr: Pair) -> Vec<OverlayElementDef> {
@@ -571,21 +594,41 @@ ADD OVERLAY hcf:Meta
     WITH VALUES TEXT
   ADD ATTRIBUTES [...]
     WITH VALUES ANY
+
+ADD OVERLAY ENTRY
+  VERSION 1.2.2
+  ADD ATTRIBUTES language=Lang
+  ADD OBJECT attr_entries
+    with keys attr-names
+    with values Object
+      with keys Text
+      with values Object
+        with keys Text
+        with values Any
+
 "#;
 
         let result = parse_from_string(input.to_string()).unwrap();
 
         let ref_overlay = result.overlays_def.first().unwrap();
         let information = result.overlays_def.get(1).unwrap();
-        let meta = result.overlays_def.last().unwrap();
-        debug!(">>> {:?}", meta);
+        let meta = result.overlays_def.get(2).unwrap();
+        let entry = result.overlays_def.get(3).unwrap();
+        assert_eq!(result.overlays_def.len(), 4);
         assert_eq!(ref_overlay.name, "ReferenceValues");
         assert_eq!(ref_overlay.version, "1.0.1");
         assert_eq!(ref_overlay.namespace, None);
         assert_eq!(ref_overlay.elements.len(), 1);
         assert_eq!(ref_overlay.elements[0].name, "attribute_reference_values");
         assert_eq!(ref_overlay.elements[0].keys, KeyType::AttrNames);
-        assert_eq!(ref_overlay.elements[0].values, ElementType::Object);
+        assert_eq!(
+            ref_overlay.elements[0].values,
+            ElementType::Object(Some(Box::new(OverlayElementDef {
+                name: "".to_string(),
+                keys: KeyType::Text,
+                values: ElementType::Text
+            })))
+        );
 
         assert_eq!(information.version, "1.2.2");
         assert_eq!(information.namespace.clone().unwrap(), "hcf".to_string());
@@ -613,6 +656,20 @@ ADD OVERLAY hcf:Meta
         assert_eq!(meta.elements.last().unwrap().name, "");
         assert_eq!(meta.elements.last().unwrap().values, ElementType::Any);
 
-        assert_eq!(result.overlays_def.len(), 3);
+        assert_eq!(entry.version, "1.2.2");
+        assert_eq!(entry.elements.len(), 2);
+        assert_eq!(entry.elements[1].name, "attr_entries");
+        assert_eq!(
+            entry.elements[1].values,
+            ElementType::Object(Some(Box::new(OverlayElementDef {
+                name: "".to_string(),
+                keys: KeyType::Text,
+                values: ElementType::Object(Some(Box::new(OverlayElementDef {
+                    name: "".to_string(),
+                    keys: KeyType::Text,
+                    values: ElementType::Any
+                })))
+            })))
+        );
     }
 }
