@@ -527,7 +527,7 @@ mod tests {
 
         let overlay_registry =
             OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
-        assert_eq!(overlay_registry.list_all().len(), 11);
+        assert_eq!(overlay_registry.list_all().len(), 13);
 
         let label_overlay_def = overlay_registry.get_by_fqn("Label/2.0.0").unwrap();
         assert_eq!(label_overlay_def.get_full_name(), "label/2.0.0");
@@ -563,7 +563,7 @@ mod tests {
 
         assert_eq!(
             serialized,
-            r#"{"version":"2.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"},"properties":{"test":"test"}}},{"type":"Add","object_kind":"Overlay","content":{"properties":{"language":"pl-PL","attribute_labels":{"allowed":"Dopuszczony"}},"overlay_def":{"namespace":null,"name":"label","version":"2.0.0","elements":[{"name":"language","keys":"Text","values":"Text"},{"name":"attr_labels","keys":"AttrNames","values":"Text"}]}}}],"commands_meta":{},"meta":{}}"#
+            r#"{"version":"2.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"},"properties":{"test":"test"}}},{"type":"Add","object_kind":"Overlay","content":{"properties":{"language":"pl-PL","attribute_labels":{"allowed":"Dopuszczony"}},"overlay_def":{"namespace":null,"name":"label","version":"2.0.0","elements":[{"name":"language","keys":"Text","values":"Lang"},{"name":"attribute_labels","keys":"AttrNames","values":"Text"}]}}}],"commands_meta":{},"meta":{}}"#
         );
 
         let ast = serde_json::from_str::<OCAAst>(&serialized).unwrap();
