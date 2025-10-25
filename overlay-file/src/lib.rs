@@ -259,7 +259,7 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                                 }
                                 Rule::value_type => match a.into_inner().next() {
                                     Some(v) => match v.as_rule() {
-                                        Rule::ARRAY_TYPE => {
+                                        Rule::array_type => {
                                             values = Some(ElementType::Array(None));
                                         }
                                         _ => continue,
@@ -354,7 +354,7 @@ fn parse_object_body(
                         };
                         values_type = Some(ElementType::Object(Some(Box::new(nested_def))));
                     }
-                    Rule::ARRAY_TYPE => {
+                    Rule::array_type => {
                         todo!()
                     }
                     Rule::TEXT_TYPE => {
@@ -373,7 +373,7 @@ fn parse_object_body(
                         let mut complex_types = Vec::new();
                         for complex_type in k.into_inner() {
                             match complex_type.as_rule() {
-                                Rule::ARRAY_TYPE => complex_types.push(ElementType::Array(None)),
+                                Rule::array_type => complex_types.push(ElementType::Array(None)),
                                 Rule::object_type => {
                                     let (nested_keys, nested_values) = parse_object_body(
                                         complex_type.into_inner().next().unwrap(),

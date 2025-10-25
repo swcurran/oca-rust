@@ -128,13 +128,13 @@ mod tests {
     fn test_overlay_registry() {
         let _ = env_logger::builder().is_test(true).try_init();
         let registry = OverlayLocalRegistry::from_dir("core_overlays").unwrap();
-        assert_eq!(registry.list_all().len(), 11);
+        assert_eq!(registry.list_all().len(), 13);
         assert!(registry.get_by_filename("semantic").is_some());
         assert_eq!(registry.get_by_fqn("label/2.0.0").unwrap().name, "label");
 
         // TODO file can include more then one overlay
         let semantic_overlay_file = registry.get_by_filename("semantic").unwrap();
-        assert_eq!(semantic_overlay_file.overlays_def.len(), 11);
+        assert_eq!(semantic_overlay_file.overlays_def.len(), 13);
         let label_overlay = semantic_overlay_file.overlays_def.first().unwrap();
         assert_eq!(label_overlay.name, "label");
     }

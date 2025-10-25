@@ -243,7 +243,6 @@ REF_TYPE       = @{ ^"REF" }
 ANY_TYPE       = @{ ^"Any" }
 /// ISO 639-1 (+country code) or 639-3 language code
 LANG_TYPE      = @{ ^"Lang" }
-ARRAY_TYPE = { ^"ARRAY" }
 ATTR_ARRAY = { ARRAY_KEY_TYPE ~ NEWLINE+ ~ keys_with_values }
 
 ARRAY_KEY_TYPE = { "[" ~ arg_ws* ~ array_content ~ arg_ws* ~ "]" }
@@ -253,14 +252,18 @@ trailing_ellipsis = { "..." }
 key_item = { !("...") ~ attr_name }
 
 
-value_type = { complex_value_type | ATTR_NAMES_TYPE | ANY_TYPE | LANG_TYPE | TEXT_TYPE | ARRAY_TYPE | object_type | REF_TYPE}
+value_type = { complex_value_type | ATTR_NAMES_TYPE | ANY_TYPE | LANG_TYPE | TEXT_TYPE | array_type | object_type | REF_TYPE}
 object_type = { ^"OBJECT" ~ NEWLINE ~ overlay_object_body }
+array_type = { ^"ARRAY" ~ NEWLINE ~ overlay_array_type_body }
+overlay_array_type_body = {
+    iws* ~ ^"WITH VALUES" ~ ws+ ~ value_type ~ ws* ~ NEWLINE*
+}
 
 complex_value_type = {
     complex_type ~ ("|" ~ complex_type)+
 }
 complex_type = _{
-    ARRAY_TYPE |
+    array_type |
     object_type|
     REF_TYPE |
     TEXT_TYPE |
