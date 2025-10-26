@@ -1,3 +1,4 @@
+
 use crate::{
     ast::{Command, CommandType, NestedAttrType, NestedValue, OCAAst, ObjectKind, OverlayContent},
     errors::Error,
@@ -202,7 +203,7 @@ fn validate_overlay(
     // Check for missing required properties
     for element in &overlay_content.overlay_def.elements {
         if !element.name.is_empty() && !found_elements.contains(&element.name) {
-            errors.push(Error::MissingRequiredAttribute(element.name.clone()));
+            errors.push(Error::MissingRequiredAttribute(element.name.clone(), overlay_content.overlay_def.get_full_name()));
         }
     }
 }
@@ -247,29 +248,67 @@ fn is_valid_property_type(
                 Err(format!("Invalid language code: '{}'", s))
             }
         }
+        // Handle Object with Complex types - validate each value in the object against the complex types
+        (NestedValue::Object(object), ElementType::Complex(types)) => {
+            for (key, v) in object {
+                let mut any_valid = false;
+                let mut last_error = String::new();
+
+                for t in types {
+                    debug!("Checking value {:?} for key '{}' against type {:?}", v, key, t);
+                    match is_valid_property_type(v, t) {
+                        Ok(true) => {
+                            any_valid = true;
+                            break;
+                        }
+                        Err(e) => {
+                            last_error = e;
+                            continue;
+                        }
+                        _ => continue,
+                    }
+                }
+
+                if !any_valid {
+                    return Err(format!(
+                        "No valid type found for value {:?} (key: '{}') in complex element: {:?}. Last error: {}",
+                        v, key, types, last_error
+                    ));
+                }
+            }
+            Ok(true)
+        }
+        // Handle non-Object values with Complex types
         (_, ElementType::Complex(types)) => {
             let mut any_valid = false;
+            let mut last_error = String::new();
+
             for t in types {
+                debug!("Checking value {:?} against type {:?}", value, t);
                 match is_valid_property_type(value, t) {
                     Ok(true) => {
                         any_valid = true;
                         break;
                     }
+                    Err(e) => {
+                        last_error = e;
+                        continue;
+                    }
                     _ => continue,
                 }
             }
+
             if any_valid {
                 Ok(true)
             } else {
                 Err(format!(
-                    "No valid value {:?} found for complex element: {:?}",
-                    value, types
+                    "No valid type found for value {:?} in complex element: {:?}. Last error: {}",
+                    value, types, last_error
                 ))
             }
         }
         (NestedValue::Object(object), ElementType::Object(inner)) => {
-            if  let Some(inner_def) = inner {
-
+            if let Some(inner_def) = inner {
                 for (_, v) in object {
                     is_valid_property_type(v, &inner_def.values)?;
                 }
@@ -282,6 +321,8 @@ fn is_valid_property_type(
             }
         }
         (NestedValue::Object(object), _) => {
+            // This case handles objects where the expected type is not Complex or Object
+            // It validates each value in the object against the expected type
             for (_, v) in object {
                 is_valid_property_type(v, expected_type)?;
             }
@@ -766,7 +807,7 @@ mod tests {
                 assert_eq!(errors.len(), 3);
                 assert_eq!(
                     errors[2].to_string(),
-                    "Missing required attribute in Overlay: language"
+                    "Missing required attribute language in Overlay: hcf:Label/2.0.0"
                 );
                 assert_eq!(
                     errors[0].to_string(),
@@ -815,6 +856,7 @@ mod tests {
                 properties: Some(indexmap! {
                     "attribute_entry_codes".to_string() => NestedValue::Object(indexmap! {
                         "sex".to_string() => NestedValue::Array(vec![NestedValue::Value("Male".to_string()), NestedValue::Value("Female".to_string())]),
+                        "address".to_string() => NestedValue::Reference(RefValue::Name("adres".to_string())),
                     }),
                 }),
             }),

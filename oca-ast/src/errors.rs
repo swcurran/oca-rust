@@ -27,8 +27,8 @@ pub enum Error {
     #[error("Duplicate attribute in CaptureBase: {0}")]
     DuplicateAttribute(String),
 
-    #[error("Missing required attribute in Overlay: {0}")]
-    MissingRequiredAttribute(String),
+    #[error("Missing required attribute {0} in Overlay: {1}")]
+    MissingRequiredAttribute(String, String),
 
     #[error("Invalid Property Value: {0}")]
     InvalidPropertyValue(String),

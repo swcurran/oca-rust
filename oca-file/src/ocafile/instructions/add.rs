@@ -2,9 +2,10 @@ use crate::ocafile::{error::InstructionError, instructions::helpers, Pair, Rule}
 use indexmap::IndexMap;
 use log::{debug, info};
 use oca_ast::ast::{
-    CaptureContent, Command, CommandType, NestedAttrType, NestedValue, ObjectKind, OverlayContent,
+    CaptureContent, Command, CommandType, NestedAttrType, NestedValue, ObjectKind, OverlayContent, RefValue,
 };
 use overlay_file::{overlay_registry::OverlayRegistry, OverlayDef};
+use said::SelfAddressingIdentifier;
 
 pub struct AddInstruction {}
 
@@ -14,8 +15,7 @@ pub fn resolve_overlay_def<'a>(
     name: &str,
 ) -> Result<&'a OverlayDef, InstructionError> {
     match registry.get_by_name(name) {
-        Ok(Some(overlay_def)) => Ok(overlay_def),
-        Ok(None) => Err(InstructionError::UnknownOverlay(name.to_string())),
+        Ok(overlay_def) => Ok(overlay_def.unwrap()),
         Err(e) => Err(InstructionError::UnknownOverlay(e.to_string())),
     }
 }
@@ -89,12 +89,17 @@ pub fn parse_overlay_body(pair: Pair, overlay_def: OverlayDef) -> IndexMap<Strin
                         value = Some(NestedValue::Array(values));
                         map.insert(key.clone().unwrap(), value.clone().unwrap());
                     }
+                    Rule::said => {
+                        let said_str = key_value.clone().into_inner().next().unwrap().as_str().to_string();
+                        let said = said_str.parse::<SelfAddressingIdentifier>().unwrap();
+                        value = Some(NestedValue::Reference(RefValue::Said(said)));
+                        map.insert(key.clone().unwrap(), value.clone().unwrap());
+                    }
                     _ => {
-                        debug!(
-                            "Unexpected rule in key-value pair: {:?}",
-                            key_value.as_rule()
+                        panic!(
+                            "Unexpected rule or not implemented yet in key-value pair: {:?}",
+                            key_value
                         );
-                        continue; // Skip unexpected rules
                     }
                 }
             }
@@ -151,10 +156,6 @@ impl AddInstruction {
                                             match resolve_overlay_def(registry, name) {
                                                 Ok(od) => {
                                                     content.overlay_def = od.clone();
-                                                    info!(
-                                                        "Found overlay definition: {:?}",
-                                                        content.overlay_def
-                                                    );
                                                 }
                                                 Err(e) => {
                                                     return Err(InstructionError::Parser(

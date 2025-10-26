@@ -67,7 +67,7 @@ impl OCABundleModel {
         }
     }
 
-    pub fn to_ast(&self, _registry: OverlayLocalRegistry) -> OCAAst {
+    pub fn to_ast(&self, registry: OverlayLocalRegistry) -> OCAAst {
         let mut ast = OCAAst::new();
 
         let properties = None;
@@ -91,7 +91,7 @@ impl OCABundleModel {
 
         self.overlays.iter().for_each(|overlay| {
             let overlay_content = OverlayContent {
-                overlay_def: OverlayDef::default(),
+                overlay_def: overlay.overlay_def.clone(),
                 properties: overlay.properties.clone(),
             };
             let overlay_command = Command {
@@ -240,8 +240,8 @@ ADD Overlay CONFORMANCE
     i="M"
     passed="M"
 ADD Overlay LABEL
-  attr_labels
-    language="en"
+  language="en"
+  attribute_labels
     d="Schema digest"
     i="Credential Issuee"
     passed="Passed"
@@ -249,21 +249,22 @@ ADD Overlay FORMAT
   attribute_formats
     d="image/jpeg"
 ADD Overlay UNIT
+  metric_system="SI"
   attribute_units
     i="m^2"
     d="°"
 ADD ATTRIBUTE list=[Text] el=Text
 ADD Overlay CARDINALITY
-  attr_cardinality
+  attribute_cardinality
     list="1-2"
 ADD Overlay ENTRY_CODE
   attribute_entry_codes
-    list="entry_code_said"
+    list=refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu
     el=["o1", "o2", "o3"]
 ADD Overlay ENTRY
-  attribute_entrires
-    language="en"
-    list="entry_said"
+  language="en"
+  attribute_entries
+    list=refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu
     el
      o1="o1_label"
      o2="o2_label"
@@ -273,125 +274,7 @@ ADD Overlay ENTRY
         let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
 
         let bundle_json = r#"
-{
-  "digest": "EK1Jit-O_eHUOSYu34uRQgOlVoAvfFkMyicMXE4THX18",
-  "capture_base": {
-    "digest": "EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9",
-    "type": "capture_base/2.0.0",
-    "attributes": {
-      "age": "Numeric",
-      "car": [
-        "refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu"
-      ],
-      "d": "Text",
-      "el": "Text",
-      "i": "Text",
-      "incidentals_spare_parts": [
-        [
-          "refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu"
-        ]
-      ],
-      "list": [
-        "Text"
-      ],
-      "name": "Text",
-      "passed": "Boolean"
-    }
-  },
-  "overlays": [
-    {
-      "digest": "EEZ0Rj_FzN4Bms8WOg5yrKd06USAZ3k6NI7vxjwH8njp",
-      "capture_base": "EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9",
-      "type": "Meta/2.0.0",
-      "language": "en",
-      "description": "Entrance credential",
-      "name": "Entrance credential"
-    },
-    {
-      "digest": "EL3YCcrwOV14zlIVg-nBgD_LFFKXZbMzkMnNlu6PYYJP",
-      "capture_base": "EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9",
-      "type": "Character_Encoding/2.0.0",
-      "attribute_character_encoding": {
-        "d": "utf-8",
-        "i": "utf-8",
-        "passed": "utf-8"
-      }
-    },
-    {
-      "digest": "EI8xUoBZDw5GcbM3wFeXvMD9TFX_zaIkckGTnX0pPNh-",
-      "capture_base": "EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9",
-      "type": "conformance/2.0.0",
-      "attribute_conformance": {
-        "d": "M",
-        "i": "M",
-        "passed": "M"
-      }
-    },
-    {
-      "digest": "EGszlLaJhW50xrWqiwmhhwBM72ghbEQaxdVOnX_TCjPl",
-      "capture_base": "EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9",
-      "type": "label/2.0.0",
-      "attr_labels": {
-        "language": "en",
-        "d": "Schema digest",
-        "i": "Credential Issuee",
-        "passed": "Passed"
-      }
-    },
-    {
-      "digest": "EBZ7MVO0BR8rqpMkPuJzUdz0wm65si3wIYOK7F6Pf4fh",
-      "capture_base": "EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9",
-      "type": "format/2.0.0",
-      "attribute_formats": {
-        "d": "image/jpeg"
-      }
-    },
-    {
-      "digest": "EMtUs8fiDt5XOTpFGBZHwKJMoQCUv19yNvDHafLpSJag",
-      "capture_base": "EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9",
-      "type": "unit/2.0.0",
-      "attribute_units": {
-        "i": "m^2",
-        "d": "°"
-      }
-    },
-    {
-      "digest": "EPJ7Fs06Pu_INE9afFkXZ_4h20jyBBR5sdaD1cz4LySq",
-      "capture_base": "EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9",
-      "type": "cardinality/2.0.0",
-      "attr_cardinality": {
-        "list": "1-2"
-      }
-    },
-    {
-      "digest": "EOKQUoRRhNXY0D6NG6RAOm_jCLaLSzDah0OqmYmHl3-c",
-      "capture_base": "EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9",
-      "type": "ENTRY_CODE/2.0.0",
-      "attribute_entry_codes": {
-        "list": "entry_code_said",
-        "el": [
-          "o1",
-          "o2",
-          "o3"
-        ]
-      }
-    },
-    {
-      "digest": "EE67xU55wzQeYaX6cHOkFunuFrn3cheEWlf89N_8y1dk",
-      "capture_base": "EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9",
-      "type": "ENTRY/2.0.0",
-      "attribute_entrires": {
-        "language": "en",
-        "list": "entry_said",
-        "el": {
-          "o1": "o1_label",
-          "o2": "o2_label",
-          "o3": "o3_label"
-        }
-      }
-    }
-  ]
-}
+{"digest":"EC2U8zJYkTg7aS_-lMWKeis_FcS6E7D0sSf0y-BVMWUl","capture_base":{"digest":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"capture_base/2.0.0","attributes":{"age":"Numeric","car":["refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu"],"d":"Text","el":"Text","i":"Text","incidentals_spare_parts":[["refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu"]],"list":["Text"],"name":"Text","passed":"Boolean"}},"overlays":[{"digest":"EFFHcSASwQWOku5wbTC9ad40N8478knwxTfe5zFuMlvb","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"meta","language":"en","description":"Entrance credential","name":"Entrance credential"},{"digest":"ED4PpbQO_B2PkuuPXmxGP1ZHgXN4ur3t2-scipoqBW9v","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"character_encoding","attribute_character_encoding":{"d":"utf-8","i":"utf-8","passed":"utf-8"}},{"digest":"EKZbyzgubAKEFt6MYUlNgxa98Q0aWiirR0MQbJF2RX24","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"conformance","attribute_conformance":{"d":"M","i":"M","passed":"M"}},{"digest":"EE0yQaUPDqsxVxFQzC6Ib67EnMulTeJoDGAMhqc3qrSi","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"label","language":"en","attribute_labels":{"d":"Schema digest","i":"Credential Issuee","passed":"Passed"}},{"digest":"EDuHQ3YEZORvlPOriuM4KdZrz69hjwdgroAkFWe60DF8","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"format","attribute_formats":{"d":"image/jpeg"}},{"digest":"EPA9RgPvEo-Af-8lGa9C5hKTaw6Eh6v0r-tf_wHh0yN-","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"unit","metric_system":"SI","attribute_units":{"i":"m^2","d":"°"}},{"digest":"EFC4-Dl4RtHS6m3cCKAKDNjVxXjdNpeAFE2dmcKQYGCD","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"cardinality","attribute_cardinality":{"list":"1-2"}},{"digest":"ELjGMc0PWZYL6StsNl3zRf_9MVhGEfvpuPj8Dx-BZ95Y","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"entry_code","attribute_entry_codes":{"list":"refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu","el":["o1","o2","o3"]}},{"digest":"EFwgeBUcFueINWXsMndxg6UFTh7LrMnk4NvWlCUQCns_","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"entry","language":"en","attribute_entries":{"list":"refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu","el":{"o1":"o1_label","o2":"o2_label","o3":"o3_label"}}}]}
 "#;
         let reference_json: serde_json::Value = serde_json::from_str(bundle_json).unwrap();
         let mut oca_bundle = from_ast(None, &oca_ast).unwrap().oca_bundle;
@@ -407,9 +290,9 @@ ADD Overlay ENTRY
             Err(e) => panic!("Failed to fill overlay model digest: {}", e),
         }
         let meta_said = overlay_model.digest.clone().unwrap();
-        let ref_said = "EEZ0Rj_FzN4Bms8WOg5yrKd06USAZ3k6NI7vxjwH8njp";
+        let ref_said = "EFFHcSASwQWOku5wbTC9ad40N8478knwxTfe5zFuMlvb";
         assert_eq!(meta_said.to_string(), ref_said.to_string());
-        assert_eq!(oca_bundle.version, "OCAS02JSON000930_");
+        assert_eq!(oca_bundle.version, "OCAS02JSON000961_");
 
         let said = oca_bundle.digest.clone().unwrap();
         let bundle = OCABundle::from(oca_bundle.clone());

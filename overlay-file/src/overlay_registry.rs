@@ -39,6 +39,29 @@ impl OverlayLocalRegistry {
         Ok(OverlayLocalRegistry { overlays })
     }
 
+    pub fn from_file<P: AsRef<Path>>(file: P) -> Result<Self, std::io::Error> {
+        let path = file.as_ref();
+
+        // Ensure it’s an overlay file
+        if path.extension().and_then(|s| s.to_str()) != Some("overlayfile") {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "File does not have .overlayfile extension",
+            ));
+        }
+
+        let mut overlays = HashMap::new();
+
+        if let Some(name) = Self::overlay_name_from_path(path) {
+            debug!("Parsing overlay file: {}", path.display());
+            let content = fs::read_to_string(path)?;
+            let schema = parse_from_string(content);
+            overlays.insert(name, schema.unwrap());
+        }
+
+        Ok(OverlayLocalRegistry { overlays })
+    }
+
     fn overlay_name_from_path(path: &Path) -> Option<String> {
         path.file_stem()
             .and_then(|s| s.to_str())
@@ -88,6 +111,7 @@ impl OverlayRegistry for OverlayLocalRegistry {
             .ok_or("Overlay definition not found in registry")
     }
 
+    // When processing OCAFILE we normally does not have version specify and need to fetch definition just by name
     fn get_by_name(&self, name: &str) -> Result<Option<&OverlayDef>, &'static str> {
         debug!("Getting overlay by name: {}", name);
         let overlay_def = self.overlays.values().find_map(|overlay_file| {

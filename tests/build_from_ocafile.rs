@@ -20,15 +20,18 @@ ADD Overlay META
   name = "Entrance credential"
   description = "Entrance credential"
 ADD Overlay CHARACTER_ENCODING
-   d="utf-8"
-   i="utf-8"
-   passed="utf-8"
+  attribute_character_encoding
+    d="utf-8"
+    i="utf-8"
+    passed="utf-8"
 ADD Overlay CONFORMANCE
+   attribute_conformance
     d="M"
     i="M"
     passed="M"
 ADD Overlay LABEL
  language="en"
+ attribute_labels
  d="Schema digest"
  i="Credential Issuee"
  passed="Passed"
@@ -41,10 +44,10 @@ ADD Overlay LABEL
 
         assert_eq!(
             oca_bundle_model.digest.clone().unwrap().to_string(),
-            "EK6E0o2evY4xSpGAO2T10bU0atMBaT9HeCzxUes-JIAv"
+            "EMMRjDrg0yYJE-XiIathaHuoioWTxT53t8b3kzgKDhgo"
         );
 
-        assert_eq!(oca_bundle_model.version, "OCAS02JSON000426_");
+        assert_eq!(oca_bundle_model.version, "OCAS02JSON00045e_");
 
         let search_result = facade.search_oca_bundle(None, "Ent".to_string(), 10, 1);
         assert_eq!(search_result.metadata.total, 1);
@@ -65,15 +68,18 @@ ADD OVERLAY META
   name="Entrance credential"
   description="Entrance credential"
 ADD OVERLAY CHARACTER_ENCODING
+  attribute_character_encoding
   d="utf-8"
   i="utf-8"
   passed="utf-8"
 ADD OVERLAY CONFORMANCE
+  attribute_conformance
   d="M"
   i="M"
   passed="M"
 ADD OVERLAY LABEL
   language="en"
+  attribute_labels
   d="Schema digest"
   i="Credential Issuee" passed="Passed"
 "#
@@ -82,7 +88,7 @@ ADD OVERLAY LABEL
         facade.build_from_ocafile(other_ocafile, registry.clone())?;
 
         let ocafile = r#"
-FROM EK6E0o2evY4xSpGAO2T10bU0atMBaT9HeCzxUes-JIAv
+FROM EMMRjDrg0yYJE-XiIathaHuoioWTxT53t8b3kzgKDhgo
 ADD ATTRIBUTE x=Text
 "#
         .to_string();
@@ -90,7 +96,7 @@ ADD ATTRIBUTE x=Text
 
         assert_eq!(
             result.digest.unwrap().to_string(),
-            "EE7764ppESbfBMAY5S_2yq-wrN1029B0W--j7xIHx1B-"
+            "EFp6P18pROjDvaTwcQpsF0UK3gvwicLQ78rD2k33H9eu"
         );
         Ok(())
     }

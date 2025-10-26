@@ -587,38 +587,59 @@ mod test {
         let mut facade = Facade::new(Box::new(db), Box::new(db_cache), cache_storage_config);
         let ocafile_input = r#"
 ADD ATTRIBUTE d=Text i=Text passed=Boolean
+
 ADD Overlay META
   language="en"
   description="Entrance credential"
   name="Entrance credential"
+
 ADD Overlay CHARACTER_ENCODING
-  d="utf-8"
-  i="utf-8"
-  passed="utf-8"
+  attribute_character_encoding
+    d="utf-8"
+    i="utf-8"
+    passed="utf-8"
+
 ADD Overlay CONFORMANCE
-  d="M"
-  i="M"
-  passed="M"
+  attribute_conformance
+    d="M"
+    i="M"
+    passed="M"
+
 ADD Overlay LABEL
-  d="Schema digest"
-  i="Credential Issuee"
-  passed="Passed"
+  language="en"
+  attribute_labels
+    d="Schema digest"
+    i="Credential Issuee"
+    passed="Passed"
+
 ADD Overlay FORMAT
-  d="image/jpeg"
+  attribute_formats
+    d="image/jpeg"
+
 ADD Overlay UNIT
-  i="m"
+  metric_system="SI"
+  attribute_units
+    i="m"
+
 ADD ATTRIBUTE list=[Text] el=Text
+
 ADD Overlay CARDINALITY
-  list="1-2"
+  attribute_cardinality
+    list="1-2"
+
 ADD Overlay ENTRY_CODE
-  list="entry_code_said"
-  el=["o1", "o2", "o3"]
+  attribute_entry_codes
+    list=refs:ENrf7niTCnz7HD-Ci88rlxHlxkpQ2NIZNNv08fQnXANI
+    el=["o1", "o2", "o3"]
+
 ADD Overlay ENTRY
-  list="refs:ENrf7niTCnz7HD-Ci88rlxHlxkpQ2NIZNNv08fQnXANI"
-  el
-    "o1"="o1_label"
-    "o2"="o2_label"
-    "o3"="o3_label"
+  language="en"
+  attribute_entries
+    list=refs:ENrf7niTCnz7HD-Ci88rlxHlxkpQ2NIZNNv08fQnXANI
+    el
+      o1="o1_label"
+      o2="o2_label"
+      o3="o3_label"
 "#
         .to_string();
 

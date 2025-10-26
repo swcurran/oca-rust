@@ -119,7 +119,7 @@ pub fn parse_from_string(
                         oca_ast.commands.len() - 1,
                         CommandMeta {
                             line_number: n + 1,
-                            raw_line: line.as_str().to_string(),
+                            raw_line: line.as_str().to_string().to_lowercase(),
                         },
                     );
                 }
@@ -173,6 +173,8 @@ fn format_nested_value(value: &ast::NestedValue, indent: usize) -> String {
                     format!("{}{}\n{}", " ".repeat(indent), k, formatted_value)
                 } else if v.is_array() {
                     format!("{}{}={}", " ".repeat(indent), k, formatted_value)
+                } else if v.is_reference() {
+                    format!("{}{}={}", " ".repeat(indent), k, formatted_value)
                 } else {
                     format!("{}{}=\"{}\"", " ".repeat(indent), k, formatted_value)
                 }
@@ -220,7 +222,7 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                     ast::ObjectKind::Overlay(content) => {
                         line.push_str("Overlay ");
                         let name = content.overlay_def.get_name();
-                        line.push_str(name.to_case(Case::UpperSnake).as_str());
+                        line.push_str(name);
                         if let Some(content) = command.object_kind.overlay_content() {
                             if let Some(ref properties) = content.properties {
                                 let properties = properties.clone();
@@ -238,6 +240,8 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                                                 "  {}={}\n",
                                                 key, formatted_value
                                             ));
+                                        } else if value.is_reference() {
+                                            line.push_str(&format!("  {}={}\n", key, value));
                                         } else {
                                             line.push_str(&format!(
                                                 "  {}=\"{}\"\n",
@@ -319,8 +323,8 @@ ADD Overlay CONFORMANCE
     i="M"
     passed="M"
 ADD Overlay LABEL
-  attr_labels
-    language="en"
+  language="en"
+  attribute_labels
     d="Schema digest"
     i="Credential Issuee"
     passed="Passed"
@@ -328,21 +332,22 @@ ADD Overlay FORMAT
   attribute_formats
     d="image/jpeg"
 ADD Overlay UNIT
+  metric_system="SI"
   attribute_units
     i="m^2"
     d="°"
 ADD ATTRIBUTE list=[Text] el=Text
 ADD Overlay CARDINALITY
-  attr_cardinality
+  attribute_cardinality
     list="1-2"
 ADD Overlay ENTRY_CODE
   attribute_entry_codes
-    list="entry_code_said"
+    list=refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu
     el=["o1", "o2", "o3"]
 ADD Overlay ENTRY
-  attribute_entrires
-    language="en"
-    list="entry_said"
+  language="en"
+  attribute_entries
+    list=refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu
     el
      o1="o1_label"
      o2="o2_label"
@@ -358,8 +363,8 @@ ADD Overlay ENTRY
                 .overlay_content()
                 .unwrap()
                 .overlay_def
-                .get_name(),
-            "Character_Encoding/2.0.0".to_string()
+                .get_full_name(),
+            "character_encoding/2.0.0".to_string()
         );
     }
 
@@ -385,44 +390,51 @@ ADD attribute name=Text age=Numeric
         let unparsed_file = r#"ADD ATTRIBUTE name=Text age=Numeric radio=Text list=Text
 ADD Overlay LABEL
   language="eo"
-  name="Nomo"
-  age="aĝo"
-  radio="radio"
+  attribute_labels
+    name="Nomo"
+    age="aĝo"
+    radio="radio"
 
 ADD Overlay CHARACTER_ENCODING
-  name="utf-8"
-  age="utf-8"
+  attribute_character_encoding
+    name="utf-8"
+    age="utf-8"
 
 ADD Overlay ENTRY_CODE
-  radio=["o1", "o2", "o3"]
+  attribute_entry_codes
+    radio=["o1", "o2", "o3"]
 
 ADD Overlay ENTRY
   language="eo"
-  radio
-    o1="etikedo1"
-    o2="etikedo2"
-    "o3"="etikiedo3"
+  attribute_entries
+    radio
+      o1="etikedo1"
+      o2="etikedo2"
+      "o3"="etikiedo3"
 
 ADD Overlay ENTRY
   language="pl"
-  radio
-    "o1"="etykieta1"
-    "o2"="etykieta2"
-    "o3"="etykieta3"
+  attribute_entries
+    radio
+      "o1"="etykieta1"
+      "o2"="etykieta2"
+      "o3"="etykieta3"
 
 ADD Overlay ENTRY_CODE
-  list
-    "g1"=["el1"]
-    "g2"=["el2", "el3"]
+  attribute_entry_codes
+    list
+      "g1"=["el1"]
+      "g2"=["el2", "el3"]
 
 ADD Overlay ENTRY
   language="pl"
-  list
-    "el1"="element1"
-    "el2"="element2"
-    "el3"="element3"
-    "g1"="grupa1"
-    "g2"="grupa2"
+  attribute_entries
+    list
+      "el1"="element1"
+      "el2"="element2"
+      "el3"="element3"
+      "g1"="grupa1"
+      "g2"="grupa2"
 
 "#;
         let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();

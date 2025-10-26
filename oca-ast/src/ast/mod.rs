@@ -390,6 +390,10 @@ impl NestedValue {
     pub fn is_array(&self) -> bool {
         matches!(self, NestedValue::Array(_))
     }
+
+    pub fn is_reference(&self) -> bool {
+        matches!(self, NestedValue::Reference(_))
+    }
 }
 
 #[derive(Debug, PartialEq, Clone, Hash, Eq)]

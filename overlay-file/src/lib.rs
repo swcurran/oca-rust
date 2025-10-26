@@ -70,7 +70,11 @@ impl OverlayDef {
         self.elements.iter().map(|el| el.name.clone()).collect()
     }
     pub fn get_full_name(&self) -> String {
-        format!("{}/{}", self.name, self.version)
+        if self.namespace.is_some() {
+            format!("{}:{}/{}", self.namespace.as_ref().unwrap(), self.name, self.version)
+        } else {
+            format!("{}/{}", self.name, self.version)
+        }
     }
     pub fn get_name(&self) -> &str {
         &self.name
@@ -204,8 +208,15 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                                 Some((_, n)) => (None, n.to_string()),
                                 None => (None, attr.as_str().to_string()),
                             };
-                        overlay_def.namespace = namespace;
-                        overlay_def.name = name;
+                        match namespace {
+                            Some(ns) => {
+                                overlay_def.namespace = Some(ns.to_lowercase());
+                            }
+                            None => {
+                                overlay_def.namespace = None;
+                            }
+                        };
+                        overlay_def.name = name.to_lowercase();
                     }
                     Rule::version => {
                         overlay_def.version = attr.as_str().to_string();
@@ -538,7 +549,7 @@ ADD OVERLAY ReferenceValues
 "#;
         let result = parse_from_string(input.to_string()).unwrap();
         let overlay = result.overlays_def.first().unwrap();
-        assert_eq!(overlay.name, "ReferenceValues");
+        assert_eq!(overlay.name, "referencevalues");
         assert_eq!(overlay.namespace, None);
 
         let input = r#"
@@ -549,7 +560,7 @@ ADD OVERLAY :ReferenceValues
     WITH VALUES Text"#;
         let result = parse_from_string(input.to_string()).unwrap();
         let overlay = result.overlays_def.first().unwrap();
-        assert_eq!(overlay.name, "ReferenceValues");
+        assert_eq!(overlay.name, "referencevalues");
         assert_eq!(overlay.namespace, None);
 
         let input = r#"
@@ -561,7 +572,7 @@ ADD OVERLAY hcf:ReferenceValues
 "#;
         let result = parse_from_string(input.to_string()).unwrap();
         let overlay = result.overlays_def.first().unwrap();
-        assert_eq!(overlay.name, "ReferenceValues");
+        assert_eq!(overlay.name, "referencevalues");
         assert_eq!(overlay.namespace.clone().unwrap(), "hcf".to_string());
     }
     #[test]
@@ -615,7 +626,7 @@ ADD OVERLAY ENTRY
         let meta = result.overlays_def.get(2).unwrap();
         let entry = result.overlays_def.get(3).unwrap();
         assert_eq!(result.overlays_def.len(), 4);
-        assert_eq!(ref_overlay.name, "ReferenceValues");
+        assert_eq!(ref_overlay.name, "referencevalues");
         assert_eq!(ref_overlay.version, "1.0.1");
         assert_eq!(ref_overlay.namespace, None);
         assert_eq!(ref_overlay.elements.len(), 1);
@@ -637,7 +648,7 @@ ADD OVERLAY ENTRY
         assert_eq!(information.elements[0].values, ElementType::Lang);
         assert_eq!(information.elements[2].name, "attribute_information");
         assert_eq!(information.elements.len(), 3);
-        assert_eq!(information.name, "Information");
+        assert_eq!(information.name, "information");
 
         assert_eq!(meta.version, "1.2.2");
         assert_eq!(meta.elements.len(), 5);

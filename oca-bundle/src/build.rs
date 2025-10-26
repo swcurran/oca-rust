@@ -347,8 +347,8 @@ ADD Overlay CONFORMANCE
     i="M"
     passed="M"
 ADD Overlay LABEL
-  attr_labels
-    language="en"
+  language="en"
+  attribute_labels
     d="Schema digest"
     i="Credential Issuee"
     passed="Passed"
@@ -356,21 +356,22 @@ ADD Overlay FORMAT
   attribute_formats
     d="image/jpeg"
 ADD Overlay UNIT
+  metric_system="SI"
   attribute_units
     i="m^2"
     d="°"
 ADD ATTRIBUTE list=[Text] el=Text
 ADD Overlay CARDINALITY
-  attr_cardinality
+  attribute_cardinality
     list="1-2"
 ADD Overlay ENTRY_CODE
   attribute_entry_codes
-    list="entry_code_said"
+    list=refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu
     el=["o1", "o2", "o3"]
 ADD Overlay ENTRY
-  attribute_entrires
-    language="en"
-    list="entry_said"
+  language="en"
+  attribute_entries
+    list=refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu
     el
      o1="o1_label"
      o2="o2_label"
