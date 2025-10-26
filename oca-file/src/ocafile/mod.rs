@@ -525,4 +525,43 @@ ADD ATTRIBUTE incidentals_spare_parts=[refs:EJVVlVSZJqVNnuAMLHLkeSQgwfxYLWTKBELi
         let out = oca_file_format(attr);
         assert_eq!(out, "[[refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu]]");
     }
+
+    #[test]
+    fn test_line_breaking_in_ocafile() {
+        let _ = env_logger::builder().is_test(true).try_init();
+        let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays").unwrap();
+
+        // Test multi-line attribute definitions
+        let unparsed_file = r#"
+ADD ATTRIBUTE dateOfBirth=DateTime \
+    documentNumber=Text
+"#;
+        let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
+
+        // Verify that attributes are parsed correctly despite line breaks
+        assert_eq!(oca_ast.commands.len(), 1);
+
+        // Verify first command has all attributes
+        if let ast::ObjectKind::CaptureBase(content) = &oca_ast.commands[0].object_kind {
+            let attributes = content.attributes.as_ref().unwrap();
+            assert_eq!(attributes.len(), 2);
+            assert!(attributes.contains_key("dateOfBirth"));
+            assert!(attributes.contains_key("documentNumber"));
+        } else {
+            panic!("Expected CaptureBase");
+        }
+
+        // Test that regenerated ocafile maintains structure
+        let ocafile = generate_from_ast(&oca_ast);
+        let oca_ast2 = parse_from_string(ocafile.clone(), &registry).unwrap();
+
+        if let ast::ObjectKind::CaptureBase(content) = &oca_ast2.commands[0].object_kind {
+            let attributes = content.attributes.as_ref().unwrap();
+            assert_eq!(attributes.len(), 2);
+            assert!(attributes.contains_key("dateOfBirth"));
+            assert!(attributes.contains_key("documentNumber"));
+        } else {
+            panic!("Expected CaptureBase");
+        }
+    }
 }
