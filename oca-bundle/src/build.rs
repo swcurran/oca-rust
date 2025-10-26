@@ -380,13 +380,15 @@ ADD Overlay ENTRY
 
         let oca_bundle = OCABundleModel::default();
 
-        let mut oca_bundle = from_ast(Some(oca_bundle), &oca_ast).unwrap().oca_bundle;
-        let _ = oca_bundle.compute_and_fill_digest();
-        assert_eq!(oca_bundle.overlays.len(), 9);
-        assert_eq!(oca_bundle.capture_base.attributes.len(), 9);
-        assert!(oca_bundle.digest.is_some());
-        let oca_bundle = OCABundle::from(oca_bundle);
-        let json = serde_json::to_string_pretty(&oca_bundle).unwrap();
-        println!("Bundle: {}", json);
+        let mut oca_bundle_model = from_ast(Some(oca_bundle), &oca_ast).unwrap().oca_bundle;
+        let _ = oca_bundle_model.compute_and_fill_digest();
+        assert_eq!(oca_bundle_model.overlays.len(), 9);
+        assert_eq!(oca_bundle_model.capture_base.attributes.len(), 9);
+        assert!(oca_bundle_model.digest.is_some());
+        let oca_bundle = OCABundle::from(oca_bundle_model);
+        let overlay_name = oca_bundle.model.overlays.first().unwrap().name.clone();
+        assert_eq!(overlay_name, "meta");
+        // let json = serde_json::to_string_pretty(&oca_bundle).unwrap();
+        // println!(" >>> Bundle: {}", json);
     }
 }

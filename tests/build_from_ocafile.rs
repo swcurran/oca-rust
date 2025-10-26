@@ -44,10 +44,10 @@ ADD Overlay LABEL
 
         assert_eq!(
             oca_bundle_model.digest.clone().unwrap().to_string(),
-            "EMMRjDrg0yYJE-XiIathaHuoioWTxT53t8b3kzgKDhgo"
+            "EEVr8EuS3KsBwxwZQd1D_64xDsJtwiLVrR_Y310GchPx"
         );
 
-        assert_eq!(oca_bundle_model.version, "OCAS02JSON00045e_");
+        assert_eq!(oca_bundle_model.version, "OCAS02JSON000476_");
 
         let search_result = facade.search_oca_bundle(None, "Ent".to_string(), 10, 1);
         assert_eq!(search_result.metadata.total, 1);
@@ -88,7 +88,7 @@ ADD OVERLAY LABEL
         facade.build_from_ocafile(other_ocafile, registry.clone())?;
 
         let ocafile = r#"
-FROM EMMRjDrg0yYJE-XiIathaHuoioWTxT53t8b3kzgKDhgo
+FROM EEVr8EuS3KsBwxwZQd1D_64xDsJtwiLVrR_Y310GchPx
 ADD ATTRIBUTE x=Text
 "#
         .to_string();
@@ -96,7 +96,7 @@ ADD ATTRIBUTE x=Text
 
         assert_eq!(
             result.digest.unwrap().to_string(),
-            "EFp6P18pROjDvaTwcQpsF0UK3gvwicLQ78rD2k33H9eu"
+            "EDxRS-acESxyZ4ZA00d0qzbDzd-9V4uPTWGM1yXG2oc-"
         );
         Ok(())
     }
