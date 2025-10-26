@@ -1,3 +1,4 @@
+
 use crate::ocafile::{error::InstructionError, instructions::helpers, Pair, Rule};
 use indexmap::IndexMap;
 use log::{debug, info};
@@ -21,7 +22,7 @@ pub fn resolve_overlay_def<'a>(
 }
 
 // TODO: move to helpers.rs
-pub fn parse_overlay_body(pair: Pair, overlay_def: OverlayDef) -> IndexMap<String, NestedValue> {
+pub fn parse_overlay_body(pair: Pair, overlay_def: OverlayDef) -> Result<IndexMap<String, NestedValue>, InstructionError> {
     let mut map = IndexMap::new();
     let mut attributes: IndexMap<String, NestedValue> = IndexMap::new();
     let mut properties: IndexMap<String, NestedValue> = IndexMap::new();
@@ -37,77 +38,144 @@ pub fn parse_overlay_body(pair: Pair, overlay_def: OverlayDef) -> IndexMap<Strin
         match item.as_rule() {
             Rule::kv_pair => {
                 let mut kv_inner = item.into_inner(); // contains [key_pair]
-                let key_pair = kv_inner.next().unwrap(); // rule: key_pair
+                let key_pair = kv_inner.next().ok_or_else(|| {
+                    InstructionError::Parser("Missing key-value pair in overlay body".to_string())
+                })?;
 
                 let mut key_pair_inner = key_pair.into_inner();
-                debug!("Parsing key-value pair: {:?}", key_pair_inner);
                 key = Some(
                     key_pair_inner
                         .find(|p| p.as_rule() == Rule::attr_key)
-                        .unwrap()
+                        .ok_or_else(|| {
+                            InstructionError::Parser("Missing key in key-value pair".to_string())
+                        })?
                         .as_str()
                         .to_string(),
                 );
 
                 let key_value = key_pair_inner
                     .find(|p| p.as_rule() == Rule::key_value)
-                    .unwrap();
+                    .ok_or_else(|| {
+                        InstructionError::Parser(format!(
+                            "Missing value for key '{}'. Make sure the value is properly quoted (e.g., key=\"value\")",
+                            key.as_ref().unwrap()
+                        ))
+                    })?;
 
                 debug!("Parsed key: {:?}, value: {:?}", key, key_value);
 
-                match key_value.clone().into_inner().next().unwrap().as_rule() {
+                let key_value_inner = key_value.clone().into_inner().next().ok_or_else(|| {
+                    InstructionError::Parser(format!(
+                        "Empty or invalid value for key '{}'. Expected a quoted string, array, or reference",
+                        key.as_ref().unwrap()
+                    ))
+                })?;
+
+                match key_value_inner.as_rule() {
                     Rule::string => {
-                        value = Some(NestedValue::Value(
-                            key_value
-                                .into_inner()
-                                .next()
-                                .unwrap()
-                                .into_inner()
-                                .as_str()
-                                .to_string(),
-                        ));
+                        let string_value = key_value
+                            .into_inner()
+                            .next()
+                            .ok_or_else(|| {
+                                InstructionError::Parser(format!(
+                                    "Invalid string value for key '{}'",
+                                    key.as_ref().unwrap()
+                                ))
+                            })?
+                            .into_inner()
+                            .as_str()
+                            .to_string();
+
+                        value = Some(NestedValue::Value(string_value));
                         map.insert(key.clone().unwrap(), value.clone().unwrap());
                     }
                     Rule::array => {
-                        // TODO add support for nested arrays
-                        let values = key_value
+                        let array_inner = key_value
                             .into_inner()
                             .next()
-                            .unwrap()
+                            .ok_or_else(|| {
+                                InstructionError::Parser(format!(
+                                    "Invalid array value for key '{}'",
+                                    key.as_ref().unwrap()
+                                ))
+                            })?;
+
+                        let values = array_inner
                             .into_inner()
                             .map(|v| {
-                                NestedValue::Value(
-                                    v.into_inner()
-                                        .next()
-                                        .unwrap()
-                                        .into_inner()
-                                        .as_str()
-                                        .to_string(),
-                                )
+                                v.into_inner()
+                                    .next()
+                                    .map(|inner| {
+                                        NestedValue::Value(
+                                            inner.into_inner().as_str().to_string()
+                                        )
+                                    })
+                                    .ok_or_else(|| {
+                                        InstructionError::Parser(format!(
+                                            "Invalid array element in key '{}'",
+                                            key.as_ref().unwrap()
+                                        ))
+                                    })
                             })
-                            .collect::<Vec<NestedValue>>();
+                            .collect::<Result<Vec<NestedValue>, InstructionError>>()?;
+
                         value = Some(NestedValue::Array(values));
                         map.insert(key.clone().unwrap(), value.clone().unwrap());
                     }
                     Rule::said => {
-                        let said_str = key_value.clone().into_inner().next().unwrap().as_str().to_string();
-                        let said = said_str.parse::<SelfAddressingIdentifier>().unwrap();
+                        let said_str = key_value
+                            .clone()
+                            .into_inner()
+                            .next()
+                            .ok_or_else(|| {
+                                InstructionError::Parser(format!(
+                                    "Invalid SAID reference for key '{}'",
+                                    key.as_ref().unwrap()
+                                ))
+                            })?
+                            .as_str()
+                            .to_string();
+
+                        let said = said_str.parse::<SelfAddressingIdentifier>().map_err(|e| {
+                            InstructionError::Parser(format!(
+                                "Invalid SAID format for key '{}': {}",
+                                key.as_ref().unwrap(),
+                                e
+                            ))
+                        })?;
+
                         value = Some(NestedValue::Reference(RefValue::Said(said)));
                         map.insert(key.clone().unwrap(), value.clone().unwrap());
                     }
                     _ => {
-                        panic!(
-                            "Unexpected rule or not implemented yet in key-value pair: {:?}",
-                            key_value
-                        );
+                        return Err(InstructionError::Parser(format!(
+                            "Unsupported value type for key '{}': {:?}. Expected string, array, or SAID reference",
+                            key.as_ref().unwrap(),
+                            key_value_inner.as_rule()
+                        )));
                     }
                 }
             }
             Rule::nested_block => {
                 let mut inner = item.into_inner();
-                key = Some(inner.next().unwrap().as_str().to_string());
-                let body = inner.next().unwrap();
-                let nested = parse_overlay_body(body, overlay_def.clone());
+                key = Some(
+                    inner
+                        .next()
+                        .ok_or_else(|| {
+                            InstructionError::Parser("Missing key in nested block".to_string())
+                        })?
+                        .as_str()
+                        .to_string()
+                );
+
+                let body = inner.next().ok_or_else(|| {
+                    InstructionError::Parser(format!(
+                        "Missing body for nested block '{}'",
+                        key.as_ref().unwrap()
+                    ))
+                })?;
+
+                let nested = parse_overlay_body(body, overlay_def.clone())?;
                 value = Some(NestedValue::Object(nested));
                 map.insert(key.clone().unwrap(), value.clone().unwrap());
             }
@@ -116,14 +184,15 @@ pub fn parse_overlay_body(pair: Pair, overlay_def: OverlayDef) -> IndexMap<Strin
                 continue; // Skip unexpected rules
             }
         }
+
+        let key_name = key.clone().unwrap();
+        if attr_elements.contains(&key_name) {
+            attributes.insert(key_name, value.unwrap());
+        } else {
+            properties.insert(key_name, value.unwrap());
+        }
     }
-    let key_name = key.clone().unwrap();
-    if attr_elements.contains(&key_name) {
-        attributes.insert(key_name, value.unwrap());
-    } else {
-        properties.insert(key_name, value.unwrap());
-    }
-    map
+    Ok(map)
 }
 
 impl AddInstruction {
@@ -176,7 +245,7 @@ impl AddInstruction {
                             Rule::overlay_body => {
                                 debug!("Parsing overlay body: {:?}", overlay);
                                 content.properties =
-                                    Some(parse_overlay_body(overlay, content.overlay_def.clone()));
+                                    Some(parse_overlay_body(overlay, content.overlay_def.clone())?);
                             }
                             _ => {
                                 return Err(InstructionError::UnexpectedToken(format!(
@@ -376,3 +445,4 @@ mod tests {
         }
     }
 }
+

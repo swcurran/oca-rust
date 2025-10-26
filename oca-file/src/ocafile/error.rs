@@ -29,7 +29,7 @@ pub enum InstructionError {
     #[error("{0}")]
     UnexpectedToken(String),
 
-    #[error("{0}")]
+    #[error("Praser error: {0}")]
     Parser(String),
 
     #[error("{0}")]
