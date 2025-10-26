@@ -458,12 +458,11 @@ impl Facade {
     pub fn parse_oca_bundle_to_ocafile(
         &self,
         bundle: &OCABundleModel,
-        registry: overlay_file::overlay_registry::OverlayLocalRegistry,
     ) -> Result<String, Vec<String>> {
         // Keep in mind that ast to bundle is not a reversible operation This function existin only
         // to support quick conversion from OCA Bundle to OCAFILE in case if someone loose the
         // original OCAFILE normally any modification of the bundle should start with OCAFILE
-        let oca_ast = bundle.to_ast(registry);
+        let oca_ast = bundle.to_ast();
         Ok(ocafile::generate_from_ast(&oca_ast))
     }
 }
@@ -647,7 +646,7 @@ ADD Overlay ENTRY
         let oca_bundle = facade
             .build_from_ocafile(ocafile_input, registry.clone())
             .unwrap();
-        let ocafile = facade.parse_oca_bundle_to_ocafile(&oca_bundle, registry.clone())?;
+        let ocafile = facade.parse_oca_bundle_to_ocafile(&oca_bundle)?;
         let new_bundle = facade.build_from_ocafile(ocafile, registry);
         match new_bundle {
             Ok(new_bundle) => {

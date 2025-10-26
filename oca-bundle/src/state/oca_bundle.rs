@@ -66,7 +66,7 @@ impl OCABundleModel {
         }
     }
 
-    pub fn to_ast(&self, registry: OverlayLocalRegistry) -> OCAAst {
+    pub fn to_ast(&self) -> OCAAst {
         let mut ast = OCAAst::new();
 
         let mut attributes = IndexMap::new();
