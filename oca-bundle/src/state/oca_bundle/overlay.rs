@@ -43,7 +43,8 @@ impl Serialize for Overlay {
 
         map.serialize_entry("digest", &self.model.digest)?;
         map.serialize_entry("capture_base", &self.model.capture_base_said)?;
-        map.serialize_entry("type", &self.model.overlay_def.get_full_name())?;
+        map.serialize_entry("type", &format!("overlay/{}", &self.model.overlay_def.get_full_name()))?;
+
 
         // Create a set to keep track of serialized keys
         let mut serialized_keys = std::collections::HashSet::new();
