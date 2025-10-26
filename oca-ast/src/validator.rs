@@ -6,7 +6,7 @@ use crate::{
 use indexmap::{indexmap, IndexMap, IndexSet};
 use isolang::Language;
 use log::debug;
-use overlay_file::{ElementType, KeyType, OverlayElementDef};
+use overlay_file::{ElementType, KeyType};
 use regex::Regex;
 
 type CaptureAttributes = IndexMap<String, NestedAttrType>;
@@ -362,7 +362,6 @@ fn rule_remove_attr_if_exist(ast: &OCAAst, command_to_validate: Command) -> Resu
     let mut errors = Vec::new();
 
     let attributes = extract_attributes(ast);
-    let properties = extract_properties(ast);
 
     let content = command_to_validate.object_kind.capture_content();
 
@@ -385,25 +384,6 @@ fn rule_remove_attr_if_exist(ast: &OCAAst, command_to_validate: Command) -> Resu
         (Some(_), None) => (),
     }
 
-    match (
-        content,
-        content.as_ref().and_then(|c| c.properties.as_ref()),
-    ) {
-        (Some(_content), Some(props_to_remove)) => {
-            let valid = props_to_remove
-                .keys()
-                .all(|key| properties.contains_key(key));
-            if !valid {
-                errors.push(Error::InvalidOperation(
-                    "Cannot remove property if does not exists".to_string(),
-                ));
-                return Err(Error::Validation(errors));
-            }
-        }
-        (None, None) => (),
-        (None, Some(_)) => (),
-        (Some(_), None) => (),
-    }
     if errors.is_empty() {
         Ok(true)
     } else {
@@ -483,31 +463,6 @@ fn extract_attributes(ast: &OCAAst) -> CaptureAttributes {
     attributes
 }
 
-fn extract_properties(ast: &OCAAst) -> IndexMap<String, NestedValue> {
-    let default_attrs: IndexMap<String, NestedValue> = indexmap! {};
-    let mut properties: IndexMap<String, NestedValue> = indexmap! {};
-    for instruction in &ast.commands {
-        match (instruction.kind.clone(), instruction.object_kind.clone()) {
-            (CommandType::Remove, ObjectKind::CaptureBase(capture_content)) => {
-                let props = capture_content
-                    .properties
-                    .as_ref()
-                    .unwrap_or(&default_attrs);
-                properties.retain(|key, _value| !props.contains_key(key));
-            }
-            (CommandType::Add, ObjectKind::CaptureBase(capture_content)) => {
-                let props = capture_content
-                    .properties
-                    .as_ref()
-                    .unwrap_or(&default_attrs);
-                properties.extend(props.iter().map(|(k, v)| (k.clone(), v.clone())));
-            }
-            _ => {}
-        }
-    }
-    properties
-}
-
 #[cfg(test)]
 mod tests {
     use indexmap::indexmap;
@@ -528,7 +483,6 @@ mod tests {
                     "documentType".to_string() => NestedAttrType::Value(AttributeType::Text),
                     "photo".to_string() => NestedAttrType::Value(AttributeType::Binary),
                 }),
-                properties: Some(indexmap! {}),
             }),
         };
 
@@ -539,7 +493,6 @@ mod tests {
                     "issuer".to_string() => NestedAttrType::Value(AttributeType::Text),
                     "last_name".to_string() => NestedAttrType::Value(AttributeType::Binary),
                 }),
-                properties: Some(indexmap! {}),
             }),
         };
 
@@ -550,7 +503,6 @@ mod tests {
                     "name".to_string() => NestedAttrType::Null,
                     "documentType".to_string() => NestedAttrType::Null,
                 }),
-                properties: Some(indexmap! {}),
             }),
         };
 
@@ -560,7 +512,6 @@ mod tests {
                 attributes: Some(indexmap! {
                     "name".to_string() => NestedAttrType::Value(AttributeType::Text),
                 }),
-                properties: Some(indexmap! {}),
             }),
         };
 
@@ -571,7 +522,6 @@ mod tests {
                     "name".to_string() => NestedAttrType::Null,
                     "issuer".to_string() => NestedAttrType::Null,
                 }),
-                properties: Some(indexmap! {}),
             }),
         };
 
@@ -581,7 +531,6 @@ mod tests {
                 attributes: Some(indexmap! {
                     "documentType".to_string() => NestedAttrType::Null,
                 }),
-                properties: Some(indexmap! {}),
             }),
         };
 
@@ -607,7 +556,6 @@ mod tests {
                     "documentType".to_string() => NestedAttrType::Value(AttributeType::Text),
                     "photo".to_string() => NestedAttrType::Value(AttributeType::Binary),
                 }),
-                properties: Some(indexmap! {}),
             }),
         };
 
@@ -618,7 +566,6 @@ mod tests {
                     "issuer".to_string() => NestedAttrType::Value(AttributeType::Text),
                     "last_name".to_string() => NestedAttrType::Value(AttributeType::Binary),
                 }),
-                properties: Some(indexmap! {}),
             }),
         };
 
@@ -629,7 +576,6 @@ mod tests {
                     "first_name".to_string() => NestedAttrType::Value(AttributeType::Text),
                     "address".to_string() => NestedAttrType::Value(AttributeType::Text),
                 }),
-                properties: Some(indexmap! {}),
             }),
         };
 
@@ -640,7 +586,6 @@ mod tests {
                     "name".to_string() => NestedAttrType::Value(AttributeType::Text),
                     "phone".to_string() => NestedAttrType::Value(AttributeType::Text),
                 }),
-                properties: Some(indexmap! {}),
             }),
         };
 
@@ -750,7 +695,6 @@ mod tests {
                     "address".to_string() => NestedAttrType::Value(AttributeType::Text),
                     "sex".to_string() => NestedAttrType::Value(AttributeType::Text),
                 }),
-                properties: Some(indexmap! {}),
             }),
         };
 

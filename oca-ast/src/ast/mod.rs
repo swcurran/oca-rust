@@ -64,11 +64,6 @@ impl fmt::Display for Command {
                         write!(f, " {}={}", key, value)?;
                     }
                 }
-                if let Some(properties) = &content.properties {
-                    for (key, value) in properties {
-                        write!(f, " {}={}", key, value)?;
-                    }
-                }
             }
             ObjectKind::OCABundle(content) => {
                 write!(f, "OCABUNDLE {}", content.said)?;
@@ -204,7 +199,6 @@ impl From<u8> for ObjectKind {
             }),
             1 => ObjectKind::CaptureBase(CaptureContent {
                 attributes: None,
-                properties: None,
             }),
             2 => ObjectKind::Overlay(OverlayContent {
                 properties: None,
@@ -257,12 +251,6 @@ impl Hash for CaptureContent {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         if let Some(attributes) = &self.attributes {
             for (key, value) in attributes {
-                key.hash(state);
-                value.hash(state);
-            }
-        }
-        if let Some(properties) = &self.properties {
-            for (key, value) in properties {
                 key.hash(state);
                 value.hash(state);
             }
@@ -325,8 +313,6 @@ pub struct BundleContent {
 pub struct CaptureContent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attributes: Option<IndexMap<String, NestedAttrType>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub properties: Option<IndexMap<String, NestedValue>>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Eq)]
@@ -525,7 +511,6 @@ mod tests {
             kind: CommandType::Add,
             object_kind: ObjectKind::CaptureBase(CaptureContent {
                 attributes: Some(attributes),
-                properties: Some(properties),
             }),
         };
 
@@ -567,7 +552,7 @@ mod tests {
 
         assert_eq!(
             serialized,
-            r#"{"version":"2.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"},"properties":{"test":"test"}}},{"type":"Add","object_kind":"Overlay","content":{"properties":{"language":"pl-PL","attribute_labels":{"allowed":"Dopuszczony"}},"overlay_def":{"namespace":null,"name":"label","version":"2.0.0","elements":[{"name":"language","keys":"Text","values":"Lang"},{"name":"attribute_labels","keys":"AttrNames","values":"Text"}]}}}],"commands_meta":{},"meta":{}}"#
+            r#"{"version":"2.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"}}},{"type":"Add","object_kind":"Overlay","content":{"properties":{"language":"pl-PL","attribute_labels":{"allowed":"Dopuszczony"}},"overlay_def":{"namespace":null,"name":"label","version":"2.0.0","elements":[{"name":"language","keys":"Text","values":"Lang"},{"name":"attribute_labels","keys":"AttrNames","values":"Text"}]}}}],"commands_meta":{},"meta":{}}"#
         );
 
         let ast = serde_json::from_str::<OCAAst>(&serialized).unwrap();

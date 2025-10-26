@@ -9,7 +9,6 @@ use self::{
     instructions::{add::AddInstruction, from::FromInstruction, remove::RemoveInstruction},
 };
 use crate::ocafile::error::InstructionError;
-use convert_case::{Case, Casing};
 use oca_ast::{
     ast::{
         self, recursive_attributes::NestedAttrTypeFrame, Command, CommandMeta, NestedAttrType,
@@ -171,9 +170,7 @@ fn format_nested_value(value: &ast::NestedValue, indent: usize) -> String {
                 let formatted_value = format_nested_value(v, indent + 2);
                 if v.is_object() {
                     format!("{}{}\n{}", " ".repeat(indent), k, formatted_value)
-                } else if v.is_array() {
-                    format!("{}{}={}", " ".repeat(indent), k, formatted_value)
-                } else if v.is_reference() {
+                } else if v.is_array() || v.is_reference() {
                     format!("{}{}={}", " ".repeat(indent), k, formatted_value)
                 } else {
                     format!("{}{}=\"{}\"", " ".repeat(indent), k, formatted_value)

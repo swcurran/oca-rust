@@ -212,7 +212,6 @@ impl AddInstruction {
                     }
                     debug!("Attributes: {:?}", attributes);
                     object_kind = Some(ObjectKind::CaptureBase(CaptureContent {
-                        properties: None,
                         attributes: Some(attributes),
                     }));
                 }
@@ -283,9 +282,6 @@ mod tests {
                                 ObjectKind::CaptureBase(content) => {
                                     if content.attributes.is_some() {
                                         assert!(!content.attributes.unwrap().is_empty());
-                                    }
-                                    if content.properties.is_some() {
-                                        assert!(!content.properties.unwrap().is_empty());
                                     }
                                 }
                                 _ => {

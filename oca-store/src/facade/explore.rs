@@ -39,7 +39,6 @@ impl Facade {
             ),
             &[u8::from(ObjectKind::CaptureBase(CaptureContent {
                 attributes: None,
-                properties: None,
             }))],
         )?;
         oca_bundle.overlays.iter().for_each(|overlay| {

@@ -95,7 +95,6 @@ mod tests {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::CaptureBase(CaptureContent {
                 attributes: Some(attributes),
-                properties: None,
             }),
         });
 
@@ -237,7 +236,6 @@ mod tests {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::CaptureBase(CaptureContent {
                 attributes: Some(attributes),
-                properties: None,
             }),
         });
 

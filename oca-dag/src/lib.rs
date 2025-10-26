@@ -186,7 +186,6 @@ mod tests {
                 attributes: Some(indexmap! {
                     "abc".to_string() => ast::NestedAttrType::Value(ast::AttributeType::Text)
                 }),
-                properties: None,
             }),
         });
 
@@ -209,7 +208,6 @@ mod tests {
                 attributes: Some(indexmap! {
                     "def".to_string() => ast::NestedAttrType::Value(ast::AttributeType::Text)
                 }),
-                properties: None,
             }),
         });
 

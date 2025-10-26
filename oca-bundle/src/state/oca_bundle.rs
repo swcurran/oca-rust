@@ -2,7 +2,6 @@ use indexmap::IndexMap;
 use log::info;
 use overlay::{Overlay, OverlayModel};
 use overlay_file::overlay_registry::OverlayLocalRegistry;
-use overlay_file::OverlayDef;
 pub use said::derivation::{HashFunction, HashFunctionCode};
 pub use said::error;
 pub use said::{make_me_sad, ProtocolVersion, SelfAddressingIdentifier};
@@ -70,8 +69,6 @@ impl OCABundleModel {
     pub fn to_ast(&self, registry: OverlayLocalRegistry) -> OCAAst {
         let mut ast = OCAAst::new();
 
-        let properties = None;
-
         let mut attributes = IndexMap::new();
         self.capture_base
             .attributes
@@ -84,7 +81,6 @@ impl OCABundleModel {
             kind: CommandType::Add,
             object_kind: ObjectKind::CaptureBase(CaptureContent {
                 attributes: Some(self.capture_base.attributes.clone()),
-                properties,
             }),
         };
         ast.commands.push(command);
