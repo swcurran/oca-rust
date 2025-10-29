@@ -45,8 +45,7 @@ impl Serialize for OCABundle {
     {
         use serde::ser::SerializeMap;
         let mut map = serializer.serialize_map(None)?;
-        // Version is not serialized as it colides with make_me_sad which adds it.
-        // map.serialize_entry("v", &self.model.version)?;
+        map.serialize_entry("v", &self.model.version)?;
         map.serialize_entry("digest", &self.model.digest)?;
         map.serialize_entry("capture_base", &self.model.capture_base)?;
         let overlays: Vec<Overlay> = self.model.overlays.iter().map(Overlay::from).collect();
@@ -165,7 +164,7 @@ impl OCABundleModel {
 
         let oca_bundle = OCABundle::from(self.clone());
         let serialized_bundle = serde_json::to_string(&oca_bundle)
-            .map_err(|_| serde_json::Error::custom("Failed to serialize OCABundleModel"))
+            .map_err(|_| serde_json::Error::custom("Failed to serialize OCABundle"))
             .unwrap();
 
         let code = HashFunctionCode::Blake3_256;
