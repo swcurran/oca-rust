@@ -1,3 +1,4 @@
+
 pub mod error;
 pub mod overlay_registry;
 pub mod validator;
@@ -264,30 +265,53 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                         let mut values: Option<ElementType> = None;
                         debug!("Parsing overlay array: {:?}", attr);
                         for a in attr.into_inner() {
+                            debug!("Parsing overlay array element: {:?}", a);
                             match a.as_rule() {
-                                Rule::attr_name => {
-                                    name = Some(a.as_str().to_string());
-                                }
-                                Rule::value_type => match a.into_inner().next() {
-                                    Some(v) => match v.as_rule() {
-                                        Rule::array_type => {
-                                            values = Some(ElementType::Array(None));
+                                Rule::overlay_array_header => {
+                                    for header_item in a.into_inner() {
+                                        if let Rule::attr_name = header_item.as_rule() {
+                                            name = Some(header_item.as_str().to_string());
                                         }
-                                        _ => continue,
-                                    },
-                                    None => {
-                                        return Err(ParseError::MetaError(
-                                            "value type is empty".to_string(),
-                                        ));
                                     }
-                                },
+                                }
+                                Rule::overlay_array_body => {
+                                    for body_item in a.into_inner() {
+                                        if let Rule::value_type = body_item.as_rule() {
+                                            match body_item.into_inner().next() {
+                                                Some(v) => match v.as_rule() {
+                                                    Rule::array_type => {
+                                                        values = Some(ElementType::Array(None));
+                                                    }
+                                                    Rule::TEXT_TYPE => {
+                                                        values = Some(ElementType::Text);
+                                                    }
+                                                    Rule::REF_TYPE => {
+                                                        values = Some(ElementType::Ref);
+                                                    }
+                                                    Rule::LANG_TYPE => {
+                                                        values = Some(ElementType::Lang);
+                                                    }
+                                                    Rule::ANY_TYPE => {
+                                                        values = Some(ElementType::Any);
+                                                    }
+                                                    _ => continue,
+                                                },
+                                                None => {
+                                                    return Err(ParseError::MetaError(
+                                                        "value type is empty".to_string(),
+                                                    ));
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                                 _ => continue,
                             }
                         }
                         let overlay_element = OverlayElementDef {
                             name: name.clone().unwrap_or_default(),
                             keys: KeyType::Text,
-                            values: values.clone().unwrap_or(ElementType::Object(None)),
+                            values: values.clone().unwrap_or(ElementType::Array(None)),
                         };
                         overlay_def.elements.push(overlay_element);
                     }
