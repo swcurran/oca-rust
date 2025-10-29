@@ -1,4 +1,3 @@
-
 pub mod error;
 pub mod overlay_registry;
 pub mod validator;
@@ -72,7 +71,12 @@ impl OverlayDef {
     }
     pub fn get_full_name(&self) -> String {
         if self.namespace.is_some() {
-            format!("{}:{}/{}", self.namespace.as_ref().unwrap(), self.name, self.version)
+            format!(
+                "{}:{}/{}",
+                self.namespace.as_ref().unwrap(),
+                self.name,
+                self.version
+            )
         } else {
             format!("{}/{}", self.name, self.version)
         }
@@ -708,4 +712,3 @@ ADD OVERLAY ENTRY
         );
     }
 }
-

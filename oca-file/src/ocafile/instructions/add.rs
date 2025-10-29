@@ -1,9 +1,9 @@
-
 use crate::ocafile::{error::InstructionError, instructions::helpers, Pair, Rule};
 use indexmap::IndexMap;
 use log::{debug, info};
 use oca_ast::ast::{
-    CaptureContent, Command, CommandType, NestedAttrType, NestedValue, ObjectKind, OverlayContent, RefValue,
+    CaptureContent, Command, CommandType, NestedAttrType, NestedValue, ObjectKind, OverlayContent,
+    RefValue,
 };
 use overlay_file::{overlay_registry::OverlayRegistry, OverlayDef};
 use said::SelfAddressingIdentifier;
@@ -22,7 +22,10 @@ pub fn resolve_overlay_def<'a>(
 }
 
 // TODO: move to helpers.rs
-pub fn parse_overlay_body(pair: Pair, overlay_def: OverlayDef) -> Result<IndexMap<String, NestedValue>, InstructionError> {
+pub fn parse_overlay_body(
+    pair: Pair,
+    overlay_def: OverlayDef,
+) -> Result<IndexMap<String, NestedValue>, InstructionError> {
     let mut map = IndexMap::new();
     let mut attributes: IndexMap<String, NestedValue> = IndexMap::new();
     let mut properties: IndexMap<String, NestedValue> = IndexMap::new();
@@ -90,15 +93,12 @@ pub fn parse_overlay_body(pair: Pair, overlay_def: OverlayDef) -> Result<IndexMa
                         map.insert(key.clone().unwrap(), value.clone().unwrap());
                     }
                     Rule::array => {
-                        let array_inner = key_value
-                            .into_inner()
-                            .next()
-                            .ok_or_else(|| {
-                                InstructionError::Parser(format!(
-                                    "Invalid array value for key '{}'",
-                                    key.as_ref().unwrap()
-                                ))
-                            })?;
+                        let array_inner = key_value.into_inner().next().ok_or_else(|| {
+                            InstructionError::Parser(format!(
+                                "Invalid array value for key '{}'",
+                                key.as_ref().unwrap()
+                            ))
+                        })?;
 
                         let values = array_inner
                             .into_inner()
@@ -106,9 +106,7 @@ pub fn parse_overlay_body(pair: Pair, overlay_def: OverlayDef) -> Result<IndexMa
                                 v.into_inner()
                                     .next()
                                     .map(|inner| {
-                                        NestedValue::Value(
-                                            inner.into_inner().as_str().to_string()
-                                        )
+                                        NestedValue::Value(inner.into_inner().as_str().to_string())
                                     })
                                     .ok_or_else(|| {
                                         InstructionError::Parser(format!(
@@ -165,7 +163,7 @@ pub fn parse_overlay_body(pair: Pair, overlay_def: OverlayDef) -> Result<IndexMa
                             InstructionError::Parser("Missing key in nested block".to_string())
                         })?
                         .as_str()
-                        .to_string()
+                        .to_string(),
                 );
 
                 let body = inner.next().ok_or_else(|| {
@@ -445,4 +443,3 @@ mod tests {
         }
     }
 }
-

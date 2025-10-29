@@ -1,4 +1,3 @@
-
 use crate::{
     ast::{Command, CommandType, NestedAttrType, NestedValue, OCAAst, ObjectKind, OverlayContent},
     errors::Error,
@@ -203,7 +202,10 @@ fn validate_overlay(
     // Check for missing required properties
     for element in &overlay_content.overlay_def.elements {
         if !element.name.is_empty() && !found_elements.contains(&element.name) {
-            errors.push(Error::MissingRequiredAttribute(element.name.clone(), overlay_content.overlay_def.get_full_name()));
+            errors.push(Error::MissingRequiredAttribute(
+                element.name.clone(),
+                overlay_content.overlay_def.get_full_name(),
+            ));
         }
     }
 }
@@ -255,7 +257,10 @@ fn is_valid_property_type(
                 let mut last_error = String::new();
 
                 for t in types {
-                    debug!("Checking value {:?} for key '{}' against type {:?}", v, key, t);
+                    debug!(
+                        "Checking value {:?} for key '{}' against type {:?}",
+                        v, key, t
+                    );
                     match is_valid_property_type(v, t) {
                         Ok(true) => {
                             any_valid = true;

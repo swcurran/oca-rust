@@ -81,9 +81,7 @@ pub fn build_from_ocafile(
     Ok(bundle)
 }
 
-pub fn parse_oca_bundle_to_ocafile(
-    bundle: &OCABundleModel,
-) -> String {
+pub fn parse_oca_bundle_to_ocafile(bundle: &OCABundleModel) -> String {
     ocafile::generate_from_ast(&bundle.to_ast())
 }
 

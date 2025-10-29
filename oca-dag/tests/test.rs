@@ -8,9 +8,7 @@ fn generate_commands() -> Vec<ast::Command> {
 
     commands.push(ast::Command {
         kind: ast::CommandType::Add,
-        object_kind: ast::ObjectKind::CaptureBase(ast::CaptureContent {
-            attributes: None,
-        }),
+        object_kind: ast::ObjectKind::CaptureBase(ast::CaptureContent { attributes: None }),
     });
 
     let mut attributes = IndexMap::new();

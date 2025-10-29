@@ -197,9 +197,7 @@ impl From<u8> for ObjectKind {
             0 => ObjectKind::OCABundle(BundleContent {
                 said: ReferenceAttrType::Reference(RefValue::Name("".to_string())),
             }),
-            1 => ObjectKind::CaptureBase(CaptureContent {
-                attributes: None,
-            }),
+            1 => ObjectKind::CaptureBase(CaptureContent { attributes: None }),
             2 => ObjectKind::Overlay(OverlayContent {
                 properties: None,
                 overlay_def: OverlayDef::default(),

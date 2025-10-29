@@ -27,7 +27,7 @@ ADD OVERLAY conformance
     with keys ATTR-NAMES
     with values TEXT
 
-add OVERLAY format
+ADD OVERLAY format
   version 2.0.0
   add object attribute_formats
     with keys attr-names
