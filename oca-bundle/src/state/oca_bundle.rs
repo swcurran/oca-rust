@@ -1,7 +1,6 @@
 use indexmap::IndexMap;
 use log::info;
 use overlay::{Overlay, OverlayModel};
-use overlay_file::overlay_registry::OverlayLocalRegistry;
 pub use said::derivation::{HashFunction, HashFunctionCode};
 pub use said::error;
 pub use said::{make_me_sad, ProtocolVersion, SelfAddressingIdentifier};
