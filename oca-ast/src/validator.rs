@@ -181,21 +181,24 @@ fn validate_overlay(
                 }
                 Ok(false) => {
                     errors.push(Error::InvalidPropertyValue(format!(
-                        "Property '{}' has an invalid value type",
-                        prop_name
+                        "Property '{}' in {} has an invalid value type",
+                        prop_name,
+                        overlay_content.overlay_def.get_full_name(),
                     )));
                 }
                 Err(err_msg) => {
                     errors.push(Error::InvalidPropertyValue(format!(
-                        "Property '{}': {}",
-                        prop_name, err_msg
+                        "Property '{}': {} in {}",
+                        prop_name, err_msg,
+                        overlay_content.overlay_def.get_full_name(),
                     )));
                 }
             }
         } else {
             errors.push(Error::InvalidProperty(format!(
-                "Property '{}' is not allowed by the overlay definition",
-                prop_name
+                "Property '{}' is not allowed by the overlay definition {}",
+                prop_name,
+                overlay_content.overlay_def.get_full_name(),
             )));
         }
     }
@@ -760,11 +763,11 @@ mod tests {
                 );
                 assert_eq!(
                     errors[0].to_string(),
-                    "Invalid Property Value: Property 'attr_labels': Mismatched value type: expected Text, got Reference(Name(\"passport\"))"
+                    "Invalid Property Value: Property 'attr_labels': Mismatched value type: expected Text, got Reference(Name(\"passport\")) in hcf:Label/2.0.0"
                 );
                 assert_eq!(
                     errors[1].to_string(),
-                    "Invalid Property: Property 'lang' is not allowed by the overlay definition"
+                    "Invalid Property: Property 'lang' is not allowed by the overlay definition hcf:Label/2.0.0"
                 );
             }
             Err(e) => assert!(false, "Unexpected error: {:?}", e),
@@ -791,7 +794,7 @@ mod tests {
             Err(Error::Validation(errors)) => {
                 assert_eq!(
                     errors[0].to_string(),
-                    "Invalid Property Value: Property 'custom2': Mismatched value type: expected Text, got Array([Value(\"Custom value 2\"), Value(\"Custom value 3\")])"
+                    "Invalid Property Value: Property 'custom2': Mismatched value type: expected Text, got Array([Value(\"Custom value 2\"), Value(\"Custom value 3\")]) in hcf:meta/2.0.0"
                 );
             }
             Err(e) => assert!(false, "Unexpected error: {:?}", e),
