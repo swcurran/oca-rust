@@ -1,5 +1,6 @@
 use crate::state::oca_bundle::overlay::OverlayModel;
 use crate::state::oca_bundle::OCABundleModel;
+use log::info;
 use oca_ast::ast;
 
 /// OCABuild represents a build process of an OCA bundle from OCA AST.
@@ -136,7 +137,12 @@ pub fn apply_command(
         (ast::CommandType::Modify, ast::ObjectKind::Overlay(_)) => todo!(),
     }
     // Calculate and fill digest for bundle, capture base and overlays
-    let _ = base.compute_and_fill_digest();
+    match base.compute_and_fill_digest() {
+        Ok(_) => info!("Digests filled successfully"),
+        Err(e) => {
+            return Err(vec![format!("Error filling digests: {}", e)])
+        }
+    }
     base.fill_attributes();
     if errors.is_empty() {
         Ok(base)
