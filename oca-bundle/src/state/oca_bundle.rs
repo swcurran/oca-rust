@@ -208,6 +208,7 @@ mod tests {
     use super::*;
     use crate::build::from_ast;
     use oca_file::ocafile::parse_from_string;
+    use overlay_file::overlay_registry::OverlayLocalRegistry;
 
     #[test]
     fn build_oca_bundle() {
