@@ -342,12 +342,12 @@ ADD Overlay META
   description="Entrance credential"
   name="Entrance credential"
 ADD Overlay CHARACTER_ENCODING
-  attribute_character_encoding
+  attribute_character_encodings
     d="utf-8"
     i="utf-8"
     passed="utf-8"
 ADD Overlay CONFORMANCE
-  attribute_conformance
+  attribute_conformances
     d="M"
     i="M"
     passed="M"
@@ -367,7 +367,7 @@ ADD Overlay UNIT
     d="°"
 ADD ATTRIBUTE list=[Text] el=Text
 ADD Overlay CARDINALITY
-  attribute_cardinality
+  attribute_cardinalities
     list="1-2"
 ADD Overlay ENTRY_CODE
   attribute_entry_codes
