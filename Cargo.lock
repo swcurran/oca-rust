@@ -197,7 +197,9 @@ dependencies = [
 
 [[package]]
 name = "cesrox"
-version = "2.0.0-alpha.1"
+version = "2.0.0-alpha.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "07e95c8a452ae918dfee800dceab194273555cfeabb79349fb94a340ffd6f609"
 dependencies = [
  "anyhow",
  "base64",
@@ -1209,7 +1211,9 @@ checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
 
 [[package]]
 name = "said"
-version = "0.5.0"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e60c10ae86aa426a9678f93da6ae00b16be1af0fcfaa189683292202e1ffbff2"
 dependencies = [
  "base64",
  "blake2",
