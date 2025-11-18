@@ -139,9 +139,7 @@ pub fn apply_command(
     // Calculate and fill digest for bundle, capture base and overlays
     match base.compute_and_fill_digest() {
         Ok(_) => info!("Digests filled successfully"),
-        Err(e) => {
-            return Err(vec![format!("Error filling digests: {}", e)])
-        }
+        Err(e) => return Err(vec![format!("Error filling digests: {}", e)]),
     }
     base.fill_attributes();
     if errors.is_empty() {

@@ -66,7 +66,7 @@ impl OverlayfileValidator {
             ElementType::Lang => {
                 //TODO Additional validation for language element
             }
-            ElementType::Complex(element_types) => {
+            ElementType::Complex(_element_types) => {
                 debug!("Validation of complex element for overlay");
             }
             ElementType::Any => {

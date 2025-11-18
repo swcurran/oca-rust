@@ -31,8 +31,8 @@ pub fn parse_overlay_body(
     let mut properties: IndexMap<String, NestedValue> = IndexMap::new();
 
     let attr_elements = overlay_def.get_attr_elements();
-    let mut value: Option<NestedValue> = None;
-    let mut key: Option<String> = None;
+    let mut value: Option<NestedValue>;
+    let mut key: Option<String>;
 
     // Find out what is set as attr-names and thorw it into attributes
     // everything else goes to properties

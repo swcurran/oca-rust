@@ -120,7 +120,7 @@ impl OCABundleModel {
     /// Remove attribute from the OCA Bundle
     /// if attribute does not exist, nothing will happen
     pub fn remove_attribute(&mut self, attr_name: &String) {
-        self.capture_base.attributes.remove(attr_name);
+        self.capture_base.attributes.shift_remove(attr_name);
     }
 
     pub fn get_attribute_by_name(&self, name: &str) -> Option<&Attribute> {

@@ -189,7 +189,8 @@ fn validate_overlay(
                 Err(err_msg) => {
                     errors.push(Error::InvalidPropertyValue(format!(
                         "Property '{}': {} in {}",
-                        prop_name, err_msg,
+                        prop_name,
+                        err_msg,
                         overlay_content.overlay_def.get_full_name(),
                     )));
                 }
@@ -724,13 +725,17 @@ mod tests {
             }),
         };
 
-        let result = validate_against_overlay_def(&ocaast, &valid_overlay);
-        match result {
-            Ok(_) => assert!(true, "Valid overlay should pass validation"),
+        match validate_against_overlay_def(&ocaast, &valid_overlay) {
+            Ok(_) => {} // success, continue
             Err(Error::Validation(errors)) => {
-                assert!(false, "Unexpected validation errors: {:?}", errors);
+                panic!(
+                    "Valid overlay should pass validation, got errors: {:?}",
+                    errors
+                );
             }
-            Err(e) => assert!(false, "Unexpected error: {:?}", e),
+            Err(e) => {
+                panic!("Unexpected error during validation: {:?}", e);
+            }
         }
 
         ocaast.commands.push(valid_overlay.clone());
@@ -751,8 +756,8 @@ mod tests {
 
         let result = validate_against_overlay_def(&ocaast, &invalid_overlay_missing_field);
         match result {
-            Ok(_) => assert!(
-                false,
+            Ok(is_valid) => assert!(
+                !is_valid,
                 "Overlay with missing required field should fail validation"
             ),
             Err(Error::Validation(errors)) => {
@@ -770,7 +775,7 @@ mod tests {
                     "Invalid Property: Property 'lang' is not allowed by the overlay definition hcf:Label/2.0.0"
                 );
             }
-            Err(e) => assert!(false, "Unexpected error: {:?}", e),
+            Err(e) => panic!("Unexpected error: {:?}", e),
         }
 
         // Test case 3: validate custom fileds and check their values
@@ -788,16 +793,15 @@ mod tests {
             }),
         };
 
-        let result = validate_against_overlay_def(&ocaast, &meta_overlay);
-        match result {
-            Ok(_) => assert!(true, "Meta overlay should pass validation"),
+        match validate_against_overlay_def(&ocaast, &meta_overlay) {
+            Ok(_) => {} // success, continue
             Err(Error::Validation(errors)) => {
                 assert_eq!(
                     errors[0].to_string(),
                     "Invalid Property Value: Property 'custom2': Mismatched value type: expected Text, got Array([Value(\"Custom value 2\"), Value(\"Custom value 3\")]) in hcf:meta/2.0.0"
                 );
             }
-            Err(e) => assert!(false, "Unexpected error: {:?}", e),
+            Err(e) => panic!("Unexpected error: {:?}", e),
         }
 
         // Test case 4: validate complex types
@@ -814,10 +818,9 @@ mod tests {
             }),
         };
 
-        let result = validate_against_overlay_def(&ocaast, &entry_code_overlay);
-        match result {
-            Ok(_) => assert!(true, "Entry code overlay should pass validation"),
-            Err(e) => assert!(false, "Unexpected error: {:?}", e),
+        match validate_against_overlay_def(&ocaast, &entry_code_overlay) {
+            Ok(result) => assert!(result, "Entry code overlay should pass validation"),
+            Err(e) => panic!("Unexpected error: {:?}", e),
         }
 
         // Test case 5: validate complex types part 2 - refs
@@ -835,8 +838,8 @@ mod tests {
 
         let result = validate_against_overlay_def(&ocaast, &entry_code_overlay);
         match result {
-            Ok(_) => assert!(true, "Entry code overlay should pass validation"),
-            Err(e) => assert!(false, "Unexpected error: {:?}", e),
+            Ok(is_valid) => assert!(is_valid, "Entry code overlay should pass validation"),
+            Err(e) => panic!("Unexpected error: {:?}", e),
         }
         // Test case 5: validate complex types: Object
         let entry_overlay = Command {
@@ -857,7 +860,7 @@ mod tests {
 
         let result = validate_against_overlay_def(&ocaast, &entry_overlay);
         match result {
-            Ok(_) => assert!(true, "Entry overlay should pass validation"),
+            Ok(is_valid) => assert!(is_valid, "Entry overlay should pass validation"),
             Err(Error::Validation(errors)) => {
                 assert_eq!(errors.len(), 1);
                 assert_eq!(
@@ -865,7 +868,7 @@ mod tests {
                     "Invalid Property Value: Property 'attribute_entries"
                 );
             }
-            Err(e) => assert!(false, "Unexpected error: {:?}", e),
+            Err(e) => panic!("Unexpected error: {:?}", e),
         }
     }
 }
