@@ -1,9 +1,9 @@
 [package]
 name = "oca-store"
 description = "Simple OCA object storage"
-version = "2.0.0-rc2"
+version = "2.0.0-rc.2"
 license = "EUPL-1.2"
-edition = "2021"
+edition = "2024"
 authors = ["Human Colossus Community <contact@humancolossus.org>"]
 readme = "README.md"
 include = ["src/**/*", "README.md"]
@@ -20,7 +20,7 @@ dyn-clonable = "0.9.0"
 isolang = "2.3.0"
 oca-ast = { version = "2.0.0-rc.2" }
 oca-bundle = { version = "2.0.0-rc.4" }
-oca-dag = { version = "2.0.0-rc.2", path = "../oca-dag" }
+oca-dag = { version = "2.0.0-rc.2" }
 oca-file = { version = "2.0.0-rc.3" }
 overlay-file = { version = "1.0.0-rc.2" }
 # transformation-file = { version = "2.0.0-rc2", path = "../transformation/transformation-file" }

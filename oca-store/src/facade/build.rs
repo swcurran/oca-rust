@@ -1,5 +1,5 @@
-use super::fetch::get_oca_bundle_model;
 use super::Facade;
+use super::fetch::get_oca_bundle_model;
 use crate::data_storage::{DataStorage, Namespace};
 #[cfg(feature = "local-references")]
 use crate::local_references;
@@ -177,42 +177,42 @@ impl Facade {
         // TODO it does only the reference FROM command check how we do it now
         // TODO this should be avoided if the ast is passed for further processing, the base is
         // checked again in generate bundle
-        if let Some(first_command) = oca_ast.commands.first() {
-            if let (oca_ast::ast::CommandType::From, ObjectKind::OCABundle(content)) = (
+        if let Some(first_command) = oca_ast.commands.first()
+            && let (oca_ast::ast::CommandType::From, ObjectKind::OCABundle(content)) = (
                 first_command.clone().kind,
                 first_command.clone().object_kind,
-            ) {
-                match content.said {
-                    ReferenceAttrType::Reference(refs) => match refs {
-                        RefValue::Said(said) => match get_oca_bundle_model(storage, said) {
-                            Ok(bundle_model) => {
-                                info!("Base OCABundle found: {:?}", bundle_model.digest);
-                                base = Some(bundle_model.clone());
-                            }
-                            Err(e) => {
-                                let default_command_meta = oca_ast::ast::CommandMeta {
-                                    line_number: 0,
-                                    raw_line: "unknown".to_string(),
-                                };
-                                let command_meta = oca_ast
-                                    .commands_meta
-                                    .get(&0)
-                                    .unwrap_or(&default_command_meta);
-                                e.iter().for_each(|e| {
-                                    errors.push(ValidationError::InvalidCommand {
-                                        line_number: command_meta.line_number,
-                                        raw_line: command_meta.raw_line.clone(),
-                                        message: e.clone(),
-                                    })
-                                });
-                                return Err(errors);
-                            }
-                        },
-                        RefValue::Name(_) => todo!(),
+            )
+        {
+            match content.said {
+                ReferenceAttrType::Reference(refs) => match refs {
+                    RefValue::Said(said) => match get_oca_bundle_model(storage, said) {
+                        Ok(bundle_model) => {
+                            info!("Base OCABundle found: {:?}", bundle_model.digest);
+                            base = Some(bundle_model.clone());
+                        }
+                        Err(e) => {
+                            let default_command_meta = oca_ast::ast::CommandMeta {
+                                line_number: 0,
+                                raw_line: "unknown".to_string(),
+                            };
+                            let command_meta = oca_ast
+                                .commands_meta
+                                .get(&0)
+                                .unwrap_or(&default_command_meta);
+                            e.iter().for_each(|e| {
+                                errors.push(ValidationError::InvalidCommand {
+                                    line_number: command_meta.line_number,
+                                    raw_line: command_meta.raw_line.clone(),
+                                    message: e.clone(),
+                                })
+                            });
+                            return Err(errors);
+                        }
                     },
-                }
-                oca_ast.commands.remove(0);
+                    RefValue::Name(_) => todo!(),
+                },
             }
+            oca_ast.commands.remove(0);
         };
         Ok((base, oca_ast))
     }

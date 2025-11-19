@@ -105,10 +105,10 @@ impl DataStorage for SledDataStorage {
     }
 
     fn config(&self, config: HashMap<String, String>) -> Self {
-        if let Some(path) = config.get("path") {
-            if let Ok(db) = sled::open(path) {
-                return Self { db: Some(db) };
-            }
+        if let Some(path) = config.get("path")
+            && let Ok(db) = sled::open(path)
+        {
+            return Self { db: Some(db) };
         }
         self.clone()
     }

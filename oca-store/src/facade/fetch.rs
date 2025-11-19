@@ -8,15 +8,15 @@ use crate::{
 use crate::{data_storage::Namespace, repositories::OCABundleFTSRecord};
 use log::info;
 use oca_ast::ast::{self, NestedValue, OCAAst, ObjectKind, RefValue};
-use oca_bundle::state::oca_bundle::{capture_base::CaptureBase, OCABundle};
+use oca_bundle::state::oca_bundle::{OCABundle, capture_base::CaptureBase};
 use oca_bundle::{
     build::OCABuildStep,
-    state::oca_bundle::{overlay::Overlay, OCABundleModel},
+    state::oca_bundle::{OCABundleModel, overlay::Overlay},
 };
 use oca_file::ocafile;
 use said::SelfAddressingIdentifier;
 
-use serde::{ser::SerializeStruct, Serialize};
+use serde::{Serialize, ser::SerializeStruct};
 #[cfg(feature = "local-references")]
 use std::collections::HashMap;
 use std::str::FromStr;

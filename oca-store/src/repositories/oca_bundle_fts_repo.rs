@@ -81,7 +81,9 @@ impl OCABundleFTSRepo {
         let query = match language {
             Some(lang) => {
                 let lang_code = isolang::Language::to_639_3(&lang).to_string();
-                format!("({{name description}}:{meta_query:} AND language_code:{lang_code:}) OR ({{name description}}:{meta_query:} NOT language_code:{lang_code:})")
+                format!(
+                    "({{name description}}:{meta_query:} AND language_code:{lang_code:}) OR ({{name description}}:{meta_query:} NOT language_code:{lang_code:})"
+                )
             }
             None => format!("{{name description}}:{meta_query:}"),
         };

@@ -18,33 +18,29 @@ pub fn replace_refn_with_refs<R: References>(
     for command in oca_ast.commands.iter_mut() {
         if let (CommandType::Add, ObjectKind::CaptureBase(content)) =
             (&command.kind, &mut command.object_kind)
+            && let Some(attributes) = &mut content.attributes
         {
-            if let Some(attributes) = &mut content.attributes {
-                for (_, attr_type) in attributes {
-                    match attr_type {
-                        NestedAttrType::Reference(RefValue::Name(refn)) => {
+            for (_, attr_type) in attributes {
+                match attr_type {
+                    NestedAttrType::Reference(RefValue::Name(refn)) => {
+                        if let Some(said) = references.find(refn) {
+                            let said = SelfAddressingIdentifier::from_str(&said).unwrap(); // todo
+                            *attr_type = NestedAttrType::Reference(RefValue::Said(said));
+                        } else {
+                            return Err(ValidationError::UnknownRefn(refn.clone()));
+                        }
+                    }
+                    NestedAttrType::Array(box_attr_type) => {
+                        if let NestedAttrType::Reference(RefValue::Name(refn)) = &**box_attr_type {
                             if let Some(said) = references.find(refn) {
                                 let said = SelfAddressingIdentifier::from_str(&said).unwrap(); // todo
-                                *attr_type = NestedAttrType::Reference(RefValue::Said(said));
+                                **box_attr_type = NestedAttrType::Reference(RefValue::Said(said));
                             } else {
                                 return Err(ValidationError::UnknownRefn(refn.clone()));
                             }
                         }
-                        NestedAttrType::Array(box_attr_type) => {
-                            if let NestedAttrType::Reference(RefValue::Name(refn)) =
-                                &**box_attr_type
-                            {
-                                if let Some(said) = references.find(refn) {
-                                    let said = SelfAddressingIdentifier::from_str(&said).unwrap(); // todo
-                                    **box_attr_type =
-                                        NestedAttrType::Reference(RefValue::Said(said));
-                                } else {
-                                    return Err(ValidationError::UnknownRefn(refn.clone()));
-                                }
-                            }
-                        }
-                        _ => (),
                     }
+                    _ => (),
                 }
             }
         }

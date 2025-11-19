@@ -2,7 +2,7 @@ use crate::data_storage::Namespace;
 use oca_ast::ast::{BundleContent, CaptureContent, ObjectKind, OverlayContent, RefValue};
 use oca_bundle::state::oca_bundle::OCABundleModel;
 use overlay_file::OverlayDef;
-use serde::{ser::SerializeStruct, Serialize};
+use serde::{Serialize, ser::SerializeStruct};
 use std::collections::HashSet;
 
 use super::Facade;
