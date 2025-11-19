@@ -26,5 +26,5 @@ strum = "0.27"
 strum_macros = "0.27"
 thiserror = "2.0.17"
 wasm-bindgen = { version = "0.2.89" }
-overlay-file = { version = "1.0.0-rc1", path = "../overlay-file/" }
+overlay-file = { version = "1.0.0-rc.2", path = "../overlay-file/" }
 isolang = "2.4.0"
