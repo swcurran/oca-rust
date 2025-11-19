@@ -831,7 +831,7 @@ dependencies = [
  "log",
  "maplit",
  "oca-ast 2.0.0-rc.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "oca-file",
+ "oca-file 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "once_cell",
  "overlay-file 1.0.0-rc.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "paste",
@@ -886,6 +886,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "oca-file"
+version = "2.0.0-rc.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9426d219abb83753a4e8d0c92de9d19c7dcff1ee315741c02f71b3b5adbd3c5"
+dependencies = [
+ "clap",
+ "convert_case",
+ "env_logger",
+ "indexmap",
+ "log",
+ "oca-ast 2.0.0-rc.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "overlay-file 1.0.0-rc.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pest",
+ "pest_derive",
+ "pretty_assertions",
+ "recursion",
+ "said",
+ "serde",
+ "serde_json",
+ "sled",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "oca-store"
 version = "2.0.0-rc2"
 dependencies = [
@@ -896,7 +920,7 @@ dependencies = [
  "oca-ast 2.0.0-rc.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "oca-bundle",
  "oca-dag",
- "oca-file",
+ "oca-file 2.0.0-rc.3",
  "overlay-file 1.0.0-rc.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex",
  "rusqlite",
