@@ -1,4 +1,4 @@
-use crate::ocafile::{error::InstructionError, Pair, Rule};
+use crate::ocafile::{Pair, Rule, error::InstructionError};
 use indexmap::IndexMap;
 use log::debug;
 use oca_ast::ast::{
@@ -37,7 +37,7 @@ impl RemoveInstruction {
                     return Err(InstructionError::UnexpectedToken(format!(
                         "unexpected token {:?}",
                         object.as_rule()
-                    )))
+                    )));
                 }
             }
         }

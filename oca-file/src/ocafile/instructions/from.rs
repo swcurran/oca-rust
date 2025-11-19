@@ -1,4 +1,4 @@
-use crate::ocafile::{error::InstructionError, Pair, Rule};
+use crate::ocafile::{Pair, Rule, error::InstructionError};
 use log::debug;
 use oca_ast::ast::{BundleContent, Command, CommandType, ObjectKind, RefValue, ReferenceAttrType};
 use said::SelfAddressingIdentifier;
@@ -18,7 +18,7 @@ impl FromInstruction {
                     return Err(InstructionError::UnexpectedToken(format!(
                         "unexpected token {:?}",
                         field.as_rule()
-                    )))
+                    )));
                 }
             };
         }
@@ -38,7 +38,7 @@ impl FromInstruction {
 
 #[cfg(test)]
 mod tests {
-    use crate::ocafile::{self, error::InstructionError, OCAfileParser, Pair, Rule};
+    use crate::ocafile::{self, OCAfileParser, Pair, Rule, error::InstructionError};
     use oca_ast::ast::RefValue;
     use pest::Parser;
 

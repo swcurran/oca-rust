@@ -11,8 +11,8 @@ use self::{
 use crate::ocafile::error::InstructionError;
 use oca_ast::{
     ast::{
-        self, recursive_attributes::NestedAttrTypeFrame, Command, CommandMeta, NestedAttrType,
-        RefValue,
+        self, Command, CommandMeta, NestedAttrType, RefValue,
+        recursive_attributes::NestedAttrTypeFrame,
     },
     validator::{OCAValidator, Validator},
 };
@@ -220,33 +220,27 @@ pub fn generate_from_ast(ast: &OCAAst) -> String {
                         line.push_str("Overlay ");
                         let name = content.overlay_def.get_name();
                         line.push_str(name);
-                        if let Some(content) = command.object_kind.overlay_content() {
-                            if let Some(ref properties) = content.properties {
-                                let properties = properties.clone();
-                                if !properties.is_empty() {
-                                    line.push('\n');
-                                    properties.iter().for_each(|(key, value)| {
-                                        let formatted_value = format_nested_value(value, 4);
-                                        if value.is_object() {
-                                            line.push_str(&format!(
-                                                "  {}\n{}\n",
-                                                key, formatted_value
-                                            ));
-                                        } else if value.is_array() {
-                                            line.push_str(&format!(
-                                                "  {}={}\n",
-                                                key, formatted_value
-                                            ));
-                                        } else if value.is_reference() {
-                                            line.push_str(&format!("  {}={}\n", key, value));
-                                        } else {
-                                            line.push_str(&format!(
-                                                "  {}=\"{}\"\n",
-                                                key, formatted_value
-                                            ));
-                                        }
-                                    });
-                                }
+                        if let Some(content) = command.object_kind.overlay_content()
+                            && let Some(ref properties) = content.properties
+                        {
+                            let properties = properties.clone();
+                            if !properties.is_empty() {
+                                line.push('\n');
+                                properties.iter().for_each(|(key, value)| {
+                                    let formatted_value = format_nested_value(value, 4);
+                                    if value.is_object() {
+                                        line.push_str(&format!("  {}\n{}\n", key, formatted_value));
+                                    } else if value.is_array() {
+                                        line.push_str(&format!("  {}={}\n", key, formatted_value));
+                                    } else if value.is_reference() {
+                                        line.push_str(&format!("  {}={}\n", key, value));
+                                    } else {
+                                        line.push_str(&format!(
+                                            "  {}=\"{}\"\n",
+                                            key, formatted_value
+                                        ));
+                                    }
+                                });
                             }
                         };
                     }

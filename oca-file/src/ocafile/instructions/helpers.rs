@@ -1,10 +1,10 @@
 use std::str::FromStr;
 
-use crate::ocafile::{error::ExtractingAttributeError, Pair, Rule};
+use crate::ocafile::{Pair, Rule, error::ExtractingAttributeError};
 use log::debug;
 use oca_ast::ast::{
-    recursive_attributes::{AttributeTypeResult, NestedAttrTypeFrame},
     AttributeType, NestedAttrType, RefValue,
+    recursive_attributes::{AttributeTypeResult, NestedAttrTypeFrame},
 };
 use recursion::ExpandableExt;
 use said::SelfAddressingIdentifier;
@@ -73,7 +73,7 @@ pub fn extract_attribute(
                 return Err(ExtractingAttributeError::Unexpected(format!(
                     "Unexpected pest rule: {:?}",
                     rule
-                )))
+                )));
             }
         }
     }

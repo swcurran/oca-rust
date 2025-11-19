@@ -1,11 +1,11 @@
-use crate::ocafile::{error::InstructionError, instructions::helpers, Pair, Rule};
+use crate::ocafile::{Pair, Rule, error::InstructionError, instructions::helpers};
 use indexmap::IndexMap;
 use log::{debug, info};
 use oca_ast::ast::{
     CaptureContent, Command, CommandType, NestedAttrType, NestedValue, ObjectKind, OverlayContent,
     RefValue,
 };
-use overlay_file::{overlay_registry::OverlayRegistry, OverlayDef};
+use overlay_file::{OverlayDef, overlay_registry::OverlayRegistry};
 use said::SelfAddressingIdentifier;
 
 pub struct AddInstruction {}
@@ -232,10 +232,12 @@ impl AddInstruction {
                                             }
                                         }
                                         _ => {
-                                            return Err(InstructionError::UnexpectedToken(format!(
-                                                "Overlay: unexpected token {:?}",
-                                                header.as_rule()
-                                            )))
+                                            return Err(InstructionError::UnexpectedToken(
+                                                format!(
+                                                    "Overlay: unexpected token {:?}",
+                                                    header.as_rule()
+                                                ),
+                                            ));
                                         }
                                     }
                                 }
@@ -249,7 +251,7 @@ impl AddInstruction {
                                 return Err(InstructionError::UnexpectedToken(format!(
                                     "Overlay: unexpected token {:?}",
                                     overlay.as_rule()
-                                )))
+                                )));
                             }
                         }
                     }
@@ -273,7 +275,7 @@ impl AddInstruction {
                                 return Err(InstructionError::UnexpectedToken(format!(
                                     "Invalid attributes in ATTRIBUTE instruction {:?}",
                                     attr_pairs.as_rule()
-                                )))
+                                )));
                             }
                         }
                     }
@@ -287,7 +289,7 @@ impl AddInstruction {
                     return Err(InstructionError::UnexpectedToken(format!(
                         "Overlay: unexpected token {:?}",
                         object.as_rule()
-                    )))
+                    )));
                 }
             };
         }
@@ -312,12 +314,30 @@ mod tests {
         let instructions = vec![
             ("ADD ATTRIBUTE documentNumber = [refn:dokument]", true),
             ("ADD ATTRIBUTE documentNumber=[[[refn:dokument]]]", true),
-            ("ADD ATTRIBUTE documentNumber=[ refs:ENyO7FUBx7oILUYt8FwmLaDVmvOZGETXWHICultMSEpW ]", true),
-            ("ADD ATTRIBUTE documentNumber=[refn:klient, refs:ENyO7FUBx7oILUYt8FwmLaDVmvOZGETXWHICultMSEpW]", false),
-            ("ADD ATTRIBUTE documentNumber=snieg documentType=refs:ENyO7FUBx7oILUYt8FwmLaDVmvOZGETXWHICultMSEpW", false),
-            ("ADD ATTRIBUTE documentNumber=refn:snieg documentType=refs:ENyO7FUBx7oILUYt8FwmLaDVmvOZGETXWHICultMSEpW", true),
-            ("ADD ATTRIBUTE documentNumber=Text documentType=Numeric", true),
-            ("ADD ATTRIBUTE documentNumber=Text documentType=Numeric name=Text list=[Numeric]", true),
+            (
+                "ADD ATTRIBUTE documentNumber=[ refs:ENyO7FUBx7oILUYt8FwmLaDVmvOZGETXWHICultMSEpW ]",
+                true,
+            ),
+            (
+                "ADD ATTRIBUTE documentNumber=[refn:klient, refs:ENyO7FUBx7oILUYt8FwmLaDVmvOZGETXWHICultMSEpW]",
+                false,
+            ),
+            (
+                "ADD ATTRIBUTE documentNumber=snieg documentType=refs:ENyO7FUBx7oILUYt8FwmLaDVmvOZGETXWHICultMSEpW",
+                false,
+            ),
+            (
+                "ADD ATTRIBUTE documentNumber=refn:snieg documentType=refs:ENyO7FUBx7oILUYt8FwmLaDVmvOZGETXWHICultMSEpW",
+                true,
+            ),
+            (
+                "ADD ATTRIBUTE documentNumber=Text documentType=Numeric",
+                true,
+            ),
+            (
+                "ADD ATTRIBUTE documentNumber=Text documentType=Numeric name=Text list=[Numeric]",
+                true,
+            ),
             ("ADD ATTRIBUTE name=Text", false),
             ("ADD ATTR name=Text", false),
             ("ADD attribute name=Text", true),

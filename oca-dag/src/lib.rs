@@ -2,7 +2,7 @@ pub mod data_storage;
 pub mod versioning;
 
 use oca_ast::ast;
-use said::{derivation::HashFunction, SelfAddressingIdentifier};
+use said::{SelfAddressingIdentifier, derivation::HashFunction};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -170,7 +170,7 @@ fn apply_step(state: State, step: &oca_bundle::build::OCABuildStep) -> (State, R
 #[cfg(test)]
 mod tests {
     use super::*;
-    use indexmap::{indexmap, IndexMap};
+    use indexmap::{IndexMap, indexmap};
     use oca_ast::ast::OverlayContent;
     use overlay_file::OverlayDef;
 
