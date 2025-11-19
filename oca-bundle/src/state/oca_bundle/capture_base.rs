@@ -1,8 +1,8 @@
 use crate::state::attribute::Attribute;
 use indexmap::IndexMap;
 use oca_ast::ast::NestedAttrType;
-use said::{derivation::HashFunctionCode, make_me_happy, SelfAddressingIdentifier};
-use serde::{ser::SerializeMap, Deserialize, Serialize, Serializer};
+use said::{SelfAddressingIdentifier, derivation::HashFunctionCode, make_me_happy};
+use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
 use thiserror::Error;
 
 pub fn serialize_attributes<S>(

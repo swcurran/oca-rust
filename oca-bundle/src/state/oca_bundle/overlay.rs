@@ -3,7 +3,7 @@ use log::debug;
 use oca_ast::ast::{NestedValue, OverlayContent};
 use overlay_file::OverlayDef;
 use said::make_me_happy;
-use said::{derivation::HashFunctionCode, SelfAddressingIdentifier};
+use said::{SelfAddressingIdentifier, derivation::HashFunctionCode};
 use serde::{Deserialize, Serialize, Serializer};
 use std::collections::BTreeMap;
 use thiserror::Error;

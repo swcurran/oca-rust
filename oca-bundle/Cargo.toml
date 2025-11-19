@@ -3,12 +3,8 @@ name = "oca-bundle"
 description = "Rust implementation of Overlays Capture Architecture bundle"
 version = "2.0.0-rc2"
 license = "EUPL-1.2"
-edition = "2021"
-authors = [
-  "Marcin Olichwiruk <marcin.olichwiruk@opensoftware.pl>",
-  "Robert Mitwicki <robert.mitwicki@opensoftware.pl>",
-  "Michał Pietrus <michal.pietrus@opensoftware.pl>",
-]
+edition = "2024"
+authors = [ "Human Colossus Community <contact@humancolossus.org>" ]
 readme = "README.md"
 include = ["src/**/*", "config/**/*", "README.md"]
 
@@ -48,3 +44,6 @@ env_logger  = "0.11.8"
 
 [dev-dependencies]
 maplit = "1.0.2"
+
+[package.metadata.release]
+tag-name = "{{crate_name}}-v{{version}}"

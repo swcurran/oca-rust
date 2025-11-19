@@ -3,7 +3,7 @@ use log::info;
 use overlay::{Overlay, OverlayModel};
 pub use said::derivation::{HashFunction, HashFunctionCode};
 pub use said::error;
-pub use said::{make_me_sad, ProtocolVersion, SelfAddressingIdentifier};
+pub use said::{ProtocolVersion, SelfAddressingIdentifier, make_me_sad};
 use serde::ser::Error;
 use serde::{Deserialize, Serialize, Serializer};
 use std::collections::HashMap;
@@ -147,7 +147,7 @@ impl OCABundleModel {
             Err(e) => {
                 return Err(OCABundleSerializationError::SerializationError(
                     e.to_string(),
-                ))
+                ));
             }
         }
         let cb_said = self.capture_base.digest.clone();
@@ -160,7 +160,7 @@ impl OCABundleModel {
                 Err(e) => {
                     return Err(OCABundleSerializationError::SerializationError(
                         e.to_string(),
-                    ))
+                    ));
                 }
             }
         }

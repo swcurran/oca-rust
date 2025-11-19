@@ -1,5 +1,5 @@
-use crate::state::oca_bundle::overlay::OverlayModel;
 use crate::state::oca_bundle::OCABundleModel;
+use crate::state::oca_bundle::overlay::OverlayModel;
 use log::info;
 use oca_ast::ast;
 

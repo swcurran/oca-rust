@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use serde::{
-    ser::{SerializeMap, SerializeSeq},
     Deserialize, Serialize,
+    ser::{SerializeMap, SerializeSeq},
 };
 
 impl Serialize for EntryCodes {

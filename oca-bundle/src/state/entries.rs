@@ -1,4 +1,4 @@
-use serde::{ser::SerializeMap, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, ser::SerializeMap};
 use std::collections::HashMap;
 
 impl Serialize for EntriesElement {
