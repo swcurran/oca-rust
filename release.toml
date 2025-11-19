@@ -1,4 +1,4 @@
 publish=false
-shared-version=true
+shared-version=false
 tag-name="v{{version}}"
 pre-release-commit-message="chore({{crate_name}}): release {{version}} version"
