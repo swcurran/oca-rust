@@ -31,3 +31,4 @@ overlay-file = { version = "1.0.0-rc.2" }
 
 [package.metadata.release]
 tag-name = "{{crate_name}}-v{{version}}"
+pre-release-commit-message="chore({{crate_name}}): release {{version}} version"
