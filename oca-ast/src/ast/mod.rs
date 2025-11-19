@@ -2,7 +2,7 @@ use indexmap::IndexMap;
 use overlay_file::OverlayDef;
 use said::SelfAddressingIdentifier;
 use serde::ser::SerializeStruct;
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use std::hash::Hash;
 use std::{collections::HashMap, fmt, str::FromStr};
 use strum_macros::Display;

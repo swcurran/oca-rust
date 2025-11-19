@@ -2,7 +2,7 @@ use crate::{
     ast::{Command, CommandType, NestedAttrType, NestedValue, OCAAst, ObjectKind, OverlayContent},
     errors::Error,
 };
-use indexmap::{indexmap, IndexMap, IndexSet};
+use indexmap::{IndexMap, IndexSet, indexmap};
 use isolang::Language;
 use log::debug;
 use overlay_file::{ElementType, KeyType};

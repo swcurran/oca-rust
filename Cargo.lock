@@ -772,13 +772,13 @@ dependencies = [
 
 [[package]]
 name = "oca-ast"
-version = "2.0.0-rc2"
+version = "2.0.0-rc.2"
 dependencies = [
  "env_logger",
  "indexmap",
  "isolang",
  "log",
- "overlay-file",
+ "overlay-file 1.0.0-rc.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "recursion",
  "regex",
  "said",
@@ -810,7 +810,7 @@ dependencies = [
  "oca-ast",
  "oca-file",
  "once_cell",
- "overlay-file",
+ "overlay-file 1.0.0-rc.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "paste",
  "piccolo",
  "regex",
@@ -833,7 +833,7 @@ dependencies = [
  "isolang",
  "oca-ast",
  "oca-bundle",
- "overlay-file",
+ "overlay-file 1.0.0-rc.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "said",
  "serde",
  "serde_json",
@@ -850,7 +850,7 @@ dependencies = [
  "indexmap",
  "log",
  "oca-ast",
- "overlay-file",
+ "overlay-file 1.0.0-rc.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "pest",
  "pest_derive",
  "pretty_assertions",
@@ -874,7 +874,7 @@ dependencies = [
  "oca-bundle",
  "oca-dag",
  "oca-file",
- "overlay-file",
+ "overlay-file 1.0.0-rc.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex",
  "rusqlite",
  "said",
@@ -908,6 +908,22 @@ dependencies = [
 [[package]]
 name = "overlay-file"
 version = "1.0.0-rc.2"
+dependencies = [
+ "env_logger",
+ "indexmap",
+ "log",
+ "pest",
+ "pest_derive",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "overlay-file"
+version = "1.0.0-rc.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8b23f24f3b83a2bcf212dfa532a0681605c7f095c89d2126243564a0c464f1b"
 dependencies = [
  "env_logger",
  "indexmap",
@@ -1448,7 +1464,7 @@ version = "2.0.0-rc2"
 dependencies = [
  "env_logger",
  "oca-store",
- "overlay-file",
+ "overlay-file 1.0.0-rc.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

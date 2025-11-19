@@ -1,12 +1,12 @@
 use recursion::ExpandableExt;
-use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, ser::SerializeSeq};
 use std::hash::Hash;
 use wasm_bindgen::JsValue;
 
 use super::{
+    AttributeType, RefValue,
     error::AttributeError,
     recursive_attributes::{AttributeTypeResult, NestedAttrTypeFrame},
-    AttributeType, RefValue,
 };
 
 #[derive(Debug, PartialEq, Clone, Eq, Serialize)]
@@ -110,7 +110,7 @@ impl<'de> Deserialize<'de> for NestedAttrType {
 mod tests {
     use said::derivation::{HashFunction, HashFunctionCode};
 
-    use crate::ast::{error::AttributeError, AttributeType, NestedAttrType, RefValue};
+    use crate::ast::{AttributeType, NestedAttrType, RefValue, error::AttributeError};
 
     #[test]
     fn test_nested_array_attribute_type_serialization() {

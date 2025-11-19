@@ -1,9 +1,9 @@
 [package]
 name = "oca-ast"
 description = "Library for handling Abstract Syntax Tree of OCA bundle"
-version = "2.0.0-rc2"
+version = "2.0.0-rc.2"
 license = "EUPL-1.2"
-edition = "2021"
+edition = "2024"
 authors = [ "Human Colossus Community <contact@humancolossus.org>" ]
 readme = "README.md"
 include = ["src/**/*", "LICENSE", "README.md"]
@@ -26,5 +26,8 @@ strum = "0.27"
 strum_macros = "0.27"
 thiserror = "2.0.17"
 wasm-bindgen = { version = "0.2.89" }
-overlay-file = { version = "1.0.0-rc.2", path = "../overlay-file/" }
+overlay-file = { version = "1.0.0-rc.2" }
 isolang = "2.4.0"
+
+[package.metadata.release]
+tag-name = "{{crate_name}}-v{{version}}"
