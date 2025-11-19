@@ -20,3 +20,6 @@ indexmap = { version = "2.12.0", features = ["serde"] }
 thiserror = "2.0.12"
 log = "0.4.20"
 env_logger = "0.11.8"
+
+[package.metadata.release]
+tag-name = "{{crate_name}}-v{{version}}"
