@@ -1,5 +1,5 @@
 use crate::OverlayFile;
-use crate::{parse_from_string, OverlayDef};
+use crate::{OverlayDef, parse_from_string};
 use log::debug;
 use std::{collections::HashMap, fs, path::Path};
 
@@ -26,13 +26,13 @@ impl OverlayLocalRegistry {
 
         for entry in fs::read_dir(dir)? {
             let path = entry?.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("overlayfile") {
-                if let Some(name) = Self::overlay_name_from_path(&path) {
-                    let content = fs::read_to_string(&path)?;
-                    debug!("Parsing overlay file: {}", path.display());
-                    let schema = parse_from_string(content);
-                    overlays.insert(name, schema.unwrap());
-                }
+            if path.extension().and_then(|s| s.to_str()) == Some("overlayfile")
+                && let Some(name) = Self::overlay_name_from_path(&path)
+            {
+                let content = fs::read_to_string(&path)?;
+                debug!("Parsing overlay file: {}", path.display());
+                let schema = parse_from_string(content);
+                overlays.insert(name, schema.unwrap());
             }
         }
 
