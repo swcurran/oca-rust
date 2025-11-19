@@ -19,9 +19,9 @@ local-references = []
 dyn-clonable = "0.9.0"
 isolang = "2.3.0"
 oca-ast = { version = "2.0.0-rc.2" }
-oca-bundle = { version = "2.0.0-rc.4", path = "../oca-bundle" }
+oca-bundle = { version = "2.0.0-rc.4" }
 oca-dag = { version = "2.0.0-rc.2", path = "../oca-dag" }
-oca-file = { version = "2.0.0-rc.3", path = "../oca-file" }
+oca-file = { version = "2.0.0-rc.3" }
 overlay-file = { version = "1.0.0-rc.2" }
 # transformation-file = { version = "2.0.0-rc2", path = "../transformation/transformation-file" }
 regex = "1.9.5"
