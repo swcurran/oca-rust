@@ -3,3 +3,4 @@ target
 Session.vim
 */db_test
 .ignore
+.cargo/
