@@ -1,12 +1,11 @@
 use crate::{
     ast::{Command, CommandType, NestedAttrType, NestedValue, OCAAst, ObjectKind, OverlayContent},
     errors::Error,
+    utils::is_valid_language_code,
 };
 use indexmap::{IndexMap, IndexSet, indexmap};
-use isolang::Language;
 use log::debug;
 use overlay_file::{ElementType, KeyType};
-use regex::Regex;
 
 type CaptureAttributes = IndexMap<String, NestedAttrType>;
 
@@ -342,21 +341,6 @@ fn is_valid_property_type(
             expected_type, value
         )),
     }
-}
-
-fn is_valid_language_code(code: &str) -> bool {
-    // Check if it's a valid ISO 639-1 or ISO 639-3 code
-    if Language::from_639_1(code).is_some() || Language::from_639_3(code).is_some() {
-        return true;
-    }
-
-    // Check if it's a valid ISO 639-1 code with country code (e.g., "en-US")
-    let lang_country_regex = Regex::new(r"^[a-z]{2}-[A-Z]{2}$").unwrap();
-    if lang_country_regex.is_match(code) {
-        let lang_code = &code[0..2];
-        return Language::from_639_1(lang_code).is_some();
-    }
-    false
 }
 /// Check rule for remove command
 /// Rule would be valid if attributes which commands tries to remove exist in the stack
