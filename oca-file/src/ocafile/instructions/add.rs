@@ -16,8 +16,12 @@ pub fn resolve_overlay_def<'a>(
     name: &str,
 ) -> Result<&'a OverlayDef, InstructionError> {
     match registry.get_by_name(name) {
+        Ok(None) => Err(InstructionError::UnknownOverlay(format!(
+            "Overlay '{}' not found in registry",
+            name
+        ))),
         Ok(overlay_def) => Ok(overlay_def.unwrap()),
-        Err(e) => Err(InstructionError::UnknownOverlay(e.to_string())),
+        Err(e) => Err(InstructionError::Unknown(e.to_string())),
     }
 }
 
@@ -384,6 +388,65 @@ mod tests {
                 Err(e) => {
                     println!("Error: {:?}", e);
                     assert!(!is_valid, "Instruction should be invalid");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_add_non_existing_overlay() {
+        let _ = env_logger::builder().is_test(true).try_init();
+
+        let instructions = vec![
+            "ADD OVERLAY NONEXISTENT\n  language=\"en\"\n  name=\"Test\"",
+            "ADD OVERLAY UNKNOWN_OVERLAY\n  attribute=\"value\"",
+            "ADD OVERLAY InvalidOverlay\n  field=\"data\"",
+        ];
+
+        for instruction in instructions {
+            debug!(
+                "Testing non-existing overlay instruction: {:?}",
+                instruction
+            );
+            let parsed_instruction = OCAfileParser::parse(Rule::add, instruction);
+            debug!("Parsed instruction: {:?}", parsed_instruction);
+
+            match parsed_instruction {
+                Ok(mut parsed_instruction) => {
+                    let instruction = parsed_instruction.next();
+                    assert!(instruction.is_some());
+
+                    if let Some(instruction) = instruction {
+                        let registry =
+                            OverlayLocalRegistry::from_dir("../overlay-file/core_overlays")
+                                .unwrap();
+                        let result = AddInstruction::from_record(instruction, 0, &registry);
+
+                        assert!(result.is_err(), "Expected error for non-existing overlay");
+
+                        match result.unwrap_err() {
+                            InstructionError::Parser(msg) => {
+                                assert!(
+                                    msg.contains("Unknown overlay") || msg.contains("not found"),
+                                    "Expected 'Unknown overlay' error, got: {}",
+                                    msg
+                                );
+                                debug!("Correctly caught error: {}", msg);
+                            }
+                            InstructionError::UnknownOverlay(msg) => {
+                                debug!("Correctly caught UnknownOverlay error: {}", msg);
+                            }
+                            other => {
+                                panic!("Unexpected error type: {:?}", other);
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    panic!(
+                        "Parsing should succeed, but overlay resolution should fail. Got parse error: {:?}",
+                        e
+                    );
                 }
             }
         }
