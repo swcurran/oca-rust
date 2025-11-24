@@ -10,7 +10,6 @@ use said::SelfAddressingIdentifier;
 
 pub struct AddInstruction {}
 
-// TODO to chyba powinno być w registry.rs i wystawione jako api
 pub fn resolve_overlay_def<'a>(
     registry: &'a dyn OverlayRegistry,
     name: &str,

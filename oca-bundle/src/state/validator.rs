@@ -1,7 +1,7 @@
 use isolang::Language;
 use std::collections::HashSet;
 
-use super::oca_bundle::OCABundleModel;
+use crate::state::oca_bundle::OCABundleModel;
 
 #[derive(Debug)]
 pub enum Error {
@@ -286,6 +286,8 @@ impl Validator {
 
 #[cfg(test)]
 mod tests {
+    use overlay_file::overlay_registry::OverlayLocalRegistry;
+
     use super::*;
     use crate::controller::load_oca;
 
@@ -465,7 +467,9 @@ mod tests {
   ]
 }
 "#;
-        let oca_bundle = load_oca(&mut data.as_bytes());
+
+        let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
+        let oca_bundle = load_oca(&mut data.as_bytes(), &registry);
         match oca_bundle {
             Ok(oca_bundle) => {
                 let result = validator.validate(&oca_bundle);

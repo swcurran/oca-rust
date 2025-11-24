@@ -7,7 +7,10 @@ use crate::{
 };
 use crate::{data_storage::Namespace, repositories::OCABundleFTSRecord};
 use log::info;
-use oca_ast::ast::{self, NestedValue, OCAAst, ObjectKind, RefValue};
+use oca_ast::{
+    ast::{self, NestedValue, OCAAst, ObjectKind, RefValue},
+    utils::parse_language_code,
+};
 use oca_bundle::state::oca_bundle::{OCABundle, capture_base::CaptureBase};
 use oca_bundle::{
     build::OCABuildStep,
@@ -117,7 +120,6 @@ impl Facade {
                 oca_bundle: self
                     .get_oca_bundle(record.oca_bundle_said.clone())
                     .unwrap()
-                    .model
                     .clone(),
                 metadata: SearchRecordMetadata {
                     phrase: record.metadata.phrase.clone(),
@@ -186,7 +188,7 @@ impl Facade {
                     oca_bundle.digest.clone().unwrap().to_string(),
                     name,
                     description,
-                    isolang::Language::from_639_1(&language).unwrap(),
+                    parse_language_code(&language).unwrap(),
                 );
 
                 oca_bundle_fts_repo.insert(oca_bundle_fts_record);
@@ -358,10 +360,12 @@ impl Facade {
     /// # Return
     /// * `Result<OCABundleModel, Vec<String>>` - OCA bundle model or vector of errors
     ///
-    pub fn get_oca_bundle(&self, said: SelfAddressingIdentifier) -> Result<OCABundle, Vec<String>> {
+    pub fn get_oca_bundle(
+        &self,
+        said: SelfAddressingIdentifier,
+    ) -> Result<OCABundleModel, Vec<String>> {
         let bundle_model = get_oca_bundle_model(self.db_cache.borrow(), said).unwrap();
-        let bundle = OCABundle::from(bundle_model);
-        Ok(bundle)
+        Ok(bundle_model)
     }
 
     pub fn get_oca_bundle_steps(
@@ -407,7 +411,7 @@ impl Facade {
             history.push(OCABuildStep {
                 parent_said: parent_said.clone().parse().ok(),
                 command,
-                result: oca_bundle.model,
+                result: oca_bundle,
             });
             said = parent_said;
 

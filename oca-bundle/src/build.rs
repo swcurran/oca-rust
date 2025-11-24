@@ -119,7 +119,7 @@ pub fn apply_command(
         }
         (ast::CommandType::Add, ast::ObjectKind::Overlay(content)) => {
             let mut overlay = OverlayModel::new(content.clone());
-            overlay.overlay_def = content.overlay_def.clone();
+            overlay.overlay_def = Some(content.overlay_def);
             base.overlays.push(overlay);
         }
         (ast::CommandType::Add, ast::ObjectKind::OCABundle(_)) => todo!(),
@@ -390,7 +390,7 @@ ADD Overlay ENTRY
         assert_eq!(oca_bundle_model.capture_base.attributes.len(), 9);
         assert!(oca_bundle_model.digest.is_some());
         let oca_bundle = OCABundle::from(oca_bundle_model);
-        let overlay_name = oca_bundle.model.overlays.first().unwrap().name.clone();
+        let overlay_name = oca_bundle.overlays.first().unwrap().model.name.clone();
         assert_eq!(overlay_name, "meta");
         // let json = serde_json::to_string_pretty(&oca_bundle).unwrap();
         // println!(" >>> Bundle: {}", json);

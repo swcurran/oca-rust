@@ -88,6 +88,10 @@ impl OverlayRegistry for OverlayLocalRegistry {
     }
 
     fn get_by_fqn(&self, overlay_name: &str) -> Result<&OverlayDef, &'static str> {
+        // Remove "overlay/" prefix if present, as it should not be used to search for in registry
+        let overlay_name = overlay_name
+            .strip_prefix("overlay/")
+            .unwrap_or(overlay_name);
         debug!("Getting overlay by fq name: {}", overlay_name);
         let (namespace, name) = overlay_name
             .split_once(':')

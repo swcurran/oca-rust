@@ -1,11 +1,12 @@
 use indexmap::IndexMap;
 use log::info;
 use overlay::{Overlay, OverlayModel};
+use overlay_file::overlay_registry::{OverlayLocalRegistry, OverlayRegistry};
 pub use said::derivation::{HashFunction, HashFunctionCode};
 pub use said::error;
 pub use said::{ProtocolVersion, SelfAddressingIdentifier, make_me_sad};
 use serde::ser::Error;
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
 pub mod capture_base;
@@ -13,10 +14,14 @@ pub mod overlay;
 use crate::state::{attribute::Attribute, oca_bundle::capture_base::CaptureBase};
 use oca_ast::ast::{CaptureContent, Command, CommandType, OCAAst, ObjectKind, OverlayContent};
 
-#[derive(Debug, Deserialize, Clone)]
-// #[version(protocol = "OCAS", major = 2, minor = 0)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct OCABundle {
-    pub model: OCABundleModel,
+    /// CESR version of the OCA Bundle with OCAS prefix
+    #[serde(rename = "v")]
+    pub version: String,
+    pub digest: Option<said::SelfAddressingIdentifier>,
+    pub capture_base: CaptureBase,
+    pub overlays: Vec<Overlay>,
 }
 
 #[derive(Serialize, Debug, Deserialize, Clone, Default)]
@@ -28,32 +33,44 @@ pub struct OCABundleModel {
     pub capture_base: CaptureBase,
     pub overlays: Vec<OverlayModel>,
     // Storing attributes in different model for easy read access
+    #[serde(skip)]
     pub attributes: Option<HashMap<String, Attribute>>,
 }
 
 impl From<OCABundleModel> for OCABundle {
     fn from(model: OCABundleModel) -> Self {
-        OCABundle { model }
+        OCABundle {
+            version: model.version.clone(),
+            digest: model.digest.clone(),
+            capture_base: model.capture_base.clone(),
+            overlays: model.overlays.iter().map(Overlay::from).collect(),
+        }
     }
 }
 
-impl Serialize for OCABundle {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        use serde::ser::SerializeMap;
-        let mut map = serializer.serialize_map(None)?;
-        // If we perform serialization from saved Bundle we are not triggering make_me_sad
-        // which would add tha field, so we need to keep it and if we calculating we simply
-        // remove `v` in the make_me_sad function to properly calculate everything, `v` needs
-        // to be present to calculation of digest
-        map.serialize_entry("v", &self.model.version)?;
-        map.serialize_entry("digest", &self.model.digest)?;
-        map.serialize_entry("capture_base", &self.model.capture_base)?;
-        let overlays: Vec<Overlay> = self.model.overlays.iter().map(Overlay::from).collect();
-        map.serialize_entry("overlays", &overlays)?;
-        map.end()
+pub struct OCABundleWithRegistry {
+    pub bundle: OCABundle,
+    pub registry: OverlayLocalRegistry,
+}
+
+impl From<OCABundleWithRegistry> for OCABundleModel {
+    fn from(br: OCABundleWithRegistry) -> Self {
+        OCABundleModel {
+            version: br.bundle.version.clone(),
+            digest: br.bundle.digest.clone(),
+            capture_base: br.bundle.capture_base.clone(),
+            overlays: br
+                .bundle
+                .overlays
+                .iter()
+                .map(|om| {
+                    let mut overlay = om.model.clone();
+                    overlay.overlay_def = br.registry.get_by_fqn(&overlay.name).ok().cloned();
+                    overlay
+                })
+                .collect(),
+            attributes: None,
+        }
     }
 }
 
@@ -88,15 +105,17 @@ impl OCABundleModel {
         ast.commands.push(command);
 
         self.overlays.iter().for_each(|overlay| {
-            let overlay_content = OverlayContent {
-                overlay_def: overlay.overlay_def.clone(),
-                properties: overlay.properties.clone(),
-            };
-            let overlay_command = Command {
-                kind: CommandType::Add,
-                object_kind: ObjectKind::Overlay(overlay_content),
-            };
-            ast.commands.push(overlay_command);
+            if let Some(overlay_def) = &overlay.overlay_def {
+                let overlay_content = OverlayContent {
+                    overlay_def: overlay_def.clone(),
+                    properties: overlay.properties.clone(),
+                };
+                let overlay_command = Command {
+                    kind: CommandType::Add,
+                    object_kind: ObjectKind::Overlay(overlay_content),
+                };
+                ast.commands.push(overlay_command);
+            }
         });
         ast
     }

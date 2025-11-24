@@ -33,6 +33,8 @@ impl From<OCABundleDTO> for Vec<u8> {
 
 #[cfg(test)]
 mod tests {
+    use overlay_file::overlay_registry::OverlayLocalRegistry;
+
     use super::*;
 
     #[test]
@@ -131,7 +133,8 @@ mod tests {
   ]
 }
 "#;
-        let oca = oca_bundle::controller::load_oca(&mut oca_str.as_bytes()).unwrap();
+        let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
+        let oca = oca_bundle::controller::load_oca(&mut oca_str.as_bytes(), &registry).unwrap();
         let digests: Vec<u8> = OCABundleDTO::new(oca).into();
         assert_eq!(
             digests,

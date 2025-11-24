@@ -1,199 +1,94 @@
 use std::io::Read;
 
-use crate::state::oca_bundle::OCABundleModel;
+use log::info;
+use overlay_file::overlay_registry::OverlayRegistry;
+
+use crate::state::oca_bundle::{OCABundle, OCABundleModel, OCABundleWithRegistry};
 
 pub type GenericError = Box<dyn std::error::Error + Sync + Send>;
 pub type GenericResult<T> = Result<T, GenericError>;
 
 /// Loads an OCA Bundle JSON representation from a reader.
-/// Serializes the JSON into an `OCABundle` object.
-pub fn load_oca(source: &mut dyn Read) -> GenericResult<OCABundleModel> {
-    let oca: OCABundleModel = serde_json::from_reader(source)?;
+/// validate created OCA Bundle Model with overlay definitions provided by overlay overlay_registry
+/// Return error or validated OCA Bundle Model
+pub fn load_oca(
+    source: &mut dyn Read,
+    overlay_registry: &overlay_file::overlay_registry::OverlayLocalRegistry,
+) -> GenericResult<OCABundleModel> {
+    let mut oca: OCABundle = serde_json::from_reader(source)?;
 
-    Ok(oca)
+    // fill overlay_def
+    for overlay in &mut oca.overlays {
+        let overlay_type = &overlay.model.name;
+        match overlay_registry.get_by_fqn(overlay_type) {
+            Ok(overlay_def) => {
+                overlay.model.overlay_def = Some(overlay_def.clone());
+            }
+            Err(e) => {
+                return Err(format!(
+                    "Failed to find overlay definition for {}: {}",
+                    overlay_type, e
+                )
+                .into());
+            }
+        }
+    }
+
+    let bundle_with_registry = OCABundleWithRegistry {
+        bundle: oca,
+        registry: overlay_registry.clone(),
+    };
+    // Convert OCABundle to OCABundleModel
+    let oca_bundle_model = OCABundleModel::from(bundle_with_registry);
+
+    match validate_bundle(&oca_bundle_model) {
+        Ok(()) => {
+            // When validation passes convert to Oca Bundle model
+            Ok(oca_bundle_model)
+        }
+        Err(e) => Err(e),
+    }
 }
-/*
+
+/// Validates an OCA bundle against provided overlay definitions.
+/// This should be called after `load_oca` when overlay definitions are available.
+fn validate_bundle(bundle: &OCABundleModel) -> GenericResult<()> {
+    let said = bundle.digest.clone();
+    let mut mut_bundle = bundle.clone();
+
+    // Validate each overlay against its definition
+    match mut_bundle.compute_and_fill_digest() {
+        Ok(_) => info!("Digest filled successfully"),
+        Err(e) => panic!("Failed to fill digest: {}", e),
+    }
+    if said == mut_bundle.digest {
+        Ok(())
+    } else {
+        Err("Digests do not match".into())
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use overlay_file::overlay_registry::OverlayLocalRegistry;
+
     use super::load_oca;
-    use crate::state::{attribute::{AttributeType, Attribute}, oca::overlay::label::Labels};
-    use maplit::hashmap;
 
     #[test]
-    fn loads_json_from_str() {
+    fn load_oca_bundle_json_from_str() {
         let data = r#"
-{
-  "capture_base": {
-    "attributes": {
-      "n1": "Text",
-      "n2": "DateTime",
-      "n3": "Reference:sai"
-    },
-    "digest": "ElNWOR0fQbv_J6EL0pJlvCxEpbu4bg1AurHgr_0A7LKc",
-    "type": "spec/capture_base/1.0"
-  },
-  "overlays": [
-    {
-      "attribute_character_encoding": {
-        "n2": "iso-8859-1"
-      },
-      "capture_base": "ElNWOR0fQbv_J6EL0pJlvCxEpbu4bg1AurHgr_0A7LKc",
-      "digest": "E-fCW5Gcnzn4uTBIUUH4Gdl3xRdlDg25cM3UCk3blubU",
-      "type": "spec/overlays/character_encoding/1.0"
-    },
-    {
-      "attribute_units": {
-        "n1": "cm"
-      },
-      "capture_base": "ElNWOR0fQbv_J6EL0pJlvCxEpbu4bg1AurHgr_0A7LKc",
-      "digest": "E-gA3mYg2RbZcLXuNrWyMNJqCaclfzMrgQogVUlpFcoY",
-      "metric_system": "SI",
-      "type": "spec/overlays/unit/1.0"
-    },
-    {
-      "attribute_entry_codes": {
-        "n1": [
-          "op1",
-          "op2"
-        ]
-      },
-      "capture_base": "ElNWOR0fQbv_J6EL0pJlvCxEpbu4bg1AurHgr_0A7LKc",
-      "digest": "E4L-BukSBsqZoDDIJvw4_gGjAJs5It4UUfiA200lGup0",
-      "type": "spec/overlays/entry_code/1.0"
-    },
-    {
-      "attribute_categories": [],
-      "attribute_labels": {
-        "n1": "Name: ",
-        "n2": "Date: ",
-        "n3": "Reference: "
-      },
-      "capture_base": "ElNWOR0fQbv_J6EL0pJlvCxEpbu4bg1AurHgr_0A7LKc",
-      "category_labels": {},
-      "digest": "EwXoTd4_ZSZMnRmfQGFkXTfw7uMu9z9bnIah2ZM6hPpQ",
-      "language": "En",
-      "type": "spec/overlays/label/1.0"
-    },
-    {
-      "attribute_information": {
-        "n1": "info en"
-      },
-      "capture_base": "ElNWOR0fQbv_J6EL0pJlvCxEpbu4bg1AurHgr_0A7LKc",
-      "digest": "EUcv8Udxqj7pZfHF1XxrIpb01lfRhpRtWdzxVS706EVI",
-      "language": "En",
-      "type": "spec/overlays/information/1.0"
-    },
-    {
-      "attribute_entries": {
-        "n1": {
-          "op1": "Option 1",
-          "op2": "Option 2"
-        }
-      },
-      "capture_base": "ElNWOR0fQbv_J6EL0pJlvCxEpbu4bg1AurHgr_0A7LKc",
-      "digest": "EcNtZGAs1yPlPSVRO38t13sxr1abF67MnqvjTJQGM3jc",
-      "language": "En",
-      "type": "spec/overlays/entry/1.0"
-    },
-    {
-      "attribute_categories": [],
-      "attribute_labels": {
-        "n1": "Imię: ",
-        "n2": "Data: ",
-        "n3": "Referecja: "
-      },
-      "capture_base": "ElNWOR0fQbv_J6EL0pJlvCxEpbu4bg1AurHgr_0A7LKc",
-      "category_labels": {},
-      "digest": "Eme3tfHtbrY0nT8ZNEorzM2Nrkdf3PzwFIP1hnAmXkdg",
-      "language": "Pl",
-      "type": "spec/overlays/label/1.0"
-    },
-    {
-      "attribute_information": {
-        "n1": "info pl"
-      },
-      "capture_base": "ElNWOR0fQbv_J6EL0pJlvCxEpbu4bg1AurHgr_0A7LKc",
-      "digest": "EZvWNCh1yj7FSOdyz67WK1n7pq_xyo-M7RjDiFDR4Q7I",
-      "language": "Pl",
-      "type": "spec/overlays/information/1.0"
-    },
-    {
-      "attribute_entries": {
-        "n1": {
-          "op1": "Opcja 1",
-          "op2": "Opcja 2"
-        }
-      },
-      "capture_base": "ElNWOR0fQbv_J6EL0pJlvCxEpbu4bg1AurHgr_0A7LKc",
-      "digest": "EBXzK5l6KiH40PyJSoDjB4WBMpXh6DwvgpLMbZ2jj-Ws",
-      "language": "Pl",
-      "type": "spec/overlays/entry/1.0"
-    },
-    {
-      "attribute_conditions": {
-        "n2": "${0} == 'op1'"
-      },
-      "attribute_dependencies": {
-        "n2": [
-          "n1"
-        ]
-      },
-      "capture_base": "ElNWOR0fQbv_J6EL0pJlvCxEpbu4bg1AurHgr_0A7LKc",
-      "digest": "EkyIEvDwMete4Y-adBJZcGihh6K2Orswhkv_unFmXzHM",
-      "type": "spec/overlays/conditional/1.0"
-    },
-    {
-      "attribute_formats": {
-        "n2": "DD/MM/YYYY"
-      },
-      "capture_base": "ElNWOR0fQbv_J6EL0pJlvCxEpbu4bg1AurHgr_0A7LKc",
-      "digest": "EGiJKfiFCIf8Hdt8QLlnksOB9AH6_gcuc0l3gx0aATnM",
-      "type": "spec/overlays/format/1.0"
-    },
-    {
-      "capture_base": "ElNWOR0fQbv_J6EL0pJlvCxEpbu4bg1AurHgr_0A7LKc",
-      "description": "DL desc",
-      "digest": "Eluyyqh9h7TQWJt980o16ZfHSqSKQD2q0q7QtTUiIBPc",
-      "language": "En",
-      "name": "Driving Licence",
-      "type": "spec/overlays/meta/1.0"
-    },
-    {
-      "capture_base": "ElNWOR0fQbv_J6EL0pJlvCxEpbu4bg1AurHgr_0A7LKc",
-      "description": "PJ desc",
-      "digest": "EfDTiIz_5kHXWQIxw8JmDEou__3pi94c63cMrIRo7nK4",
-      "language": "Pl",
-      "name": "Prawo Jazdy",
-      "type": "spec/overlays/meta/1.0"
-    },
-    {
-      "capture_base": "ElNWOR0fQbv_J6EL0pJlvCxEpbu4bg1AurHgr_0A7LKc",
-      "digest": "EfDTiIz_5kHXWQIxw8JmDEou__3pi94c63cMrIRo7nK4",
-      "type": "spec/overlays/standard/1.0",
-      "attribute_standards": {
-          "n1": "urn:ietf:id:123",
-          "n2": "urn:iso:std:iso:9999:-1:ed-1:v2:en"
-      }
-    }
-  ]
-}
+{"v":"OCAS02JSON0009e3_","digest":"EP79WPhSehW5kVwy67UR-bJEoGMUWcN5cK99THUtnBIm","capture_base":{"digest":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"capture_base/2.0.0","attributes":{"age":"Numeric","car":["refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu"],"d":"Text","el":"Text","i":"Text","incidentals_spare_parts":[["refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu"]],"list":["Text"],"name":"Text","passed":"Boolean"}},"overlays":[{"digest":"EEk6wQBfPuqddeVOPFLgSY9qv1ZorGCvip_oQtFdD9GV","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"overlay/meta/2.0.0","language":"en","description":"Entrance credential","name":"Entrance credential"},{"digest":"EPVOc4fR5Nwe2yHzFS-4wBf3kcm7C5D4XNjY9cxnFaQh","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"overlay/character_encoding/2.0.0","attribute_character_encodings":{"d":"utf-8","i":"utf-8","passed":"utf-8"}},{"digest":"EIHoDc5WM8Yxxhvqnc9348DL-OU1FCb9K5eXUuiISztT","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"overlay/conformance/2.0.0","attribute_conformances":{"d":"M","i":"M","passed":"M"}},{"digest":"EEy4mJ4SIxauAyk8FI1QqBa26qG1Fqn2uhN_Vf4RMIbL","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"overlay/label/2.0.0","language":"en","attribute_labels":{"d":"Schema digest","i":"Credential Issuee","passed":"Passed"}},{"digest":"EJi35V6qV5tUhnjDR3qiB2irAKLkbQVu-rU_hehkhop1","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"overlay/format/2.0.0","attribute_formats":{"d":"image/jpeg"}},{"digest":"EPdl6CuC9i9IszrkqvEkv9qZPM-WnX47DOD80dwGiHpL","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"overlay/unit/2.0.0","metric_system":"SI","attribute_units":{"i":"m^2","d":"°"}},{"digest":"EFbS7GQMBi_RCk2Q8cJKR2ohCE--248bH1OQnwiFzmer","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"overlay/cardinality/2.0.0","attribute_cardinalities":{"list":"1-2"}},{"digest":"ED6ktKLPYEmJfYTEo7-YR-xyPwHUgpEOdEwOe_Kr6c22","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"overlay/entry_code/2.0.0","attribute_entry_codes":{"list":"refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu","el":["o1","o2","o3"]}},{"digest":"EIMaWbfJ98gO1sTucmYdgaZu_u94djMa75BYl8lzkvfc","capture_base":"EMDyoUr57UN7-Wy3kmF0WyG0xiQieckUdW18VGdEuve9","type":"overlay/entry/2.0.0","language":"en","attribute_entries":{"list":"refs:EJeWVGxkqxWrdGi0efOzwg1YQK8FrA-ZmtegiVEtAVcu","el":{"o1":"o1_label","o2":"o2_label","o3":"o3_label"}}}]}
         "#;
 
-        let oca_builder_result = load_oca(&mut data.as_bytes());
-        assert!(oca_builder_result.is_ok());
-        if let Ok(oca_builder) = oca_builder_result {
-            let oca = oca_builder
-                .add_attribute(
-                    cascade! {
-                      Attribute::new("new_attr".to_string());
-                      ..add_attribute_label("En".to_string(), "New:".to_string());
-                      ..add_attribute_label("Pl".to_string(), "Nowy:".to_string());
-                    }
-                  )
-                .finalize();
-
-            assert_eq!(oca.capture_base.attributes.len(), 4);
-        }
+        let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
+        let oca_bundle = load_oca(&mut data.as_bytes(), &registry);
+        println!(">>>> {:?}", oca_bundle);
+        assert!(oca_bundle.is_ok());
+        let oca = oca_bundle.unwrap();
+        assert_eq!(
+            oca.digest.as_ref().map(|d| d.to_string()).as_deref(),
+            Some("EP79WPhSehW5kVwy67UR-bJEoGMUWcN5cK99THUtnBIm")
+        );
+        assert_eq!(oca.capture_base.attributes.len(), 9);
     }
 }
- */
