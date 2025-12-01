@@ -3,15 +3,8 @@
 members = [
     "oca-bundle",
     "oca-ast",
-    "oca-dag",
-    "oca-store",
     "oca-file",
-    # "transformation/ast",
-    # "transformation/oca-file",
-    # "transformation/transformation-file",
     "overlay-file",
-
-    "tests",
 ]
 
 resolver = "2"
