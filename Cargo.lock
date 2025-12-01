@@ -831,7 +831,7 @@ dependencies = [
  "log",
  "maplit",
  "oca-ast 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "oca-file 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "oca-file 2.0.0-rc.3",
  "once_cell",
  "overlay-file 1.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "paste",
@@ -884,6 +884,8 @@ dependencies = [
 [[package]]
 name = "oca-file"
 version = "2.0.0-rc.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9426d219abb83753a4e8d0c92de9d19c7dcff1ee315741c02f71b3b5adbd3c5"
 dependencies = [
  "clap",
  "convert_case",
@@ -905,9 +907,7 @@ dependencies = [
 
 [[package]]
 name = "oca-file"
-version = "2.0.0-rc.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9426d219abb83753a4e8d0c92de9d19c7dcff1ee315741c02f71b3b5adbd3c5"
+version = "2.0.0-rc.4"
 dependencies = [
  "clap",
  "convert_case",
@@ -938,7 +938,7 @@ dependencies = [
  "oca-ast 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "oca-bundle",
  "oca-dag 2.0.0-rc.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "oca-file 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "oca-file 2.0.0-rc.3",
  "overlay-file 1.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex",
  "rusqlite",
