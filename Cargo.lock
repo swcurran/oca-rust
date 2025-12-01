@@ -792,6 +792,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "oca-ast"
+version = "2.0.0-rc.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea83aab3f2e230c557b644ce91a4f3c68fb88a91591547b1dfe08ac85a8d9285"
+dependencies = [
+ "env_logger",
+ "indexmap",
+ "isolang",
+ "log",
+ "overlay-file",
+ "recursion",
+ "regex",
+ "said",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_json",
+ "strum",
+ "strum_macros",
+ "thiserror 2.0.17",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "oca-bundle"
 version = "2.0.0-rc.4"
 dependencies = [
@@ -807,7 +830,7 @@ dependencies = [
  "linked-hash-map",
  "log",
  "maplit",
- "oca-ast",
+ "oca-ast 2.0.0-rc.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "oca-file 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "once_cell",
  "overlay-file",
@@ -831,7 +854,7 @@ dependencies = [
  "dyn-clonable",
  "indexmap",
  "isolang",
- "oca-ast",
+ "oca-ast 2.0.0-rc.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "oca-bundle",
  "overlay-file",
  "said",
