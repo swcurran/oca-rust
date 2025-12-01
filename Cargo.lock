@@ -792,6 +792,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "oca-ast"
+version = "2.0.0-rc.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa9f3bf37221f71b9d97caf88c7d978a89709bdf0b0e1e993f627823feaf8f4e"
+dependencies = [
+ "env_logger",
+ "indexmap",
+ "isolang",
+ "log",
+ "overlay-file 1.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "recursion",
+ "regex",
+ "said",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_json",
+ "strum",
+ "strum_macros",
+ "thiserror 2.0.17",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "oca-bundle"
 version = "2.0.0-rc.4"
 dependencies = [
@@ -807,7 +830,7 @@ dependencies = [
  "linked-hash-map",
  "log",
  "maplit",
- "oca-ast",
+ "oca-ast 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "oca-file 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "once_cell",
  "overlay-file 1.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -831,7 +854,7 @@ dependencies = [
  "dyn-clonable",
  "indexmap",
  "isolang",
- "oca-ast",
+ "oca-ast 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "oca-bundle",
  "overlay-file 1.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "said",
@@ -849,7 +872,7 @@ dependencies = [
  "dyn-clonable",
  "indexmap",
  "isolang",
- "oca-ast",
+ "oca-ast 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "oca-bundle",
  "overlay-file 1.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "said",
@@ -867,7 +890,7 @@ dependencies = [
  "env_logger",
  "indexmap",
  "log",
- "oca-ast",
+ "oca-ast 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "overlay-file 1.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "pest",
  "pest_derive",
@@ -891,7 +914,7 @@ dependencies = [
  "env_logger",
  "indexmap",
  "log",
- "oca-ast",
+ "oca-ast 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "overlay-file 1.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "pest",
  "pest_derive",
@@ -912,7 +935,7 @@ dependencies = [
  "env_logger",
  "isolang",
  "log",
- "oca-ast",
+ "oca-ast 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "oca-bundle",
  "oca-dag 2.0.0-rc.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "oca-file 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
