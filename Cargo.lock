@@ -727,7 +727,7 @@ dependencies = [
  "indexmap",
  "isolang",
  "log",
- "overlay-file 1.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "overlay-file 1.0.0-rc.3",
  "recursion",
  "regex",
  "said",
@@ -750,7 +750,7 @@ dependencies = [
  "indexmap",
  "isolang",
  "log",
- "overlay-file 1.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "overlay-file 1.0.0-rc.3",
  "recursion",
  "regex",
  "said",
@@ -782,7 +782,7 @@ dependencies = [
  "oca-ast 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "oca-file 2.0.0-rc.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "once_cell",
- "overlay-file 1.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "overlay-file 1.0.0-rc.3",
  "paste",
  "piccolo",
  "regex",
@@ -806,7 +806,7 @@ dependencies = [
  "indexmap",
  "log",
  "oca-ast 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "overlay-file 1.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "overlay-file 1.0.0-rc.3",
  "pest",
  "pest_derive",
  "pretty_assertions",
@@ -830,7 +830,7 @@ dependencies = [
  "indexmap",
  "log",
  "oca-ast 2.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "overlay-file 1.0.0-rc.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "overlay-file 1.0.0-rc.3",
  "pest",
  "pest_derive",
  "pretty_assertions",
@@ -866,6 +866,8 @@ dependencies = [
 [[package]]
 name = "overlay-file"
 version = "1.0.0-rc.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b532b28ad87d1d20f9220780787f0eecb6e238d51d0435d3bca6e17e9183a2c"
 dependencies = [
  "env_logger",
  "indexmap",
@@ -879,9 +881,7 @@ dependencies = [
 
 [[package]]
 name = "overlay-file"
-version = "1.0.0-rc.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b532b28ad87d1d20f9220780787f0eecb6e238d51d0435d3bca6e17e9183a2c"
+version = "1.0.0-rc.4"
 dependencies = [
  "env_logger",
  "indexmap",
