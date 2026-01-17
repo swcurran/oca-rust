@@ -124,7 +124,11 @@ impl OverlayRegistry for OverlayLocalRegistry {
                 .iter()
                 .find(|o| o.name.eq_ignore_ascii_case(name))
         });
-        Ok(overlay_def)
+        if overlay_def.is_some() {
+            Ok(overlay_def)
+        } else {
+            Err("Overlay definition not found in registry")
+        }
     }
 
     fn list_all(&self) -> Vec<String> {
@@ -165,5 +169,14 @@ mod tests {
         assert_eq!(semantic_overlay_file.overlays_def.len(), 13);
         let label_overlay = semantic_overlay_file.overlays_def.first().unwrap();
         assert_eq!(label_overlay.name, "label");
+    }
+    #[test]
+    fn test_overlay_not_found_by_name() {
+        let _ = env_logger::builder().is_test(true).try_init();
+        let registry = OverlayLocalRegistry::from_dir("core_overlays").unwrap();
+
+        let result = registry.get_by_name("nonexistent_overlay");
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "Overlay definition not found in registry");
     }
 }
