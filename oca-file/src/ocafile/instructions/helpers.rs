@@ -54,7 +54,7 @@ pub fn extract_attribute(
         match item.as_rule() {
             Rule::attr_key => {
                 debug!("Extracting attribute key {:?}", attr_name);
-                attr_name = item.as_str().to_string();
+                attr_name = item.as_str().trim_matches('"').to_string();
             }
             Rule::attr_type => {
                 debug!("Attribute type to parse: {:?}", item);

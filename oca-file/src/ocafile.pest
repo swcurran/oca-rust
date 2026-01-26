@@ -162,7 +162,7 @@ kv_pair = { attr_key ~ arg_ws? ~ "=" ~ arg_ws? ~ key_value ~ NEWLINE? }
 remove_overlay = { ^"label" ~ arg_ws ~ lang ~ (arg_ws ~ attrs_key ~ attr_key+)? }
 
 overlay_name = ${ string | char+}
-attr_key = ${ string | char+}
+attr_key = ${ string | char+ }
 
 key_value = { reference_type | string | array_type | char+}
 array_type      = _{ "[" ~ arg_ws? ~ array? ~ arg_ws? ~ "]" }

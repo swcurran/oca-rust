@@ -134,6 +134,9 @@ fn parse_kv_pair(pair: Pair) -> Result<(String, NestedValue), InstructionError> 
         .find(|p| p.as_rule() == Rule::attr_key)
         .ok_or_else(|| InstructionError::Parser("Missing key in kv_pair".to_string()))?
         .as_str()
+        .to_string()
+        .as_str()
+        .trim_matches('"')
         .to_string();
 
     let value_pair = inner
@@ -149,7 +152,7 @@ fn extract_block_key(pair: &Pair) -> Result<String, InstructionError> {
     pair.clone()
         .into_inner()
         .find(|p| p.as_rule() == Rule::attr_key)
-        .map(|p| p.as_str().to_string())
+        .map(|p| p.as_str().trim_matches('"').to_string())
         .ok_or_else(|| InstructionError::Parser("Missing key in block_header".to_string()))
 }
 
@@ -167,7 +170,9 @@ fn parse_key_value(pair: Pair) -> Result<NestedValue, InstructionError> {
                 .ok_or_else(|| InstructionError::Parser("Invalid string".to_string()))?
                 .as_str()
                 .to_string();
-            Ok(NestedValue::Value(s))
+            // Clean the string value by removing surrounding quotes
+            let cleaned = s.trim_matches('"').to_string();
+            Ok(NestedValue::Value(cleaned))
         }
         Rule::array => {
             let values = inner
@@ -187,8 +192,9 @@ fn parse_key_value(pair: Pair) -> Result<NestedValue, InstructionError> {
             inner.as_str().to_string(),
         ))),
         _ => {
-            // Fallback for plain text
-            Ok(NestedValue::Value(inner.as_str().to_string()))
+            // Fallback for plain text - also clean quotes if present
+            let s = inner.as_str().trim_matches('"').to_string();
+            Ok(NestedValue::Value(s))
         }
     }
 }
@@ -659,6 +665,298 @@ mod tests {
                         panic!("Parsing should succeed but got error: {:?}", e);
                     } else {
                         debug!("Correctly failed to parse invalid instruction: {:?}", e);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_add_with_quoted_keys_and_values() {
+        let instructions = vec![
+            // Test 1: Simple quoted key and value
+            (
+                r#"ADD ATTRIBUTE "person.name"=Text"#,
+                true,
+                vec![("person.name", "Text")],
+            ),
+            // Test 2: Multiple quoted keys and values
+            (
+                r#"ADD ATTRIBUTE "first.name"=Text "last.name"=Text"#,
+                true,
+                vec![("first.name", "Text"), ("last.name", "Text")],
+            ),
+            // Test 3: Quoted key with special characters
+            (
+                r#"ADD ATTRIBUTE "person.email@domain"=Text"#,
+                true,
+                vec![("person.email@domain", "Text")],
+            ),
+            // Test 4: Quoted key with spaces in value
+            (
+                r#"ADD ATTRIBUTE "full name"=Text"#,
+                true,
+                vec![("full name", "Text")],
+            ),
+            // Test 5: Mixed quoted and unquoted (unquoted should still work)
+            (
+                r#"ADD ATTRIBUTE name=Text "person.age"=Numeric"#,
+                true,
+                vec![("name", "Text"), ("person.age", "Numeric")],
+            ),
+            // Test 6: Overlay with quoted properties
+            (
+                r#"ADD OVERLAY LABEL
+  language="en"
+  attributes:
+    "person.name"="Full Name"
+    "person.age"="Age""#,
+                true,
+                vec![],
+            ),
+            // Test 7: Nested object with quoted keys
+            (
+                r#"ADD OVERLAY META
+  language="en"
+  "credential_help_text"
+    "field.one"="Help text for field one"
+    "field.two"="Help text for field two""#,
+                true,
+                vec![],
+            ),
+            // Test 9: Complex nested structure with quotes
+            (
+                r#"ADD OVERLAY META
+  language="en"
+  name="Test Schema"
+  "credential.hint.text"
+    "user.email"
+        label="Email address hint"
+        title="Email Hint"
+    "user.phone"
+        label="Phone number hint"
+        title="Phone Hint""#,
+                true,
+                vec![],
+            ),
+            // Test 10: Quoted keys with dots and underscores
+            (
+                r#"ADD ATTRIBUTE "experiment.range.original_values"=Text "test_field.sub.value"=Numeric"#,
+                true,
+                vec![
+                    ("experiment.range.original_values", "Text"),
+                    ("test_field.sub.value", "Numeric"),
+                ],
+            ),
+        ];
+
+        let _ = env_logger::builder().is_test(true).try_init();
+
+        for (idx, (instruction, is_valid, expected_pairs)) in instructions.into_iter().enumerate() {
+            debug!("Test case {}: {:?}", idx + 1, instruction);
+            let parsed_instruction = OCAfileParser::parse(Rule::add, instruction);
+            debug!("Parsed instruction: {:?}", parsed_instruction);
+
+            match parsed_instruction {
+                Ok(mut parsed_instruction) => {
+                    let instruction = parsed_instruction.next();
+                    assert!(
+                        instruction.is_some(),
+                        "Test case {}: Instruction should be parsed",
+                        idx + 1
+                    );
+
+                    match instruction {
+                        Some(instruction) => {
+                            let registry =
+                                OverlayLocalRegistry::from_dir("../overlay-file/core_overlays")
+                                    .unwrap();
+                            let result = AddInstruction::from_record(instruction, 0, &registry);
+
+                            if is_valid {
+                                let command = result.unwrap_or_else(|e| {
+                                    panic!("Test case {}: Expected valid instruction but got error: {:?}", idx + 1, e)
+                                });
+
+                                assert_eq!(
+                                    command.kind,
+                                    CommandType::Add,
+                                    "Test case {}: Should be Add command",
+                                    idx + 1
+                                );
+
+                                match command.object_kind {
+                                    ObjectKind::CaptureBase(content) => {
+                                        if let Some(attributes) = content.attributes {
+                                            debug!(
+                                                "Test case {}: Parsed attributes: {:?}",
+                                                idx + 1,
+                                                attributes
+                                            );
+
+                                            // Verify that keys don't have quotes
+                                            for (key, _) in attributes.iter() {
+                                                assert!(
+                                                    !key.starts_with('"') && !key.ends_with('"'),
+                                                    "Test case {}: Key '{}' should not contain quotes",
+                                                    idx + 1,
+                                                    key
+                                                );
+                                            }
+
+                                            // Verify expected key-value pairs for attribute tests
+                                            if !expected_pairs.is_empty() {
+                                                for (expected_key, expected_value) in
+                                                    expected_pairs.iter()
+                                                {
+                                                    assert!(
+                                                        attributes.contains_key(*expected_key),
+                                                        "Test case {}: Should contain key '{}'",
+                                                        idx + 1,
+                                                        expected_key
+                                                    );
+
+                                                    // For simple type attributes, verify the value
+                                                    if !expected_value.is_empty()
+                                                        && let Some(attr_type) =
+                                                            attributes.get(*expected_key)
+                                                    {
+                                                        match attr_type {
+                                                            NestedAttrType::Value(v) => {
+                                                                assert_eq!(
+                                                                    format!("{:?}", v),
+                                                                    *expected_value,
+                                                                    "Test case {}: Value for key '{}' should be '{}'",
+                                                                    idx + 1,
+                                                                    expected_key,
+                                                                    expected_value
+                                                                );
+                                                            }
+                                                            _ => {
+                                                                // For complex types, just verify key exists
+                                                                debug!(
+                                                                    "Test case {}: Complex type for key '{}'",
+                                                                    idx + 1,
+                                                                    expected_key
+                                                                );
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    ObjectKind::Overlay(content) => {
+                                        debug!(
+                                            "Test case {}: Parsed overlay: {:?}",
+                                            idx + 1,
+                                            content.overlay_def.get_full_name()
+                                        );
+
+                                        if let Some(properties) = content.properties {
+                                            debug!(
+                                                "Test case {}: Overlay properties: {:?}",
+                                                idx + 1,
+                                                properties
+                                            );
+
+                                            // Verify that property keys don't have quotes
+                                            for (key, value) in properties.iter() {
+                                                assert!(
+                                                    !key.starts_with('"') && !key.ends_with('"'),
+                                                    "Test case {}: Property key '{}' should not contain quotes",
+                                                    idx + 1,
+                                                    key
+                                                );
+
+                                                // Verify nested values don't have quotes
+                                                match value {
+                                                    NestedValue::Value(v) => {
+                                                        assert!(
+                                                            !v.starts_with('"')
+                                                                && !v.ends_with('"'),
+                                                            "Test case {}: Value '{}' should not contain quotes",
+                                                            idx + 1,
+                                                            v
+                                                        );
+                                                    }
+                                                    NestedValue::Object(nested_map) => {
+                                                        for (nested_key, nested_value) in
+                                                            nested_map.iter()
+                                                        {
+                                                            assert!(
+                                                                !nested_key.starts_with('"')
+                                                                    && !nested_key.ends_with('"'),
+                                                                "Test case {}: Nested key '{}' should not contain quotes",
+                                                                idx + 1,
+                                                                nested_key
+                                                            );
+
+                                                            if let NestedValue::Value(v) =
+                                                                nested_value
+                                                            {
+                                                                assert!(
+                                                                    !v.starts_with('"')
+                                                                        && !v.ends_with('"'),
+                                                                    "Test case {}: Nested value '{}' should not contain quotes",
+                                                                    idx + 1,
+                                                                    v
+                                                                );
+                                                            }
+                                                        }
+                                                    }
+                                                    NestedValue::Array(arr) => {
+                                                        for item in arr.iter() {
+                                                            if let NestedValue::Value(v) = item {
+                                                                assert!(
+                                                                    !v.starts_with('"')
+                                                                        && !v.ends_with('"'),
+                                                                    "Test case {}: Array value '{}' should not contain quotes",
+                                                                    idx + 1,
+                                                                    v
+                                                                );
+                                                            }
+                                                        }
+                                                    }
+                                                    _ => {}
+                                                }
+                                            }
+                                        }
+                                    }
+                                    ObjectKind::OCABundle(_) => {
+                                        panic!("Test case {}: Unexpected OCABundle", idx + 1);
+                                    }
+                                }
+
+                                println!("✓ Test case {} passed", idx + 1);
+                            } else {
+                                assert!(
+                                    result.is_err(),
+                                    "Test case {}: Expected error but got success",
+                                    idx + 1
+                                );
+                                println!("✓ Test case {} correctly failed", idx + 1);
+                            }
+                        }
+                        None => {
+                            assert!(
+                                !is_valid,
+                                "Test case {}: Instruction should be invalid",
+                                idx + 1
+                            );
+                        }
+                    }
+                }
+                Err(e) => {
+                    if is_valid {
+                        panic!(
+                            "Test case {}: Parsing should succeed but got error: {:?}",
+                            idx + 1,
+                            e
+                        );
+                    } else {
+                        debug!("Test case {}: Correctly failed to parse: {:?}", idx + 1, e);
+                        println!("✓ Test case {} correctly failed at parse stage", idx + 1);
                     }
                 }
             }

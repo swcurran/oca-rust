@@ -401,31 +401,31 @@ ADD Overlay ENTRY
     radio
       o1="etikedo1"
       o2="etikedo2"
-      "o3"="etikiedo3"
+      o3="etikiedo3"
 
 ADD Overlay ENTRY
   language="pl"
   attribute_entries
     radio
-      "o1"="etykieta1"
-      "o2"="etykieta2"
-      "o3"="etykieta3"
+      o1="etykieta1"
+      o2="etykieta2"
+      o3="etykieta3"
 
 ADD Overlay ENTRY_CODE
   attribute_entry_codes
     list
-      "g1"=["el1"]
-      "g2"=["el2", "el3"]
+      g1=["el1"]
+      g2=["el2", "el3"]
 
 ADD Overlay ENTRY
   language="pl"
   attribute_entries
     list
-      "el1"="element1"
-      "el2"="element2"
-      "el3"="element3"
-      "g1"="grupa1"
-      "g2"="grupa2"
+      el1="element1"
+      el2="element2"
+      el3="element3"
+      g1="grupa1"
+      g2="grupa2"
 
 "#;
         let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
@@ -439,7 +439,7 @@ ADD Overlay ENTRY
     fn test_attributes_with_special_names() {
         let _ = env_logger::builder().is_test(true).try_init();
         let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays").unwrap();
-        let unparsed_file = r#"ADD ATTRIBUTE "person.name"=Text "Experiment...Range..original.values."=[Text]
+        let unparsed_file = r#"ADD ATTRIBUTE person.name=Text Experiment...Range..original.values.=[Text]
 "#;
         let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
 
