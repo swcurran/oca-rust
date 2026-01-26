@@ -201,7 +201,7 @@ mod tests {
             "description".to_string(),
             ast::NestedValue::Value("Entrance credential".to_string()),
         );
-        let meta_ov_def = registry.get_by_fqn("Meta/2.0.0").unwrap();
+        let meta_ov_def = registry.get_overlay("Meta/2.0.0").unwrap();
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(ast::OverlayContent {
@@ -232,7 +232,7 @@ mod tests {
             "attribute_labels".to_string(),
             ast::NestedValue::Object(properties.clone()),
         );
-        let label_ov_def = registry.get_by_fqn("Label/2.0.0").unwrap();
+        let label_ov_def = registry.get_overlay("Label/2.0.0").unwrap();
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(ast::OverlayContent {
@@ -273,7 +273,7 @@ mod tests {
             "passed".to_string(),
             ast::NestedValue::Value("utf-8".to_string()),
         );
-        let character_encoding_ov_def = registry.get_by_fqn("Character_Encoding/2.0.0").unwrap();
+        let character_encoding_ov_def = registry.get_overlay("Character_Encoding/2.0.0").unwrap();
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(ast::OverlayContent {
@@ -289,7 +289,7 @@ mod tests {
             "passed".to_string(),
             ast::NestedValue::Value("M".to_string()),
         );
-        let conformance_ov_def = registry.get_by_fqn("Conformance/2.0.0").unwrap();
+        let conformance_ov_def = registry.get_overlay("Conformance/2.0.0").unwrap();
         commands.push(ast::Command {
             kind: ast::CommandType::Add,
             object_kind: ast::ObjectKind::Overlay(ast::OverlayContent {

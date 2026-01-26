@@ -65,7 +65,7 @@ impl From<OCABundleWithRegistry> for OCABundleModel {
                 .iter()
                 .map(|om| {
                     let mut overlay = om.model.clone();
-                    overlay.overlay_def = br.registry.get_by_fqn(&overlay.name).ok().cloned();
+                    overlay.overlay_def = br.registry.get_overlay(&overlay.name).ok().cloned();
                     overlay
                 })
                 .collect(),

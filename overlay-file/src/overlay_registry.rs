@@ -5,10 +5,9 @@ use std::{collections::HashMap, fs, path::Path};
 
 pub trait OverlayRegistry {
     fn get_by_filename(&self, name: &str) -> Option<&OverlayFile>;
-    /// Get overlay by name (namespace + name)
-    fn get_by_name(&self, name: &str) -> Result<Option<&OverlayDef>, &'static str>;
-    /// Get overlay by fully qualified name (namespace + name + version)
-    fn get_by_fqn(&self, name: &str) -> Result<&OverlayDef, &'static str>;
+    /// Get overlay by name or fully qualified name
+    /// Supports: name, namespace:name, name/version, namespace:name/version
+    fn get_overlay(&self, name: &str) -> Result<&OverlayDef, &'static str>;
     fn list_by_namespace(&self, namespace: &str) -> Vec<&OverlayFile>;
 
     fn list_all(&self) -> Vec<String>;
@@ -87,47 +86,65 @@ impl OverlayRegistry for OverlayLocalRegistry {
         self.overlays.get(name)
     }
 
-    fn get_by_fqn(&self, overlay_name: &str) -> Result<&OverlayDef, &'static str> {
+    fn get_overlay(&self, overlay_name: &str) -> Result<&OverlayDef, &'static str> {
         // Remove "overlay/" prefix if present, as it should not be used to search for in registry
         let overlay_name = overlay_name
             .strip_prefix("overlay/")
             .unwrap_or(overlay_name);
         debug!("Getting overlay by fq name: {}", overlay_name);
-        let (namespace, name) = overlay_name
-            .split_once(':')
-            .map(|(ns, n)| (Some(ns), n))
-            .unwrap_or((None, overlay_name));
-        let (name, version) = name
-            .split_once("/")
-            .ok_or("Invalid overlay name format: version not found or in wrong format")?;
-        let name = name.to_ascii_lowercase();
-        let namespace = namespace.map(|ns| ns.to_ascii_lowercase());
 
-        self.overlays
+        // Parse namespace if present (format: namespace:name or name)
+        let (namespace, remaining) = overlay_name
+            .split_once(':')
+            .map(|(ns, n)| (Some(ns.to_ascii_lowercase()), n))
+            .unwrap_or((None, overlay_name));
+
+        // Parse version if present (format: name/version or name)
+        let (name, version) = remaining
+            .split_once('/')
+            .map(|(n, v)| (n, Some(v)))
+            .unwrap_or((remaining, None));
+
+        let name = name.to_ascii_lowercase();
+
+        // Find matching overlay
+        let candidates: Vec<&OverlayDef> = self
+            .overlays
             .values()
             .flat_map(|overlay_file| &overlay_file.overlays_def)
-            .find(|o| {
+            .filter(|o| {
                 let o_ns = o.namespace.as_ref().map(|s| s.to_ascii_lowercase());
-                o_ns == namespace
-                    && o.name.eq_ignore_ascii_case(&name)
-                    && o.version.eq_ignore_ascii_case(version)
-            })
-            .ok_or("Overlay definition not found in registry")
-    }
+                let name_matches = o.name.eq_ignore_ascii_case(&name);
 
-    // When processing OCAFILE we normally does not have version specify and need to fetch definition just by name
-    fn get_by_name(&self, name: &str) -> Result<Option<&OverlayDef>, &'static str> {
-        debug!("Getting overlay by name: {}", name);
-        let overlay_def = self.overlays.values().find_map(|overlay_file| {
-            overlay_file
-                .overlays_def
-                .iter()
-                .find(|o| o.name.eq_ignore_ascii_case(name))
-        });
-        if overlay_def.is_some() {
-            Ok(overlay_def)
-        } else {
-            Err("Overlay definition not found in registry")
+                // Check namespace match
+                let namespace_matches = match (&namespace, &o_ns) {
+                    (Some(ns), Some(o_ns)) => ns == o_ns,
+                    (None, _) => true,        // No namespace specified, match any
+                    (Some(_), None) => false, // Namespace specified but overlay has none
+                };
+
+                // Check version match
+                let version_matches = match &version {
+                    Some(v) => o.version.eq_ignore_ascii_case(v),
+                    None => true, // No version specified, match any
+                };
+
+                name_matches && namespace_matches && version_matches
+            })
+            .collect();
+
+        match candidates.len() {
+            0 => Err("Overlay definition not found in registry"),
+            1 => Ok(candidates[0]),
+            _ => {
+                // Multiple matches found - this happens when namespace or version is not specified
+                // Return the first match, but log a warning
+                debug!(
+                    "Multiple overlays found for '{}'. Returning first match. Consider specifying namespace and/or version.",
+                    overlay_name
+                );
+                Ok(candidates[0])
+            }
         }
     }
 
@@ -162,9 +179,9 @@ mod tests {
         let registry = OverlayLocalRegistry::from_dir("core_overlays").unwrap();
         assert_eq!(registry.list_all().len(), 13);
         assert!(registry.get_by_filename("semantic").is_some());
-        assert_eq!(registry.get_by_fqn("label/2.0.0").unwrap().name, "label");
+        assert_eq!(registry.get_overlay("label/2.0.0").unwrap().name, "label");
 
-        // TODO file can include more then one overlay
+        // File can include more then one overlay
         let semantic_overlay_file = registry.get_by_filename("semantic").unwrap();
         assert_eq!(semantic_overlay_file.overlays_def.len(), 13);
         let label_overlay = semantic_overlay_file.overlays_def.first().unwrap();
@@ -175,8 +192,32 @@ mod tests {
         let _ = env_logger::builder().is_test(true).try_init();
         let registry = OverlayLocalRegistry::from_dir("core_overlays").unwrap();
 
-        let result = registry.get_by_name("nonexistent_overlay");
+        let result = registry.get_overlay("nonexistent_overlay");
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "Overlay definition not found in registry");
+        assert_eq!(
+            result.unwrap_err(),
+            "Overlay definition not found in registry"
+        );
+    }
+
+    #[test]
+    fn test_overlay_with_namespace_by_name() {
+        let _ = env_logger::builder().is_test(true).try_init();
+
+        let registry = OverlayLocalRegistry::from_dir("test_overlays").unwrap();
+
+        let result = registry.get_overlay("hcf:information");
+        assert!(result.is_ok());
+        let overlay = result.unwrap();
+        assert_eq!(overlay.name, "information");
+        assert_eq!(overlay.namespace, Some("hcf".to_string()));
+
+        // Test retrieving by name without namespace (should still work if unique)
+        let result = registry.get_overlay("information");
+        assert!(result.is_ok());
+
+        // Test non-existent namespaced overlay
+        let result = registry.get_overlay("nonexistent:overlay");
+        assert!(result.is_err());
     }
 }

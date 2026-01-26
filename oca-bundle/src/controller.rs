@@ -20,7 +20,7 @@ pub fn load_oca(
     // fill overlay_def
     for overlay in &mut oca.overlays {
         let overlay_type = &overlay.model.name;
-        match overlay_registry.get_by_fqn(overlay_type) {
+        match overlay_registry.get_overlay(overlay_type) {
             Ok(overlay_def) => {
                 overlay.model.overlay_def = Some(overlay_def.clone());
             }
