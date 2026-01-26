@@ -1,0 +1,11 @@
+ADD OVERLAY hcf:Information
+  VERSION 1.2.2
+  ADD ATTRIBUTES language=Lang
+  ADD OBJECT attribute_information
+    WITH KEYS attr-names
+    WITH VALUES Text
+
+ADD OVERLAY hcf:Meta
+  VERSION 1.2.2
+  ADD ATTRIBUTES language=Lang
+  ADD ATTRIBUTES name=Text
