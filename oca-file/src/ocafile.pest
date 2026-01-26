@@ -114,6 +114,7 @@ VITHKUQI | WANCHO | WARANG_CITI | YEZIDI | YI | ZANABAZAR_SQUARE
 }
 char = _{ LETTER | NUMBER | "." | "-" | "_" | "/" | ":" | SCRIPTS }
 
+indent = @{ (" " | "\t")+ }
 
 from_said = { ws* ~ char+ }
 
@@ -144,12 +145,19 @@ overlay = { overlay_header ~ overlay_body }
 overlay_header = { ^"overlay" ~ arg_ws+ ~ overlay_name ~ NEWLINE+ }
 remove_attribute = { ^"attribute" ~ (arg_ws ~ attr_key)* }
 
+overlay_body = { overlay_line+ }
 
-overlay_body = { (kv_pair | nested_block)+ }
-nested_body = { (kv_pair | nested_block)+ }
+overlay_line = {
+  indent? ~ line_content
+}
 
-kv_pair = { ws+ ~  key_pair+ ~ NEWLINE* }
-nested_block = { ws+ ~ attr_key ~ NEWLINE+ ~ nested_body+}
+line_content = _{
+  kv_pair |
+  block_header
+}
+block_header = { attr_key ~ NEWLINE+ }
+
+kv_pair = { attr_key ~ arg_ws? ~ "=" ~ arg_ws? ~ key_value ~ NEWLINE? }
 
 remove_overlay = { ^"label" ~ arg_ws ~ lang ~ (arg_ws ~ attrs_key ~ attr_key+)? }
 

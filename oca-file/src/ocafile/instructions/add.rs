@@ -14,186 +14,183 @@ pub fn resolve_overlay_def<'a>(
     registry: &'a dyn OverlayRegistry,
     name: &str,
 ) -> Result<&'a OverlayDef, InstructionError> {
-    match registry.get_by_name(name) {
-        Ok(None) => Err(InstructionError::UnknownOverlay(format!(
-            "Overlay '{}' not found in registry",
-            name
+    match registry.get_overlay(name) {
+        Ok(overlay_def) => Ok(overlay_def),
+        Err(e) => Err(InstructionError::UnknownOverlay(format!(
+            "Overlay '{}' not found in registry: {}",
+            name, e
         ))),
-        Ok(overlay_def) => Ok(overlay_def.unwrap()),
-        Err(e) => Err(InstructionError::Unknown(e.to_string())),
     }
 }
 
-// TODO: move to helpers.rs
 pub fn parse_overlay_body(
     pair: Pair,
     overlay_def: OverlayDef,
 ) -> Result<IndexMap<String, NestedValue>, InstructionError> {
-    let mut map = IndexMap::new();
-    let mut attributes: IndexMap<String, NestedValue> = IndexMap::new();
-    let mut properties: IndexMap<String, NestedValue> = IndexMap::new();
+    let mut lines: Vec<(usize, Pair)> = Vec::new();
 
-    let attr_elements = overlay_def.get_attr_elements();
-    let mut value: Option<NestedValue>;
-    let mut key: Option<String>;
+    // First pass: collect all lines with their indentation levels
+    for line in pair.into_inner() {
+        if line.as_rule() != Rule::overlay_line {
+            continue;
+        }
 
-    // Find out what is set as attr-names and thorw it into attributes
-    // everything else goes to properties
+        let mut indent_level = 0;
+        let mut content = None;
 
-    for item in pair.into_inner() {
-        match item.as_rule() {
-            Rule::kv_pair => {
-                let mut kv_inner = item.into_inner(); // contains [key_pair]
-                let key_pair = kv_inner.next().ok_or_else(|| {
-                    InstructionError::Parser("Missing key-value pair in overlay body".to_string())
-                })?;
-
-                let mut key_pair_inner = key_pair.into_inner();
-                key = Some(
-                    key_pair_inner
-                        .find(|p| p.as_rule() == Rule::attr_key)
-                        .ok_or_else(|| {
-                            InstructionError::Parser("Missing key in key-value pair".to_string())
-                        })?
-                        .as_str()
-                        .to_string(),
-                );
-
-                let key_value = key_pair_inner
-                    .find(|p| p.as_rule() == Rule::key_value)
-                    .ok_or_else(|| {
-                        InstructionError::Parser(format!(
-                            "Missing value for key '{}'. Make sure the value is properly quoted (e.g., key=\"value\")",
-                            key.as_ref().unwrap()
-                        ))
-                    })?;
-
-                debug!("Parsed key: {:?}, value: {:?}", key, key_value);
-
-                let key_value_inner = key_value.clone().into_inner().next().ok_or_else(|| {
-                    InstructionError::Parser(format!(
-                        "Empty or invalid value for key '{}'. Expected a quoted string, array, or reference",
-                        key.as_ref().unwrap()
-                    ))
-                })?;
-
-                match key_value_inner.as_rule() {
-                    Rule::string => {
-                        let string_value = key_value
-                            .into_inner()
-                            .next()
-                            .ok_or_else(|| {
-                                InstructionError::Parser(format!(
-                                    "Invalid string value for key '{}'",
-                                    key.as_ref().unwrap()
-                                ))
-                            })?
-                            .into_inner()
-                            .as_str()
-                            .to_string();
-
-                        value = Some(NestedValue::Value(string_value));
-                        map.insert(key.clone().unwrap(), value.clone().unwrap());
-                    }
-                    Rule::array => {
-                        let array_inner = key_value.into_inner().next().ok_or_else(|| {
-                            InstructionError::Parser(format!(
-                                "Invalid array value for key '{}'",
-                                key.as_ref().unwrap()
-                            ))
-                        })?;
-
-                        let values = array_inner
-                            .into_inner()
-                            .map(|v| {
-                                v.into_inner()
-                                    .next()
-                                    .map(|inner| {
-                                        NestedValue::Value(inner.into_inner().as_str().to_string())
-                                    })
-                                    .ok_or_else(|| {
-                                        InstructionError::Parser(format!(
-                                            "Invalid array element in key '{}'",
-                                            key.as_ref().unwrap()
-                                        ))
-                                    })
-                            })
-                            .collect::<Result<Vec<NestedValue>, InstructionError>>()?;
-
-                        value = Some(NestedValue::Array(values));
-                        map.insert(key.clone().unwrap(), value.clone().unwrap());
-                    }
-                    Rule::said => {
-                        let said_str = key_value
-                            .clone()
-                            .into_inner()
-                            .next()
-                            .ok_or_else(|| {
-                                InstructionError::Parser(format!(
-                                    "Invalid SAID reference for key '{}'",
-                                    key.as_ref().unwrap()
-                                ))
-                            })?
-                            .as_str()
-                            .to_string();
-
-                        let said = said_str.parse::<SelfAddressingIdentifier>().map_err(|e| {
-                            InstructionError::Parser(format!(
-                                "Invalid SAID format for key '{}': {}",
-                                key.as_ref().unwrap(),
-                                e
-                            ))
-                        })?;
-
-                        value = Some(NestedValue::Reference(RefValue::Said(said)));
-                        map.insert(key.clone().unwrap(), value.clone().unwrap());
-                    }
-                    _ => {
-                        return Err(InstructionError::Parser(format!(
-                            "Unsupported value type for key '{}': {:?}. Expected string, array, or SAID reference",
-                            key.as_ref().unwrap(),
-                            key_value_inner.as_rule()
-                        )));
-                    }
+        for item in line.into_inner() {
+            match item.as_rule() {
+                Rule::indent => {
+                    indent_level = item.as_str().len();
                 }
-            }
-            Rule::nested_block => {
-                let mut inner = item.into_inner();
-                key = Some(
-                    inner
-                        .next()
-                        .ok_or_else(|| {
-                            InstructionError::Parser("Missing key in nested block".to_string())
-                        })?
-                        .as_str()
-                        .to_string(),
-                );
-
-                let body = inner.next().ok_or_else(|| {
-                    InstructionError::Parser(format!(
-                        "Missing body for nested block '{}'",
-                        key.as_ref().unwrap()
-                    ))
-                })?;
-
-                let nested = parse_overlay_body(body, overlay_def.clone())?;
-                value = Some(NestedValue::Object(nested));
-                map.insert(key.clone().unwrap(), value.clone().unwrap());
-            }
-            _ => {
-                debug!("Unexpected rule in overlay body: {:?}", item.as_rule());
-                continue; // Skip unexpected rules
+                Rule::kv_pair | Rule::block_header => {
+                    content = Some(item);
+                }
+                _ => {}
             }
         }
 
-        let key_name = key.clone().unwrap();
-        if attr_elements.contains(&key_name) {
-            attributes.insert(key_name, value.unwrap());
-        } else {
-            properties.insert(key_name, value.unwrap());
+        if let Some(content) = content {
+            lines.push((indent_level, content));
         }
     }
+
+    // Second pass: group lines into blocks based on indentation
+    parse_lines_with_indentation(&lines, 0, overlay_def)
+}
+
+fn parse_lines_with_indentation(
+    lines: &[(usize, Pair)],
+    start_idx: usize,
+    overlay_def: OverlayDef,
+) -> Result<IndexMap<String, NestedValue>, InstructionError> {
+    let mut map = IndexMap::new();
+    let mut i = start_idx;
+
+    if lines.is_empty() {
+        return Ok(map);
+    }
+
+    let base_indent = lines[start_idx].0;
+
+    while i < lines.len() {
+        let (indent, ref content) = lines[i];
+
+        // If we've dedented, we're done with this block
+        if indent < base_indent {
+            break;
+        }
+
+        // Skip lines that are more indented (they belong to a sub-block)
+        if indent > base_indent {
+            i += 1;
+            continue;
+        }
+
+        debug!("Content: {:?}", content);
+        match content.as_rule() {
+            Rule::kv_pair => {
+                let (key, value) = parse_kv_pair(content.clone())?;
+                map.insert(key, value);
+                i += 1;
+            }
+            Rule::block_header => {
+                let block_key = extract_block_key(content)?;
+
+                // Find all lines that belong to this block (more indented)
+                let block_start = i + 1;
+                let mut block_end = block_start;
+
+                if block_start < lines.len() {
+                    let expected_indent = lines[block_start].0;
+
+                    while block_end < lines.len() && lines[block_end].0 >= expected_indent {
+                        block_end += 1;
+                    }
+
+                    // Recursively parse the block content
+                    let nested_content =
+                        parse_lines_with_indentation(lines, block_start, overlay_def.clone())?;
+
+                    map.insert(block_key, NestedValue::Object(nested_content));
+                }
+
+                i = block_end;
+            }
+            _ => {
+                i += 1;
+            }
+        }
+    }
+
     Ok(map)
+}
+
+fn parse_kv_pair(pair: Pair) -> Result<(String, NestedValue), InstructionError> {
+    let mut inner = pair.into_inner();
+
+    debug!("Inner content: {:?}", inner);
+    let key = inner
+        .find(|p| p.as_rule() == Rule::attr_key)
+        .ok_or_else(|| InstructionError::Parser("Missing key in kv_pair".to_string()))?
+        .as_str()
+        .to_string();
+
+    let value_pair = inner
+        .find(|p| p.as_rule() == Rule::key_value)
+        .ok_or_else(|| InstructionError::Parser("Missing value in kv_pair".to_string()))?;
+
+    let value = parse_key_value(value_pair)?;
+
+    Ok((key, value))
+}
+
+fn extract_block_key(pair: &Pair) -> Result<String, InstructionError> {
+    pair.clone()
+        .into_inner()
+        .find(|p| p.as_rule() == Rule::attr_key)
+        .map(|p| p.as_str().to_string())
+        .ok_or_else(|| InstructionError::Parser("Missing key in block_header".to_string()))
+}
+
+fn parse_key_value(pair: Pair) -> Result<NestedValue, InstructionError> {
+    let inner = pair
+        .into_inner()
+        .next()
+        .ok_or_else(|| InstructionError::Parser("Empty key_value".to_string()))?;
+
+    match inner.as_rule() {
+        Rule::string => {
+            let s = inner
+                .into_inner()
+                .next()
+                .ok_or_else(|| InstructionError::Parser("Invalid string".to_string()))?
+                .as_str()
+                .to_string();
+            Ok(NestedValue::Value(s))
+        }
+        Rule::array => {
+            let values = inner
+                .into_inner()
+                .map(|v| parse_key_value(v))
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(NestedValue::Array(values))
+        }
+        Rule::said => {
+            let said = inner
+                .as_str()
+                .parse::<SelfAddressingIdentifier>()
+                .map_err(|e| InstructionError::Parser(format!("Invalid SAID: {}", e)))?;
+            Ok(NestedValue::Reference(RefValue::Said(said)))
+        }
+        Rule::alias => Ok(NestedValue::Reference(RefValue::Name(
+            inner.as_str().to_string(),
+        ))),
+        _ => {
+            // Fallback for plain text
+            Ok(NestedValue::Value(inner.as_str().to_string()))
+        }
+    }
 }
 
 impl AddInstruction {
@@ -228,7 +225,7 @@ impl AddInstruction {
                                                     content.overlay_def = od.clone();
                                                 }
                                                 Err(e) => {
-                                                    return Err(InstructionError::Parser(
+                                                    return Err(InstructionError::UnknownOverlay(
                                                         e.to_string(),
                                                     ));
                                                 }
@@ -397,9 +394,9 @@ mod tests {
         let _ = env_logger::builder().is_test(true).try_init();
 
         let instructions = vec![
-            "ADD OVERLAY NONEXISTENT\n  language=\"en\"\n  name=\"Test\"",
-            "ADD OVERLAY UNKNOWN_OVERLAY\n  attribute=\"value\"",
-            "ADD OVERLAY InvalidOverlay\n  field=\"data\"",
+            "ADD OVERLAY NONEXISTENT\n  language=\"en\"",
+            "ADD OVERLAY UNKNOWN_OVERLAY\n  name=\"test\"",
+            "ADD OVERLAY InvalidOverlay\n  description=\"test\"",
         ];
 
         for instruction in instructions {
@@ -424,16 +421,13 @@ mod tests {
                         assert!(result.is_err(), "Expected error for non-existing overlay");
 
                         match result.unwrap_err() {
-                            InstructionError::Parser(msg) => {
-                                assert!(
-                                    msg.contains("Unknown overlay") || msg.contains("not found"),
-                                    "Expected 'Unknown overlay' error, got: {}",
-                                    msg
-                                );
-                                debug!("Correctly caught error: {}", msg);
-                            }
                             InstructionError::UnknownOverlay(msg) => {
                                 debug!("Correctly caught UnknownOverlay error: {}", msg);
+                                assert!(
+                                    msg.contains("not found"),
+                                    "Expected 'not found' in error message, got: {}",
+                                    msg
+                                );
                             }
                             other => {
                                 panic!("Unexpected error type: {:?}", other);
@@ -458,21 +452,29 @@ mod tests {
                 "ADD OVERLAY LABEL\n  language=\"pl\"\n  attributes:\n gender=\"Opcja\"",
                 true,
             ),
-            ("ADD OVERLAY ENTRY_CODE\n  gender=[\"o1\",\"o2\"]", true),
             (
-                "ADD OVERLAY ENTRY_CODE\n gender=[\"o1\",\"o2\", \"o3\"]",
+                "ADD OVERLAY ENTRY_CODE\n  attribute_entry_codes\n    gender=[\"o1\",\"o2\"]",
                 true,
             ),
-            ("ADD OVERLAY FORMAT\n name = \"^\\d+$\"", true),
-            ("ADD OVERLAY CHARACTER_ENCODING\n name=\"utf-16le\"", true),
+            (
+                "ADD OVERLAY FORMAT\n attribute_formats\n    name = \"^\\d+$\"",
+                true,
+            ),
+            (
+                "ADD OVERLAY CHARACTER_ENCODING\n attribute_character_encodings\n    name=\"utf-16le\"",
+                true,
+            ),
+            (
+                "ADD OVERLAY META\n name=\"test\"\n  description=\"desc\"",
+                true,
+            ),
+            ("ADD OVERLAY CODE\n gender=[\"o1\",\"o2\", \"o3\"]", false),
         ];
 
         let _ = env_logger::builder().is_test(true).try_init();
 
         for (instruction, is_valid) in instructions {
-            debug!("Instruction: {:?}", instruction);
             let parsed_instruction = OCAfileParser::parse(Rule::add, instruction);
-            debug!("Parsed instruction: {:?}", parsed_instruction);
 
             match parsed_instruction {
                 Ok(mut parsed_instruction) => {
@@ -483,33 +485,40 @@ mod tests {
                             let registry =
                                 OverlayLocalRegistry::from_dir("../overlay-file/core_overlays")
                                     .unwrap();
-                            let instruction =
-                                AddInstruction::from_record(instruction, 0, &registry).unwrap();
+                            let result = AddInstruction::from_record(instruction, 0, &registry);
 
-                            assert_eq!(instruction.kind, CommandType::Add);
-                            match instruction.object_kind {
-                                ObjectKind::Overlay(content) => match content
-                                    .overlay_def
-                                    .get_full_name()
-                                    .to_lowercase()
-                                    .as_str()
-                                {
-                                    "label/2.0.0"
-                                    | "entry_code/2.0.0"
-                                    | "format/2.0.0"
-                                    | "character_encoding/2.0.0" => {
-                                        println!("Parsed overlay label: {:?}", content);
-                                    }
-                                    _ => {
-                                        println!(
-                                            "Unknown overlay type: {}",
-                                            content.overlay_def.get_full_name()
-                                        );
-                                        assert!(!is_valid, "Instruction is not valid");
-                                    }
-                                },
-                                ObjectKind::CaptureBase(_) => todo!(),
-                                ObjectKind::OCABundle(_) => todo!(),
+                            if is_valid {
+                                let instruction = result.unwrap();
+                                debug!("Parsed instruction: {:?}", instruction);
+
+                                assert_eq!(instruction.kind, CommandType::Add);
+                                match instruction.object_kind {
+                                    ObjectKind::Overlay(content) => match content
+                                        .overlay_def
+                                        .get_full_name()
+                                        .to_lowercase()
+                                        .as_str()
+                                    {
+                                        "label/2.0.0"
+                                        | "entry_code/2.0.0"
+                                        | "format/2.0.0"
+                                        | "meta/2.0.0"
+                                        | "character_encoding/2.0.0" => {
+                                            println!("Parsed overlay label: {:?}", content);
+                                        }
+                                        _ => {
+                                            println!(
+                                                "Unknown overlay type: {}",
+                                                content.overlay_def.get_full_name()
+                                            );
+                                            assert!(!is_valid, "Instruction is not valid");
+                                        }
+                                    },
+                                    ObjectKind::CaptureBase(_) => todo!(),
+                                    ObjectKind::OCABundle(_) => todo!(),
+                                }
+                            } else {
+                                assert!(result.is_err());
                             }
                         }
                         None => {
@@ -520,6 +529,137 @@ mod tests {
                 Err(e) => {
                     assert!(!is_valid, "Instruction should be invalid");
                     println!("Error: {:?}", e);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_add_overlay_with_multiple_nested_blocks() {
+        let instructions = vec![(
+            r#"ADD OVERLAY META
+  language="en"
+  name="Test Schema"
+  description="A test schema with multiple nested blocks"
+  credential_help_text
+    field1="Help for field 1"
+    field2="Help for field 2"
+  credential_support_text
+    field1="Support info for field 1"
+    field2="Support info for field 2"
+  credential_hint_text
+    field1
+        label="Support info for field 1"
+        title="HINT"
+    field2
+        label="Support info for field 2"
+        title="HINT"
+"#,
+            true,
+        )];
+
+        let _ = env_logger::builder().is_test(true).try_init();
+
+        for (instruction, is_valid) in instructions {
+            debug!(
+                "Testing multiple nested blocks instruction: {:?}",
+                instruction
+            );
+            let parsed_instruction = OCAfileParser::parse(Rule::add, instruction);
+            debug!("Parsed instruction: {:?}", parsed_instruction);
+
+            match parsed_instruction {
+                Ok(mut parsed_instruction) => {
+                    let instruction = parsed_instruction.next();
+                    assert!(instruction.is_some(), "Instruction should be parsed");
+
+                    match instruction {
+                        Some(instruction) => {
+                            let registry =
+                                OverlayLocalRegistry::from_dir("../overlay-file/core_overlays")
+                                    .unwrap();
+                            let result = AddInstruction::from_record(instruction, 0, &registry);
+
+                            match result {
+                                Ok(command) => {
+                                    assert_eq!(command.kind, CommandType::Add);
+                                    match command.object_kind {
+                                        ObjectKind::Overlay(content) => {
+                                            assert!(is_valid, "Instruction should be valid");
+
+                                            // Verify properties exist
+                                            assert!(
+                                                content.properties.is_some(),
+                                                "Properties should be present"
+                                            );
+
+                                            let properties = content.properties.unwrap();
+                                            debug!("Parsed properties: {:?}", properties);
+
+                                            // Count nested blocks (objects)
+                                            let nested_block_count = properties
+                                                .values()
+                                                .filter(|v| matches!(v, NestedValue::Object(_)))
+                                                .count();
+
+                                            assert!(
+                                                nested_block_count >= 2,
+                                                "Should have at least 2 nested blocks, found {}",
+                                                nested_block_count
+                                            );
+
+                                            // Verify each nested block has content
+                                            for (key, value) in properties.iter() {
+                                                if let NestedValue::Object(nested_map) = value {
+                                                    assert!(
+                                                        !nested_map.is_empty(),
+                                                        "Nested block '{}' should not be empty",
+                                                        key
+                                                    );
+                                                    debug!(
+                                                        "Nested block '{}' contains {} items",
+                                                        key,
+                                                        nested_map.len()
+                                                    );
+                                                }
+                                            }
+
+                                            println!(
+                                                "Successfully parsed overlay with {} nested blocks",
+                                                nested_block_count
+                                            );
+                                        }
+                                        ObjectKind::CaptureBase(_) => {
+                                            panic!("Expected Overlay, got CaptureBase");
+                                        }
+                                        ObjectKind::OCABundle(_) => {
+                                            panic!("Expected Overlay, got OCABundle");
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    if is_valid {
+                                        panic!("Expected valid instruction but got error: {:?}", e);
+                                    } else {
+                                        debug!(
+                                            "Correctly caught error for invalid instruction: {:?}",
+                                            e
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                        None => {
+                            assert!(!is_valid, "Instruction should be invalid");
+                        }
+                    }
+                }
+                Err(e) => {
+                    if is_valid {
+                        panic!("Parsing should succeed but got error: {:?}", e);
+                    } else {
+                        debug!("Correctly failed to parse invalid instruction: {:?}", e);
+                    }
                 }
             }
         }
