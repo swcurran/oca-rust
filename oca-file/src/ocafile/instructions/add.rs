@@ -455,7 +455,7 @@ mod tests {
     fn test_add_overlay_instructions() {
         let instructions = vec![
             (
-                "ADD OVERLAY LABEL\n  language=\"pl\"\n  attributes:\n gender=\"Opcja\"",
+                "ADD OVERLAY LABEL\n  language=\"pl\"\n  attributes\n gender=\"Opcja\"",
                 true,
             ),
             (
@@ -471,10 +471,18 @@ mod tests {
                 true,
             ),
             (
-                "ADD OVERLAY META\n name=\"test\"\n  description=\"desc\"",
+                "ADD OVERLAY META\n name=\"test\"\n description=\"desc\"",
+                true,
+            ),
+            (
+                "ADD OVERLAY SENSITIVE\n  attributes=[\"gender\", \"name\"]",
                 true,
             ),
             ("ADD OVERLAY CODE\n gender=[\"o1\",\"o2\", \"o3\"]", false),
+            (
+                "ADD OVERLAY SENSITIVE\n  attributes=[\"gender\" \"name\"]",
+                false,
+            ),
         ];
 
         let _ = env_logger::builder().is_test(true).try_init();
@@ -499,32 +507,86 @@ mod tests {
 
                                 assert_eq!(instruction.kind, CommandType::Add);
                                 match instruction.object_kind {
-                                    ObjectKind::Overlay(content) => match content
-                                        .overlay_def
-                                        .get_full_name()
-                                        .to_lowercase()
-                                        .as_str()
-                                    {
-                                        "label/2.0.0"
-                                        | "entry_code/2.0.0"
-                                        | "format/2.0.0"
-                                        | "meta/2.0.0"
-                                        | "character_encoding/2.0.0" => {
-                                            println!("Parsed overlay label: {:?}", content);
+                                    ObjectKind::Overlay(content) => {
+                                        let full_name =
+                                            content.overlay_def.get_full_name().to_lowercase();
+                                        assert!(
+                                            !full_name.is_empty(),
+                                            "Overlay name should not be empty"
+                                        );
+                                        assert_eq!(
+                                            content.overlay_def.version, "2.0.0",
+                                            "Overlay version should be 2.0.0"
+                                        );
+                                        let properties = content
+                                            .properties
+                                            .expect("Overlay properties should be present");
+                                        debug!("Properties: {:?}", properties);
+                                        match full_name.as_str() {
+                                            "label/2.0.0" => {
+                                                assert!(
+                                                    properties.contains_key("language"),
+                                                    "Label overlay should include language"
+                                                );
+                                                assert!(
+                                                    properties.contains_key("attributes"),
+                                                    "Label overlay should include attributes"
+                                                );
+                                            }
+                                            "entry_code/2.0.0" => {
+                                                assert!(
+                                                    properties
+                                                        .contains_key("attribute_entry_codes"),
+                                                    "Entry Code overlay should include attribute_entry_codes"
+                                                );
+                                            }
+                                            "format/2.0.0" => {
+                                                assert!(
+                                                    properties.contains_key("attribute_formats"),
+                                                    "Format overlay should include attribute_formats"
+                                                );
+                                            }
+                                            "character_encoding/2.0.0" => {
+                                                assert!(
+                                                    properties.contains_key(
+                                                        "attribute_character_encodings"
+                                                    ),
+                                                    "Character Encoding overlay should include attribute_character_encodings"
+                                                );
+                                            }
+                                            "meta/2.0.0" => {
+                                                assert!(
+                                                    properties.contains_key("description"),
+                                                    "Meta overlay should include description"
+                                                );
+                                            }
+                                            "sensitive/2.0.0" => {
+                                                let attrs = properties.get("attributes").expect(
+                                                    "Sensitive overlay should include attributes",
+                                                );
+                                                match attrs {
+                                                    NestedValue::Array(values) => {
+                                                        assert_eq!(values.len(), 2);
+                                                    }
+                                                    _ => panic!(
+                                                        "Sensitive overlay attributes should be array"
+                                                    ),
+                                                }
+                                            }
+                                            _ => {}
                                         }
-                                        _ => {
-                                            println!(
-                                                "Unknown overlay type: {}",
-                                                content.overlay_def.get_full_name()
-                                            );
-                                            assert!(!is_valid, "Instruction is not valid");
-                                        }
-                                    },
+                                    }
                                     ObjectKind::CaptureBase(_) => todo!(),
                                     ObjectKind::OCABundle(_) => todo!(),
                                 }
                             } else {
                                 assert!(result.is_err());
+                                match result.unwrap_err() {
+                                    InstructionError::UnknownOverlay(_) => {}
+                                    other => {
+                                        panic!("Expected UnknownOverlay error, got {:?}", other)
+                                    }
+                                }
                             }
                         }
                         None => {
