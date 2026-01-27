@@ -164,7 +164,8 @@ remove_overlay = { ^"label" ~ arg_ws ~ lang ~ (arg_ws ~ attrs_key ~ attr_key+)? 
 overlay_name = ${ string | char+}
 attr_key = ${ string | char+ }
 
-key_value = { reference_type | string | array_type | char+}
+key_value = { reference_type | quoted_reference | string | array_type | char+}
+quoted_reference = _{ "\"" ~ reference_type ~ "\"" | "'" ~ reference_type ~ "'" }
 array_type      = _{ "[" ~ arg_ws? ~ array? ~ arg_ws? ~ "]" }
 array  = { key_value ~ (arg_ws? ~ "," ~ arg_ws? ~ key_value)* }
 

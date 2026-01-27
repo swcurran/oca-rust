@@ -463,6 +463,10 @@ mod tests {
                 true,
             ),
             (
+                "ADD OVERLAY ENTRY\n  attribute_entries\n    gender=\"refs:ECfBoOwdcHhQfNtWA5qTKOo9egoxHKXxby6R8Jujpk-o\"",
+                true,
+            ),
+            (
                 "ADD OVERLAY FORMAT\n attribute_formats\n    name = \"^\\d+$\"",
                 true,
             ),
@@ -730,6 +734,46 @@ mod tests {
                     }
                 }
             }
+        }
+    }
+
+    #[test]
+    fn test_add_overlay_entry_with_quoted_refs() {
+        let _ = env_logger::builder().is_test(true).try_init();
+        let instruction = r#"ADD OVERLAY ENTRY
+  language="fr"
+  attribute_entries
+    issuingState=refs:ECfBoOwdcHhQfNtWA5qTKOo9egoxHKXxby6R8Jujpk-o
+    issuingStateCode='refs:EnmO60xL2IsIv-_AC2PgLdJtzqsfuNqa8BihsiNWgz5o'
+    nationality="refs:EAr0uvi1743P2VXXqd08a-yX8K_aejHCkdjaW8lWZ_xw"
+"#;
+
+        let parsed_instruction = OCAfileParser::parse(Rule::add, instruction).unwrap();
+        let instruction = parsed_instruction.into_iter().next().unwrap();
+        let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays").unwrap();
+        let command = AddInstruction::from_record(instruction, 0, &registry).unwrap();
+
+        match command.object_kind {
+            ObjectKind::Overlay(content) => {
+                let properties = content.properties.expect("Expected overlay properties");
+                let entries = properties
+                    .get("attribute_entries")
+                    .expect("Expected attribute_entries");
+                match entries {
+                    NestedValue::Object(map) => {
+                        for key in ["issuingState", "issuingStateCode", "nationality"] {
+                            match map.get(key) {
+                                Some(NestedValue::Reference(RefValue::Said(_))) => {}
+                                other => {
+                                    panic!("Expected Reference(Said) for {}, got {:?}", key, other)
+                                }
+                            }
+                        }
+                    }
+                    _ => panic!("Expected attribute_entries to be an object"),
+                }
+            }
+            _ => panic!("Expected Overlay command"),
         }
     }
 
