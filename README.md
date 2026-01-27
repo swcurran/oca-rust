@@ -1,57 +1,27 @@
-# OCA Rust
+# oca-rs
 
-Collection of libraries and tools related to Overlays Capture Architecture (OCA) built in Rust
+Rust workspace for implementation of the core OCA (Overlays Capture Architecture) specification.
 
-## What is OCA
+## Scope and audience
 
-See the docs page https://oca.colossi.network/
+This repository targets implementers of the OCA core specification. It provides
+low-level crates that model, parse, and validate OCA artifacts. Most users should
+prefer the higher-level `oca-sdk-rs`, which wraps these crates into a stable
+developer-facing API.
 
-## Usage
+## Crates in this workspace
 
-### Building OCA Bundle from OCA File
+- `oca-ast`: AST types and validation helpers for OCA bundles.
+- `oca-file`: Parser and generator for the OCAfile DSL.
+- `overlay-file`: Parser and registry for Overlayfile definitions.
+- `oca-bundle`: Builder and validator for OCA bundles.
 
-Used dependencies:
-```toml
-oca-rs = "0.3.0-rc.11"
-```
+## Relationship to oca-sdk-rs
 
-```rust
-let ocafile = r#"
-ADD ATTRIBUTE d=Text i=Text passed=Boolean
+`oca-sdk-rs` is the recommended entry point for application developers. It
+exposes the functionality of this workspace with a more stable API surface,
+while `oca-rs` focuses on core-spec correctness and composition.
 
-ADD META en PROPS name="Entrance credential" description="Entrance credential"
+## License
 
-ADD CHARACTER_ENCODING ATTRS d=utf-8 i=utf-8 passed=utf-8
-ADD CONFORMANCE ATTRS d=M i=M passed=M
-ADD LABEL en ATTRS d="Schema digest" i="Credential Issuee" passed="Passed"
-"#;
-
-let db = oca_rs::data_storage::InMemoryDataStorage::new():
-let search_storage_config = oca_rs::repositories::SQLiteConfig::build()
-    .path(":memory:".to_string())
-    .unwrap();
-let mut oca_facade = oca_rs::Facade::new(Box::new(db), search_storage_config);
-
-let oca_bundle = oca_facade.build_from_ocafile(ocafile)?;
-let oca_bundle_said = oca_bundle.said.clone().unwrap().to_string();
-
-oca_facade.search_oca_bundle("Ent".to_string(), 10);
-
-oca_facade.get_oca_bundle(oca_bundle_said.clone())?;
-oca_facade.get_oca_bundle_steps(oca_bundle_said.clone())?;
-oca_facade.get_oca_bundle_ocafile(oca_bundle_said)?;
-```
-
-## Workspaces
-
-### oca-ast
-
-OCA AST lib allows to generate and work with OCA bundle AST
-
-### ocafile
-
-Lib and bin tool to deal with OCAFILE, parsing and creating ocafile
-
-### oca-bundle
-
-A library allowing to build OCA bundle
+EUPL 1.2. See `LICENSE`.

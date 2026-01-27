@@ -11,29 +11,22 @@
 [Crates.io actions]: https://github.com/THCLab/oca-rs/actions/workflows/create.yml
 [npmjs.com actions]: https://github.com/THCLab/oca-rs/actions/workflows/npm-publish.yml
 
-# Rust implementation of Overlays Capture architecture
+# oca-bundle
 
-OCA is a standardized global solution for data capture and exchange which
-protects PII data and provides a positive alternative to current architectures.
-See more on: <https://oca.colossi.network/>
+Builder and validator for OCA bundles.
 
-## License
+## What this crate provides
 
-EUPL 1.2 
+- Construction of OCA bundles from structured inputs.
+- Validation of overlays and bundle content against definitions.
+- Core bundle state and encoding helpers used by higher-level crates.
 
-We have distilled the most crucial license specifics to make your adoption seamless: [see here for details](https://github.com/THCLab/licensing).
+## Intended use
 
-# Documentation
+This crate targets implementers of the OCA core specification. Most application
+developers should use `oca-sdk-rs` instead.
 
-- [OCA Spec](https://oca.colossi.network/)
-- [API reference (docs.rs)](https://docs.rs/oca-rs)
-
-
-# Usage
-
-The MSRV is `1.58.1`
-
-#### In cargo package
+## Usage
 
 Add this to your `Cargo.toml`:
 
@@ -42,27 +35,6 @@ Add this to your `Cargo.toml`:
 oca-bundle = "0.7.1"
 ```
 
-### Build
+## License
 
-Building local package:  
-`cargo build `
-
-### Run [tests](tests)
-
-`cargo test`
-
-## Bindings
-
-To use oca in other languages, checkout [oca-bindings](https://github.com/THCLab/oca-bindings).
-
-## Releasing new version
-
-`cargo release`  
-bumps version and runs `git push` with `v{version}` tag added.
-That triggers actions on github
-([Crates.io][Crates.io actions] and [npmjs.com][npmjs.com actions])
-which build and publish packages on [crates.io][crates.io] and [npmjs.com][npmjs.com].
-
-# Contributing
-
-See https://github.com/THCLab/contributing
+EUPL 1.2. See `LICENSE`.
