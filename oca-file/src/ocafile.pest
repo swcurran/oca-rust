@@ -80,7 +80,7 @@ commands = _{
 }
 
 
-from = { ^"from" ~ ws* ~ from_said}
+from = { ^"from" ~ ws* ~ from_ref}
 add = { ^"add" ~ arg_ws* ~ oca_object }
 modify = { ^"modify" ~ char+ }
 remove = { ^"remove" ~ arg_ws* ~ remove_oca_object }
@@ -116,7 +116,7 @@ char = _{ LETTER | NUMBER | "." | "-" | "_" | "/" | ":" | SCRIPTS }
 
 indent = @{ (" " | "\t")+ }
 
-from_said = { ws* ~ char+ }
+from_ref = _{ ref_said | ref_alias }
 
 oca_object = _{
   (
