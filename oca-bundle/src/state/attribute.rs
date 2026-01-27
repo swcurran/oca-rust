@@ -1,4 +1,3 @@
-// use super::standard::Standard;
 use isolang::Language;
 pub use oca_ast::ast::AttributeType;
 use oca_ast::ast::{NestedAttrType, NestedValue};

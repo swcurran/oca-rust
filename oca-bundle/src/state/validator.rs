@@ -352,26 +352,6 @@ mod tests {
     }
 
     #[test]
-    fn validate_oca_with_standards() {
-        /*         let validator = Validator::new();
-
-        let oca = OCABuilder::new(Encoding::Utf8)
-            .add_attribute(
-                AttributeBuilder::new("test".to_string(), AttributeType::Text)
-                    .add_standard("asd".to_string())
-                    .build(),
-            )
-            .finalize();
-
-        let result = validator.validate(&oca);
-
-        assert!(result.is_err());
-        if let Err(errors) = result {
-            assert_eq!(errors.len(), 1);
-        } */
-    }
-
-    #[test]
     #[ignore]
     fn validate_oca_with_invalid_saids() {
         let validator = Validator::new();
