@@ -558,4 +558,26 @@ ADD ATTRIBUTE dateOfBirth=DateTime \
             panic!("Expected CaptureBase");
         }
     }
+
+    #[test]
+    fn test_language_variants_roundtrip() {
+        let _ = env_logger::builder().is_test(true).try_init();
+        let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays").unwrap();
+        let language_cases = [
+            "PL", "pl", "pol", "pl_PL", "en_UK", "eng", "EN", "en", "en-UK",
+        ];
+
+        for lang in language_cases {
+            let unparsed_file = format!(
+                "ADD ATTRIBUTE name=Text\nADD Overlay LABEL\n  language=\"{}\"\n  attribute_labels\n    name=\"Name\"\n",
+                lang
+            );
+
+            let oca_ast = parse_from_string(unparsed_file, &registry).unwrap();
+            let ocafile = generate_from_ast(&oca_ast);
+            let oca_ast2 = parse_from_string(ocafile, &registry).unwrap();
+
+            assert_eq!(oca_ast, oca_ast2);
+        }
+    }
 }

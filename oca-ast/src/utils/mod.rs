@@ -1,19 +1,27 @@
 use isolang::Language;
 
 pub fn parse_language_code(code: &str) -> Result<Language, String> {
+    let code = code.trim();
+    if code.is_empty() {
+        return Err("Invalid language code: empty".to_string());
+    }
+
+    // Normalize language portion to lowercase for lookup.
+    let normalized = code.to_ascii_lowercase();
+
     // Try ISO 639-1 first
-    if let Some(lang) = Language::from_639_1(code) {
+    if let Some(lang) = Language::from_639_1(&normalized) {
         return Ok(lang);
     }
 
     // Try ISO 639-3
-    if let Some(lang) = Language::from_639_3(code) {
+    if let Some(lang) = Language::from_639_3(&normalized) {
         return Ok(lang);
     }
 
     // Handle language code with country code (e.g., "en_UK" or "en-UK")
-    let separator = if code.contains('_') { '_' } else { '-' };
-    if let Some((lang_code, _country_code)) = code.split_once(separator)
+    let separator = if normalized.contains('_') { '_' } else { '-' };
+    if let Some((lang_code, _country_code)) = normalized.split_once(separator)
         && let Some(lang) = Language::from_639_1(lang_code)
     {
         return Ok(lang);
