@@ -23,7 +23,7 @@ impl FromInstruction {
                 }
                 Rule::alias => {
                     debug!("Using oca bundle by name: {:?}", field);
-                    ReferenceAttrType::Reference(RefValue::Name(field.to_string()))
+                    ReferenceAttrType::Reference(RefValue::Name(field.as_str().to_string()))
                 }
                 _ => {
                     return Err(InstructionError::Parser(format!(
