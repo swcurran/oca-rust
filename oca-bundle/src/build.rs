@@ -2,6 +2,8 @@ use crate::state::oca_bundle::OCABundleModel;
 use crate::state::oca_bundle::overlay::OverlayModel;
 use log::info;
 use oca_ast::ast;
+use oca_ast::ast::NestedValue;
+use overlay_file::OverlayDef;
 
 /// OCABuild represents a build process of an OCA bundle from OCA AST.
 /// It contains the final OCA bundle and a list of steps that were applied to create it.
@@ -120,7 +122,9 @@ pub fn apply_command(
         (ast::CommandType::Add, ast::ObjectKind::Overlay(content)) => {
             let mut overlay = OverlayModel::new(content.clone());
             overlay.overlay_def = Some(content.overlay_def);
-            base.overlays.push(overlay);
+            if let Err(err) = merge_or_add_overlay(base, overlay) {
+                errors.push(err);
+            }
         }
         (ast::CommandType::Add, ast::ObjectKind::OCABundle(_)) => todo!(),
         (ast::CommandType::Remove, ast::ObjectKind::CaptureBase(content)) => {
@@ -146,6 +150,137 @@ pub fn apply_command(
         Ok(base)
     } else {
         Err(errors)
+    }
+}
+
+fn merge_or_add_overlay(base: &mut OCABundleModel, incoming: OverlayModel) -> Result<(), String> {
+    let overlay_def = incoming
+        .overlay_def
+        .as_ref()
+        .ok_or_else(|| "Overlay definition missing".to_string())?;
+    if overlay_def.unique_keys.is_empty() {
+        base.overlays.push(incoming);
+        return Ok(());
+    }
+
+    let incoming_properties = incoming.properties.as_ref().ok_or_else(|| {
+        format!(
+            "Overlay {} is missing properties for unique keys",
+            overlay_def.get_full_name()
+        )
+    })?;
+
+    let signature = unique_keys_signature(overlay_def, incoming_properties)?;
+    let incoming_name = overlay_def.get_full_name();
+
+    for existing in &mut base.overlays {
+        let existing_def = match &existing.overlay_def {
+            Some(def) => def,
+            None => continue,
+        };
+        if existing_def.get_full_name() != incoming_name {
+            continue;
+        }
+        let existing_props = match existing.properties.as_mut() {
+            Some(props) => props,
+            None => {
+                return Err(format!(
+                    "Overlay {} is missing properties for unique keys",
+                    existing_def.get_full_name()
+                ));
+            }
+        };
+        let existing_signature = unique_keys_signature(existing_def, existing_props)?;
+        if existing_signature != signature {
+            continue;
+        }
+
+        // Merge properties for same overlay + unique signature.
+        merge_properties(existing_props, incoming_properties)?;
+        return Ok(());
+    }
+
+    base.overlays.push(incoming);
+    Ok(())
+}
+
+fn unique_keys_signature(
+    overlay_def: &OverlayDef,
+    properties: &indexmap::IndexMap<String, NestedValue>,
+) -> Result<String, String> {
+    let mut parts = Vec::new();
+    let mut missing = Vec::new();
+    for key in &overlay_def.unique_keys {
+        match properties.get(key) {
+            Some(value) => {
+                let value_str = serde_json::to_string(value).unwrap_or_else(|_| value.to_string());
+                parts.push(format!("{}={}", key, value_str));
+            }
+            None => missing.push(key.clone()),
+        }
+    }
+    if !missing.is_empty() {
+        return Err(format!(
+            "Overlay {} is missing unique keys: {}",
+            overlay_def.get_full_name(),
+            missing.join(", ")
+        ));
+    }
+    Ok(parts.join("|"))
+}
+
+fn merge_properties(
+    target: &mut indexmap::IndexMap<String, NestedValue>,
+    incoming: &indexmap::IndexMap<String, NestedValue>,
+) -> Result<(), String> {
+    for (key, value) in incoming {
+        match target.get_mut(key) {
+            Some(existing) => merge_nested_value(existing, value, key)?,
+            None => {
+                target.insert(key.clone(), value.clone());
+            }
+        }
+    }
+    Ok(())
+}
+
+fn merge_nested_value(
+    target: &mut NestedValue,
+    incoming: &NestedValue,
+    path: &str,
+) -> Result<(), String> {
+    match target {
+        NestedValue::Object(target_obj) => match incoming {
+            NestedValue::Object(incoming_obj) => {
+                for (key, value) in incoming_obj.iter() {
+                    if let Some(existing) = target_obj.get_mut(key) {
+                        let nested_path = format!("{path}.{key}");
+                        merge_nested_value(existing, value, &nested_path)?;
+                    } else {
+                        target_obj.insert(key.clone(), value.clone());
+                    }
+                }
+                Ok(())
+            }
+            _ => {
+                if target == incoming {
+                    Ok(())
+                } else {
+                    Err(format!(
+                        "Overlay attribute override for {path}: existing value differs"
+                    ))
+                }
+            }
+        },
+        _ => {
+            if target == incoming {
+                Ok(())
+            } else {
+                Err(format!(
+                    "Overlay attribute override for {path}: existing value differs"
+                ))
+            }
+        }
     }
 }
 
@@ -190,7 +325,7 @@ mod tests {
 
         let mut properties = IndexMap::new();
         properties.insert(
-            "lang".to_string(),
+            "language".to_string(),
             ast::NestedValue::Value("en".to_string()),
         );
         properties.insert(
@@ -225,7 +360,7 @@ mod tests {
         );
         let mut attr_labels = IndexMap::new();
         attr_labels.insert(
-            "lang".to_string(),
+            "language".to_string(),
             ast::NestedValue::Value("en".to_string()),
         );
         attr_labels.insert(
@@ -256,7 +391,7 @@ mod tests {
         );
         let mut properties = IndexMap::new();
         properties.insert(
-            "lang".to_string(),
+            "language".to_string(),
             ast::NestedValue::Value("en".to_string()),
         );
 
@@ -321,6 +456,82 @@ mod tests {
         // let mut oca = apply_command(base, command);
         // base = Some(oca);
         Ok(())
+    }
+
+    #[test]
+    fn merge_label_overlays_conflict_should_error_and_keep_single_overlay() {
+        let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
+        let ocafile = r#"
+ADD ATTRIBUTE first_name=Text last_name=Text
+
+ADD OVERLAY LABEL
+  language="en"
+  attribute_labels
+    first_name="First Name"
+    last_name="Last Name"
+
+ADD OVERLAY LABEL
+  language="en"
+  attribute_labels
+    first_name="Name"
+    last_name="Name"
+"#;
+
+        let oca_ast = parse_from_string(ocafile.to_string(), &registry).unwrap();
+        let mut base = OCABundleModel::default();
+        let mut errors = Vec::new();
+        for command in oca_ast.commands {
+            if let Err(mut err) = apply_command(&mut base, command) {
+                errors.append(&mut err);
+            }
+        }
+
+        assert!(!errors.is_empty());
+        assert_eq!(base.overlays.len(), 1);
+    }
+
+    #[test]
+    fn merge_label_overlays_disjoint_should_merge() {
+        let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays/").unwrap();
+        let ocafile = r#"
+ADD ATTRIBUTE first_name=Text last_name=Text description=Text info=Text
+
+ADD OVERLAY LABEL
+  language="en"
+  attribute_labels
+    first_name="First Name"
+    last_name="Last Name"
+
+ADD OVERLAY LABEL
+  language="en"
+  attribute_labels
+    description="Name"
+    info="Name"
+"#;
+
+        let oca_ast = parse_from_string(ocafile.to_string(), &registry).unwrap();
+        let mut base = OCABundleModel::default();
+        let mut errors = Vec::new();
+        for command in oca_ast.commands {
+            if let Err(mut err) = apply_command(&mut base, command) {
+                errors.append(&mut err);
+            }
+        }
+
+        assert!(errors.is_empty());
+        assert_eq!(base.overlays.len(), 1);
+
+        let properties = base.overlays[0].properties.as_ref().unwrap();
+        let labels = properties.get("attribute_labels").unwrap();
+        match labels {
+            NestedValue::Object(map) => {
+                assert!(map.contains_key("first_name"));
+                assert!(map.contains_key("last_name"));
+                assert!(map.contains_key("description"));
+                assert!(map.contains_key("info"));
+            }
+            _ => panic!("attribute_labels should be an object"),
+        }
     }
 
     #[test]

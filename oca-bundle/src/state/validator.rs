@@ -242,9 +242,7 @@ impl Validator {
             }
 
             let signature = parts.join("|");
-            let entry = seen
-                .entry(overlay_def.get_full_name())
-                .or_insert_with(HashSet::new);
+            let entry = seen.entry(overlay_def.get_full_name()).or_default();
             if !entry.insert(signature.clone()) {
                 errors.push(Error::Custom(format!(
                     "Duplicate overlay {} with unique keys {}",
