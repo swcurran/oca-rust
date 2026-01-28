@@ -211,6 +211,16 @@ fn validate_overlay(
             ));
         }
     }
+
+    // Ensure unique keys are present in the overlay properties
+    for key in &overlay_content.overlay_def.unique_keys {
+        if !properties.contains_key(key) {
+            errors.push(Error::MissingRequiredAttribute(
+                key.clone(),
+                overlay_content.overlay_def.get_full_name(),
+            ));
+        }
+    }
 }
 
 fn validate_attr_names(
@@ -612,6 +622,7 @@ mod tests {
             ],
             namespace: Some("hcf".to_string()),
             version: "2.0.0".to_string(),
+            unique_keys: Vec::new(),
         };
 
         let meta_overlay_def = OverlayDef {
@@ -641,6 +652,7 @@ mod tests {
             ],
             namespace: Some("hcf".to_string()),
             version: "2.0.0".to_string(),
+            unique_keys: Vec::new(),
         };
 
         let entry_overlay_def = OverlayDef {
@@ -666,6 +678,7 @@ mod tests {
             ],
             namespace: Some("hcf".to_string()),
             version: "2.0.0".to_string(),
+            unique_keys: Vec::new(),
         };
 
         let entry_code_overlay_def = OverlayDef {
@@ -677,6 +690,7 @@ mod tests {
             }],
             namespace: Some("hcf".to_string()),
             version: "2.0.0".to_string(),
+            unique_keys: Vec::new(),
         };
 
         let capture_base = Command {

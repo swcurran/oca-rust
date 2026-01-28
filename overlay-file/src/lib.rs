@@ -41,6 +41,8 @@ pub struct OverlayDef {
     pub namespace: Option<String>,
     pub name: String,
     pub version: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unique_keys: Vec<String>,
     /// enahnce attributes from capture base with semantic information
     pub elements: Vec<OverlayElementDef>,
 }
@@ -51,6 +53,7 @@ impl Default for OverlayDef {
             namespace: None,
             name: String::new(),
             version: "1.0.0".to_string(),
+            unique_keys: Vec::new(),
             elements: Vec::new(),
         }
     }
@@ -200,6 +203,7 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                 namespace: None,
                 name: "".to_string(),
                 version: "".to_string(),
+                unique_keys: Vec::new(),
                 elements: Vec::new(),
             };
             for attr in line.into_inner() {
@@ -225,6 +229,9 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
                     }
                     Rule::version => {
                         overlay_def.version = attr.as_str().to_string();
+                    }
+                    Rule::unique_keys_command => {
+                        overlay_def.unique_keys = parse_unique_keys_command(attr);
                     }
                     Rule::overlay_object => {
                         let mut name: Option<String> = None;
@@ -340,6 +347,22 @@ pub fn parse_from_string(unparsed_file: String) -> Result<OverlayFile, ParseErro
         Ok(_) => Ok(overlays_file),
         Err(validation_errors) => Err(ParseError::ValidationError(validation_errors)),
     }
+}
+
+fn parse_unique_keys_command(cmd: Pair) -> Vec<String> {
+    fn collect_attr_names(pair: Pair, out: &mut Vec<String>) {
+        for inner in pair.into_inner() {
+            if let Rule::attr_name = inner.as_rule() {
+                out.push(inner.as_str().to_string());
+            } else {
+                collect_attr_names(inner, out);
+            }
+        }
+    }
+
+    let mut keys = Vec::new();
+    collect_attr_names(cmd, &mut keys);
+    keys
 }
 
 fn process_overlay_attributes(attr: Pair) -> Vec<OverlayElementDef> {
@@ -610,6 +633,9 @@ ADD OVERLAY hcf:ReferenceValues
 # Create new overlay
 ADD OVERLAY ReferenceValues
   VERSION 1.0.1
+  UNIQUE KEYS [language, region]
+  ADD ATTRIBUTES language=Lang
+  ADD ATTRIBUTES region=Text
   ADD OBJECT attribute_reference_values
     WITH KEYS attr-names
     WITH VALUES OBJECT
@@ -657,11 +683,20 @@ ADD OVERLAY ENTRY
         assert_eq!(ref_overlay.name, "referencevalues");
         assert_eq!(ref_overlay.version, "1.0.1");
         assert_eq!(ref_overlay.namespace, None);
-        assert_eq!(ref_overlay.elements.len(), 1);
-        assert_eq!(ref_overlay.elements[0].name, "attribute_reference_values");
-        assert_eq!(ref_overlay.elements[0].keys, KeyType::AttrNames);
+        assert_eq!(ref_overlay.unique_keys, vec!["language", "region"]);
+        assert_eq!(ref_overlay.elements.len(), 3);
+        assert_eq!(ref_overlay.elements[0].name, "language");
+        assert_eq!(ref_overlay.elements[0].values, ElementType::Lang);
+        assert_eq!(ref_overlay.elements[1].name, "region");
+        assert_eq!(ref_overlay.elements[1].values, ElementType::Text);
+        let ref_element = ref_overlay
+            .elements
+            .iter()
+            .find(|e| e.name == "attribute_reference_values")
+            .unwrap();
+        assert_eq!(ref_element.keys, KeyType::AttrNames);
         assert_eq!(
-            ref_overlay.elements[0].values,
+            ref_element.values,
             ElementType::Object(Some(Box::new(OverlayElementDef {
                 name: "".to_string(),
                 keys: KeyType::Text,

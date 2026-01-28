@@ -550,7 +550,7 @@ mod tests {
 
         assert_eq!(
             serialized,
-            r#"{"version":"2.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"}}},{"type":"Add","object_kind":"Overlay","content":{"properties":{"language":"pl-PL","attribute_labels":{"allowed":"Dopuszczony"}},"overlay_def":{"namespace":null,"name":"label","version":"2.0.0","elements":[{"name":"language","keys":"Text","values":"Lang"},{"name":"attribute_labels","keys":"AttrNames","values":"Text"}]}}}],"commands_meta":{},"meta":{}}"#
+            r#"{"version":"2.0.0","commands":[{"type":"Add","object_kind":"CaptureBase","content":{"attributes":{"allowed":["Boolean"],"test":"Text"}}},{"type":"Add","object_kind":"Overlay","content":{"properties":{"language":"pl-PL","attribute_labels":{"allowed":"Dopuszczony"}},"overlay_def":{"namespace":null,"name":"label","version":"2.0.0","unique_keys":["language"],"elements":[{"name":"language","keys":"Text","values":"Lang"},{"name":"attribute_labels","keys":"AttrNames","values":"Text"}]}}}],"commands_meta":{},"meta":{}}"#
         );
 
         let ast = serde_json::from_str::<OCAAst>(&serialized).unwrap();

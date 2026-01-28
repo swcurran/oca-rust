@@ -344,6 +344,7 @@ mod tests {
             ],
             namespace: None,
             version: "2.0.0".to_string(),
+            unique_keys: Vec::new(),
         };
         overlay.set_overlay_def(label_overlay_def);
         // type → name

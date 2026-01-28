@@ -14,6 +14,7 @@ pub enum ValidationError {
     InvalidKeyType(String),
     InvalidValueType(String),
     DuplicateElement(String),
+    UnknownUniqueKey(String),
 }
 
 impl OverlayfileValidator {
@@ -42,6 +43,12 @@ impl OverlayfileValidator {
             }
 
             errors.extend(Self::validate_element(element));
+        }
+
+        for key in &overlay_def.unique_keys {
+            if !element_names.contains(key) {
+                errors.push(ValidationError::UnknownUniqueKey(key.clone()));
+            }
         }
 
         errors

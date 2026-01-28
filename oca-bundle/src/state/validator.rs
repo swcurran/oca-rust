@@ -1,5 +1,5 @@
 use isolang::Language;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use crate::state::oca_bundle::OCABundleModel;
 
@@ -76,7 +76,8 @@ impl Validator {
 
     pub fn validate(self, _oca_bundle: &OCABundleModel) -> Result<(), Vec<Error>> {
         let _enforced_langs: HashSet<_> = self.enforced_translations.iter().collect();
-        let errors: Vec<Error> = vec![];
+        let mut errors: Vec<Error> = vec![];
+        self.validate_unique_keys(_oca_bundle, &mut errors);
 
         /* let oca_bundle: OCABundle = serde_json::from_str(oca_str.as_str())
                    .map_err(|e| vec![Error::Custom(e.to_string())])?;
@@ -196,6 +197,64 @@ impl Validator {
         }
     }
 
+    fn validate_unique_keys(&self, oca_bundle: &OCABundleModel, errors: &mut Vec<Error>) {
+        let mut seen: HashMap<String, HashSet<String>> = HashMap::new();
+
+        for overlay in &oca_bundle.overlays {
+            let overlay_def = match &overlay.overlay_def {
+                Some(def) => def,
+                None => continue,
+            };
+            if overlay_def.unique_keys.is_empty() {
+                continue;
+            }
+            let properties = match &overlay.properties {
+                Some(props) => props,
+                None => {
+                    errors.push(Error::Custom(format!(
+                        "Overlay {} is missing properties for unique keys",
+                        overlay_def.get_full_name()
+                    )));
+                    continue;
+                }
+            };
+
+            let mut parts = Vec::new();
+            let mut missing = Vec::new();
+            for key in &overlay_def.unique_keys {
+                match properties.get(key) {
+                    Some(value) => {
+                        let value_str =
+                            serde_json::to_string(value).unwrap_or_else(|_| value.to_string());
+                        parts.push(format!("{}={}", key, value_str));
+                    }
+                    None => missing.push(key.clone()),
+                }
+            }
+
+            if !missing.is_empty() {
+                errors.push(Error::Custom(format!(
+                    "Overlay {} is missing unique keys: {}",
+                    overlay_def.get_full_name(),
+                    missing.join(", ")
+                )));
+                continue;
+            }
+
+            let signature = parts.join("|");
+            let entry = seen
+                .entry(overlay_def.get_full_name())
+                .or_insert_with(HashSet::new);
+            if !entry.insert(signature.clone()) {
+                errors.push(Error::Custom(format!(
+                    "Duplicate overlay {} with unique keys {}",
+                    overlay_def.get_full_name(),
+                    signature
+                )));
+            }
+        }
+    }
+
     // fn validate_meta(
     //     &self,
     //     enforced_langs: &HashSet<&Language>,
@@ -286,10 +345,16 @@ impl Validator {
 
 #[cfg(test)]
 mod tests {
+    use indexmap::IndexMap;
+    use oca_ast::ast::{NestedValue, OverlayContent};
     use overlay_file::overlay_registry::OverlayLocalRegistry;
+    use overlay_file::parse_from_string;
 
     use super::*;
     use crate::controller::load_oca;
+    use crate::state::oca_bundle::OCABundleModel;
+    use crate::state::oca_bundle::capture_base::CaptureBase;
+    use crate::state::oca_bundle::overlay::OverlayModel;
 
     #[test]
     fn validate_valid_oca() {
@@ -463,6 +528,53 @@ mod tests {
                 println!("{:?}", e);
                 panic!("Failed to load OCA bundle");
             }
+        }
+    }
+
+    #[test]
+    fn validate_unique_keys_multiple_and_duplicate_overlay() {
+        let overlay_file = r#"
+--name=Test
+ADD OVERLAY ReferenceValues
+  VERSION 1.0.1
+  UNIQUE KEYS [language, region]
+  ADD ATTRIBUTES language=Lang
+  ADD ATTRIBUTES region=Text
+"#;
+
+        let overlay_def = parse_from_string(overlay_file.to_string())
+            .unwrap()
+            .overlays_def
+            .remove(0);
+        assert_eq!(
+            overlay_def.unique_keys,
+            vec!["language".to_string(), "region".to_string()]
+        );
+
+        let mut properties = IndexMap::new();
+        properties.insert("language".to_string(), NestedValue::Value("en".to_string()));
+        properties.insert("region".to_string(), NestedValue::Value("US".to_string()));
+
+        let overlay_1 = OverlayModel::new(OverlayContent {
+            properties: Some(properties.clone()),
+            overlay_def: overlay_def.clone(),
+        });
+        let overlay_2 = OverlayModel::new(OverlayContent {
+            properties: Some(properties),
+            overlay_def,
+        });
+
+        let oca_bundle = OCABundleModel::new(CaptureBase::new(), vec![overlay_1, overlay_2]);
+        let validator = Validator::new();
+        let result = validator.validate(&oca_bundle);
+
+        assert!(result.is_err());
+        if let Err(errors) = result {
+            assert!(
+                errors
+                    .iter()
+                    .any(|error| error.to_string().contains("Duplicate overlay"))
+            );
         }
     }
 }

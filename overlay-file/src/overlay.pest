@@ -204,10 +204,10 @@ overlay_entry      =  _{ ( overlay_object | overlay_array | overlay_attributes)+
 /// The version of the overlay
 overlay_version   =  _{ iws* ~ ^"VERSION" ~ ws+ ~ version ~ ws* ~ NEWLINE }
 
-unique_keys_command = _{ iws* ~ ^"unique" ~ arg_ws? ~ ^"keys" ~ arg_ws? ~ (unique_key | unique_keys) ~ NEWLINE* }
+unique_keys_command = { iws* ~ ^"unique" ~ arg_ws? ~ ^"keys" ~ arg_ws? ~ (unique_key | unique_keys) ~ NEWLINE* }
 /// List of attributes which are uniquely identifing overlay
 unique_key = { attr_name }
-unique_keys = { "[" ~ (arg_ws? ~ unique_key ~ arg_ws?)+ ~ "]" }
+unique_keys = { "[" ~ arg_ws* ~ unique_key ~ (arg_ws* ~ "," ~ arg_ws* ~ unique_key)* ~ arg_ws* ~ "]" }
 
 overlay_object = { overlay_object_header ~ overlay_object_body }
 overlay_object_header = { iws* ~ ^"ADD OBJECT" ~ ws+ ~ attr_name ~ ws* ~ NEWLINE* }
@@ -269,4 +269,3 @@ complex_type = _{
     TEXT_TYPE |
     LANG_TYPE
 }
-
