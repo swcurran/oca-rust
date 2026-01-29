@@ -671,6 +671,11 @@ ADD OVERLAY ENTRY
         with keys Text
         with values Any
 
+ADD OVERLAY hcf:EntryCodeMapping
+  VERSION 1.0.0
+  ADD ARRAY attr_entry_codes_mapping
+    WITH VALUES Text
+
 "#;
 
         let result = parse_from_string(input.to_string()).unwrap();
@@ -679,7 +684,8 @@ ADD OVERLAY ENTRY
         let information = result.overlays_def.get(1).unwrap();
         let meta = result.overlays_def.get(2).unwrap();
         let entry = result.overlays_def.get(3).unwrap();
-        assert_eq!(result.overlays_def.len(), 4);
+        let entry_code_mapping = result.overlays_def.get(4).unwrap();
+        assert_eq!(result.overlays_def.len(), 5);
         assert_eq!(ref_overlay.name, "referencevalues");
         assert_eq!(ref_overlay.version, "1.0.1");
         assert_eq!(ref_overlay.namespace, None);
@@ -745,5 +751,10 @@ ADD OVERLAY ENTRY
                 })))
             })))
         );
+
+        assert_eq!(entry_code_mapping.name, "entrycodemapping");
+        assert_eq!(entry_code_mapping.version, "1.0.0");
+        assert_eq!(entry_code_mapping.elements.len(), 1);
+        assert_eq!(entry_code_mapping.elements[0].values, ElementType::Text);
     }
 }
