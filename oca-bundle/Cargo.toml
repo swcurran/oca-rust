@@ -16,7 +16,7 @@ path = "src/lib.rs"
 
 [dependencies]
 cascade = "1.0.1"
-convert_case = "0.9.0"
+convert_case = "0.10.0"
 dyn-clonable = "0.9.0"
 erased-serde = "0.4.9"
 getrandom = { version = "0.3.4", features = ["wasm_js"] }
