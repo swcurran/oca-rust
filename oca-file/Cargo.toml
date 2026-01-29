@@ -13,7 +13,7 @@ path = "src/lib.rs"
 
 [dependencies]
 clap = { version = "4.0.29", features = ["derive"] }
-convert_case = "0.9.0"
+convert_case = "0.10.0"
 pest = "2.5.1"
 pest_derive = "2.5.1"
 pretty_assertions = "1.3.0"
@@ -26,8 +26,8 @@ sled = "0.34.7"
 serde = { version = "1.0", features = ["derive"] }
 indexmap = { version = "2.12.0", features = ["serde"]}
 recursion = "0.5.1"
-oca-ast = { version = "2.0.0-rc.3" }
-overlay-file = { version = "1.0.0-rc.4" }
+oca-ast = { path = "../oca-ast/", version = "2.0.0-rc.3" }
+overlay-file = { path = "../overlay-file", version = "1.0.0-rc.4" }
 
 [package.metadata.release]
 tag-name = "{{crate_name}}-v{{version}}"
