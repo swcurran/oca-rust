@@ -560,6 +560,61 @@ ADD ATTRIBUTE dateOfBirth=DateTime \
     }
 
     #[test]
+    fn test_attribute_type_case_insensitive() {
+        let unparsed_file = r#"ADD ATTRIBUTE a=Text b=TEXT c=text d=TeXt e=Numeric f=NUMERIC g=numeric h=BoOlEaN i=BINARY j=datetime"#;
+
+        let registry = OverlayLocalRegistry::new();
+        let oca_ast = parse_from_string(unparsed_file.to_string(), &registry).unwrap();
+        let attrs = oca_ast.commands[0]
+            .object_kind
+            .capture_content()
+            .unwrap()
+            .attributes
+            .as_ref()
+            .unwrap();
+        assert_eq!(
+            attrs.get("a").unwrap(),
+            &NestedAttrType::Value(AttributeType::Text)
+        );
+        assert_eq!(
+            attrs.get("b").unwrap(),
+            &NestedAttrType::Value(AttributeType::Text)
+        );
+        assert_eq!(
+            attrs.get("c").unwrap(),
+            &NestedAttrType::Value(AttributeType::Text)
+        );
+        assert_eq!(
+            attrs.get("d").unwrap(),
+            &NestedAttrType::Value(AttributeType::Text)
+        );
+        assert_eq!(
+            attrs.get("e").unwrap(),
+            &NestedAttrType::Value(AttributeType::Numeric)
+        );
+        assert_eq!(
+            attrs.get("f").unwrap(),
+            &NestedAttrType::Value(AttributeType::Numeric)
+        );
+        assert_eq!(
+            attrs.get("g").unwrap(),
+            &NestedAttrType::Value(AttributeType::Numeric)
+        );
+        assert_eq!(
+            attrs.get("h").unwrap(),
+            &NestedAttrType::Value(AttributeType::Boolean)
+        );
+        assert_eq!(
+            attrs.get("i").unwrap(),
+            &NestedAttrType::Value(AttributeType::Binary)
+        );
+        assert_eq!(
+            attrs.get("j").unwrap(),
+            &NestedAttrType::Value(AttributeType::DateTime)
+        );
+    }
+
+    #[test]
     fn test_language_variants_roundtrip() {
         let _ = env_logger::builder().is_test(true).try_init();
         let registry = OverlayLocalRegistry::from_dir("../overlay-file/core_overlays").unwrap();

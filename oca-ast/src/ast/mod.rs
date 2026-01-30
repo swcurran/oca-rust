@@ -291,12 +291,13 @@ impl FromStr for AttributeType {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Boolean" => Ok(AttributeType::Boolean),
-            "Binary" => Ok(AttributeType::Binary),
-            "Text" => Ok(AttributeType::Text),
-            "Numeric" => Ok(AttributeType::Numeric),
-            "DateTime" => Ok(AttributeType::DateTime),
+        let normalized = s.to_ascii_lowercase();
+        match normalized.as_str() {
+            "boolean" => Ok(AttributeType::Boolean),
+            "binary" => Ok(AttributeType::Binary),
+            "text" => Ok(AttributeType::Text),
+            "numeric" => Ok(AttributeType::Numeric),
+            "datetime" => Ok(AttributeType::DateTime),
             _ => Err(()),
         }
     }
