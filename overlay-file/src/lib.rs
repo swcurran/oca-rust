@@ -74,10 +74,10 @@ impl OverlayDef {
         self.elements.iter().map(|el| el.name.clone()).collect()
     }
     pub fn get_full_name(&self) -> String {
-        if self.namespace.is_some() {
+        if let Some(namespace) = self.namespace.as_ref() {
             format!(
                 "{}:{}/{}",
-                self.namespace.as_ref().unwrap(),
+                &namespace,
                 self.name,
                 self.version
             )
