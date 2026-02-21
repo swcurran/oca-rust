@@ -818,7 +818,7 @@ dependencies = [
 
 [[package]]
 name = "overlay-file"
-version = "1.0.0-rc.6"
+version = "1.0.0-rc.7"
 dependencies = [
  "env_logger",
  "indexmap",
