@@ -4,6 +4,7 @@ pub mod validator;
 
 use self::error::ParseError;
 use self::validator::OverlayfileValidator;
+
 use log::debug;
 use pest::Parser;
 use serde::{Deserialize, Serialize};

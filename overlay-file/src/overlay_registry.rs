@@ -14,12 +14,33 @@ pub trait OverlayRegistry {
 }
 
 #[derive(Debug, Clone)]
-/// File based registry for overlays
+/// Simple registry for overlays providing read from file, dir and string
 pub struct OverlayLocalRegistry {
     overlays: HashMap<String, OverlayFile>,
 }
 
 impl OverlayLocalRegistry {
+    pub fn from_string(content: String) -> Result<Self, String> {
+        let mut overlays = HashMap::new();
+
+        let overlay_file = parse_from_string(content.clone()).map_err(|e| {
+            format!(
+                "Failed to parse overlay definition, error '{}' from string '{}'",
+                content, e
+            )
+        })?;
+
+        debug!(
+            "Loaded overlay definition '{}' with {} overlay(s)",
+            content,
+            overlay_file.overlays_def.len()
+        );
+        // TODO convert overlays to vec not need for hash
+        overlays.insert("string".to_string(), overlay_file);
+
+        Ok(OverlayLocalRegistry { overlays })
+    }
+
     pub fn from_dir<P: AsRef<Path>>(dir: P) -> Result<Self, std::io::Error> {
         let mut overlays = HashMap::new();
 
@@ -219,5 +240,9 @@ mod tests {
         // Test non-existent namespaced overlay
         let result = registry.get_overlay("nonexistent:overlay");
         assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err(),
+            "Overlay definition not found in registry"
+        );
     }
 }
